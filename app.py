@@ -3,15 +3,28 @@ from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from models import db, Mosque, Imam
 from wtforms_sqlalchemy.fields import QuerySelectField
-
+import os
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mosques.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'your_secret_key'
 
+# Update your database configuration to work on both local and Heroku environments
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///mosques.db')
+# Fix potential issue with PostgreSQL URLs on Heroku
+if app.config['SQLALCHEMY_DATABASE_URI'] and app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
+    app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Use environment variable for SECRET_KEY or default to a secure local value
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_local_secret_key')
 
 db.init_app(app)
+
+# Initialize database if needed
+with app.app_context():
+    try:
+        db.create_all()
+    except Exception as e:
+        print(f"Database initialization error: {e}")
 
 # manually configuring the Imam model
 class ImamModelView(ModelView):
@@ -23,7 +36,6 @@ class ImamModelView(ModelView):
         'mosque': QuerySelectField
     }
 
-
     form_args = {
         'mosque': {
             'label': 'المسجد',
@@ -32,15 +44,9 @@ class ImamModelView(ModelView):
         }
     }
 
-
-
 admin = Admin(app, name='إدارة أئمة التراويح', template_mode='bootstrap3')
-
-
-
 admin.add_view(ModelView(Mosque, db.session, name='المساجد'))
 admin.add_view(ImamModelView(Imam, db.session, name='الأئمة'))
-
 
 # Main route
 @app.route('/')
@@ -49,7 +55,6 @@ def index():
     areas = db.session.query(Mosque.area).distinct().all()
     areas = [area[0] for area in areas]  # Extract area names from tuples
     return render_template('index.html', areas=areas)
-
 
 # API route: Get all mosques with their imams
 @app.route('/api/mosques')
@@ -72,13 +77,11 @@ def get_mosques():
         })
     return jsonify(result)
 
-
 # API route: Search and filter mosques
 @app.route('/api/mosques/search')
 def search_mosques():
     query = request.args.get('q', '')
     area = request.args.get('area', '')
-
 
     mosque_query = db.session.query(Mosque).outerjoin(Imam)
 
@@ -117,6 +120,7 @@ def search_mosques():
 
     return jsonify(result)
 
-
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Use Heroku's PORT environment variable or default to 5000
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
