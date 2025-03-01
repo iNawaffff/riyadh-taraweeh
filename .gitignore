@@ -26,9 +26,6 @@ var/
 instance/
 .webassets-cache
 
-# Database
-*.db
-*.sqlite
 
 # IDE
 .idea/
