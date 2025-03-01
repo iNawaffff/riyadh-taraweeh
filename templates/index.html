@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>أئمة التراويح - الرياض</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="main-header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="moon-icon">
+                        <img src="{{ url_for('static', filename='images/animated-moon.gif') }}" alt="Moon icon">
+                    </div>
+                    <div>
+                        <h1>أئمة التراويح</h1>
+                        <p>رمضان ١٤٤٦ هـ - الرياض</p>
+                    </div>
+                </div>
+                <button id="menuToggle" class="menu-toggle">☰</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Banner (Desktop only) -->
+    <div class="hero-banner">
+        <div class="container">
+            <h2>تصفح أشهر أئمة التراويح في الرياض</h2>
+            <p>استمع لتلاوات الأئمة واختر المسجد الأقرب إليك لقضاء ليالي رمضان في خشوع وسكينة</p>
+        </div>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div id="mobileMenu" class="mobile-menu">
+        <div class="container">
+            <a href="#about">عن الموقع</a>
+            <a href="#map">خريطة المساجد</a>
+        </div>
+    </div>
+
+    <!-- Search Section -->
+    <div class="container">
+        <div class="search-section">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="ابحث عن مسجد أو إمام...">
+                <button id="searchButton" class="search-button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            <div class="filter-section">
+                <select id="areaFilter">
+                    <option value="الكل">كل المناطق</option>
+                    {% for area in areas %}
+                    <option value="{{ area }}">{{ area }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div id="searchResults" class="search-results-info"></div>
+    </div>
+
+    <!-- Mosques Grid -->
+    <div class="container">
+        <div id="mosquesGrid" class="mosques-grid">
+            <!-- Mosques will be loaded here via JavaScript -->
+            <div class="loading">جاري تحميل البيانات...</div>
+        </div>
+    </div>
+
+    <!-- Community Info -->
+    <div class="container">
+        <div class="community-info">
+            <h3>مبادرة مجتمعية</h3>
+            <p>هذا الموقع جهد مجتمعي شارك فيه أكثر من شخص، لمساعدة أهل الرياض في معرفة أئمة التراويح و اماكنهم. لو لاحظت أي خطأ أو حاب تضيف شيء، يرجى التواصل مع <a href="https://twitter.com/iNawafkhalid" target="_blank">@iNawafkhalid</a>.</p>
+            <p class="last-update">آخر تحديث: <span id="lastUpdateDate">١ رمضان ١٤٤٥ هـ</span></p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="container">
+            <p>موقع أئمة التراويح - رمضان ١٤٤٦ هـ</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
