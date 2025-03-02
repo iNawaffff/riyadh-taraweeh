@@ -2,27 +2,32 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_admin import Admin, AdminIndexView, expose
 from flask_admin.contrib.sqla import ModelView
 from models import db, Mosque, Imam
+
 from wtforms_sqlalchemy.fields import QuerySelectField
+
 import os
+import tempfile
+from s3_utils import upload_to_s3, delete_from_s3
+
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 
-# Load environment variables first
+
 load_dotenv()
 
 app = Flask(__name__)
 
-# Update your database configuration to work on both local and Heroku environments
+
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///mosques.db')
-# Fix potential issue with PostgreSQL URLs on Heroku
+
 if app.config['SQLALCHEMY_DATABASE_URI'] and app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
     app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://',
                                                                                           'postgresql://')
     print(f"Database URL converted to: {app.config['SQLALCHEMY_DATABASE_URI']}")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Use environment variable for SECRET_KEY or default to a secure local value
+
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_local_secret_key')
 
 db.init_app(app)
@@ -52,18 +57,18 @@ def load_user(user_id):
 # Initialize database if needed
 with app.app_context():
     try:
-        # Create all tables
+
         print("Creating database tables...")
         db.create_all()
         print("Tables created successfully!")
 
-        # Get admin credentials from environment variables
+
         ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
         ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'adminpassword')
 
         print(f"Checking for admin user: {ADMIN_USERNAME}")
 
-        # Create default admin user if not exists
+
         admin_user = User.query.filter_by(username=ADMIN_USERNAME).first()
         if not admin_user:
             print(f"Admin user {ADMIN_USERNAME} not found. Creating new admin user...")
@@ -97,11 +102,24 @@ class BaseModelView(ModelView):
 
 
 # manually configuring the Imam model
-class ImamModelView(BaseModelView):  # Inherit from BaseModelView
+from wtforms.fields import FileField
+from werkzeug.utils import secure_filename
+import os
+import tempfile
+from s3_utils import upload_to_s3, delete_from_s3
+
+
+
+class ImamModelView(BaseModelView):
     form_columns = ['name', 'mosque', 'audio_sample', 'youtube_link']
     column_list = ['name', 'mosque', 'audio_sample', 'youtube_link']
 
-    # Override the form field type for the relationship
+    # Add file upload field
+    form_extra_fields = {
+        'audio_file': FileField('Audio File (MP3)')
+    }
+
+
     form_overrides = {
         'mosque': QuerySelectField
     }
@@ -110,13 +128,45 @@ class ImamModelView(BaseModelView):  # Inherit from BaseModelView
         'mosque': {
             'label': 'المسجد',
             'query_factory': lambda: Mosque.query.all(),
-            'get_label': 'name'  # Use the name attribute of Mosque for display
+            'get_label': 'name'  # name attribute of Mosque for display
         }
     }
 
+    def on_model_change(self, form, model, is_created):
+        """Process audio file upload to S3 if provided"""
+        file_data = form.audio_file.data
 
-# ModelView for Mosque, also inheriting from BaseModelView
-class MosqueModelView(BaseModelView):  # Inherit from BaseModelView
+        # checking if file was uploaded
+        if file_data and hasattr(file_data, 'filename') and file_data.filename:
+            # secures the filename to prevent any path traversal attacks
+            filename = secure_filename(file_data.filename)
+
+
+            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                temp_path = temp_file.name
+                file_data.save(temp_path)
+
+            try:
+                # Upload to S3
+                s3_url = upload_to_s3(temp_path, filename)
+
+
+                if s3_url and s3_url.startswith('http'):
+
+                    old_url = model.audio_sample
+                    if old_url and old_url.startswith('https://imams-riyadh-audio.s3'):
+
+                        old_filename = old_url.split('/')[-1]
+                        delete_from_s3(old_filename)
+
+
+                    model.audio_sample = s3_url
+            finally:
+                #  clean up the temporary file
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+
+class MosqueModelView(BaseModelView):
     pass  # Uses default configurations
 
 
@@ -184,7 +234,7 @@ def get_mosques():
     return jsonify(result)
 
 
-# API route: Search and filter mosques
+
 @app.route('/api/mosques/search')
 def search_mosques():
     query = request.args.get('q', '')
@@ -206,10 +256,10 @@ def search_mosques():
     if area and area != 'الكل':
         mosque_query = mosque_query.filter(Mosque.area == area)
 
-    # Execute the query
+
     mosques = mosque_query.all()
 
-    # Format the results
+
     result = []
     for mosque in mosques:
         imam = Imam.query.filter_by(mosque_id=mosque.id).first()
@@ -229,6 +279,6 @@ def search_mosques():
 
 
 if __name__ == '__main__':
-    # Use Heroku's PORT environment variable or default to 5000
+
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
