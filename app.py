@@ -8,14 +8,18 @@ from flask_login import LoginManager, UserMixin, login_required, login_user, log
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 
+# Load environment variables first
 load_dotenv()
+
 app = Flask(__name__)
 
 # Update your database configuration to work on both local and Heroku environments
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///mosques.db')
 # Fix potential issue with PostgreSQL URLs on Heroku
 if app.config['SQLALCHEMY_DATABASE_URI'] and app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
-    app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://', 'postgresql://')
+    app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://',
+                                                                                          'postgresql://')
+    print(f"Database URL converted to: {app.config['SQLALCHEMY_DATABASE_URI']}")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Use environment variable for SECRET_KEY or default to a secure local value
@@ -25,6 +29,7 @@ db.init_app(app)
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+
 
 # User model for authentication
 class User(UserMixin, db.Model):
@@ -38,25 +43,40 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+
 # Initialize database if needed
 with app.app_context():
     try:
+        # Create all tables
+        print("Creating database tables...")
         db.create_all()
+        print("Tables created successfully!")
 
-        ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')  # Default to 'admin' if not set in env
-        ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'adminpassword')  # Default to 'adminpassword' if not set in env
+        # Get admin credentials from environment variables
+        ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
+        ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'adminpassword')
+
+        print(f"Checking for admin user: {ADMIN_USERNAME}")
+
         # Create default admin user if not exists
-        if not User.query.filter_by(username='admin').first():
-            default_admin = User(username='admin')
-            default_admin.set_password(ADMIN_PASSWORD) # Change this to a strong password
+        admin_user = User.query.filter_by(username=ADMIN_USERNAME).first()
+        if not admin_user:
+            print(f"Admin user {ADMIN_USERNAME} not found. Creating new admin user...")
+            default_admin = User(username=ADMIN_USERNAME)
+            default_admin.set_password(ADMIN_PASSWORD)
             db.session.add(default_admin)
             db.session.commit()
+            print(f"Admin user {ADMIN_USERNAME} created successfully!")
+        else:
+            print(f"Admin user {ADMIN_USERNAME} already exists.")
     except Exception as e:
         print(f"Database initialization error: {e}")
+
 
 # Custom Admin Index View
 class MyAdminIndexView(AdminIndexView):
@@ -64,6 +84,7 @@ class MyAdminIndexView(AdminIndexView):
     @login_required
     def index(self):
         return super(MyAdminIndexView, self).index()
+
 
 # Base ModelView with login required
 class BaseModelView(ModelView):
@@ -74,8 +95,9 @@ class BaseModelView(ModelView):
         # Redirect to login page if user is not authenticated
         return redirect(url_for('login'))
 
+
 # manually configuring the Imam model
-class ImamModelView(BaseModelView): # Inherit from BaseModelView
+class ImamModelView(BaseModelView):  # Inherit from BaseModelView
     form_columns = ['name', 'mosque', 'audio_sample', 'youtube_link']
     column_list = ['name', 'mosque', 'audio_sample', 'youtube_link']
 
@@ -92,13 +114,16 @@ class ImamModelView(BaseModelView): # Inherit from BaseModelView
         }
     }
 
+
 # ModelView for Mosque, also inheriting from BaseModelView
-class MosqueModelView(BaseModelView): # Inherit from BaseModelView
-    pass # Uses default configurations
+class MosqueModelView(BaseModelView):  # Inherit from BaseModelView
+    pass  # Uses default configurations
+
 
 admin = Admin(app, name='إدارة أئمة التراويح', template_mode='bootstrap3', index_view=MyAdminIndexView())
 admin.add_view(MosqueModelView(Mosque, db.session, name='المساجد'))
 admin.add_view(ImamModelView(Imam, db.session, name='الأئمة'))
+
 
 # Login route
 @app.route('/login', methods=['GET', 'POST'])
@@ -106,18 +131,27 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+
+        print(f"Login attempt for user: {username}")
+
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
             login_user(user)
-            return redirect(url_for('admin.index')) # Redirect to admin index page
+            print(f"Login successful for user: {username}")
+            return redirect(url_for('admin.index'))  # Redirect to admin index page
+        else:
+            print(f"Login failed for user: {username}")
+
     return render_template('login.html')
+
 
 # Logout route
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('index')) # Redirect to your main index page
+    return redirect(url_for('index'))  # Redirect to your main index page
+
 
 # Main route
 @app.route('/')
@@ -126,6 +160,7 @@ def index():
     areas = db.session.query(Mosque.area).distinct().all()
     areas = [area[0] for area in areas]  # Extract area names from tuples
     return render_template('index.html', areas=areas)
+
 
 # API route: Get all mosques with their imams
 @app.route('/api/mosques')
@@ -147,6 +182,7 @@ def get_mosques():
             'youtube_link': imam.youtube_link if imam else None
         })
     return jsonify(result)
+
 
 # API route: Search and filter mosques
 @app.route('/api/mosques/search')
@@ -190,6 +226,7 @@ def search_mosques():
         })
 
     return jsonify(result)
+
 
 if __name__ == '__main__':
     # Use Heroku's PORT environment variable or default to 5000
