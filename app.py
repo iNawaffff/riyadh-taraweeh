@@ -1,10 +1,14 @@
-from flask import Flask, render_template, request, jsonify
-from flask_admin import Admin
+from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask_admin import Admin, AdminIndexView, expose
 from flask_admin.contrib.sqla import ModelView
 from models import db, Mosque, Imam
 from wtforms_sqlalchemy.fields import QuerySelectField
 import os
+from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from dotenv import load_dotenv
 
+load_dotenv()
 app = Flask(__name__)
 
 # Update your database configuration to work on both local and Heroku environments
@@ -19,15 +23,59 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_local_secret_key')
 
 db.init_app(app)
 
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+
+# User model for authentication
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True)
+    password_hash = db.Column(db.String(128))
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 # Initialize database if needed
 with app.app_context():
     try:
         db.create_all()
+
+        ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')  # Default to 'admin' if not set in env
+        ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'adminpassword')  # Default to 'adminpassword' if not set in env
+        # Create default admin user if not exists
+        if not User.query.filter_by(username='admin').first():
+            default_admin = User(username='admin')
+            default_admin.set_password('adminpassword') # Change this to a strong password
+            db.session.add(default_admin)
+            db.session.commit()
     except Exception as e:
         print(f"Database initialization error: {e}")
 
+# Custom Admin Index View
+class MyAdminIndexView(AdminIndexView):
+    @expose('/')
+    @login_required
+    def index(self):
+        return super(MyAdminIndexView, self).index()
+
+# Base ModelView with login required
+class BaseModelView(ModelView):
+    def is_accessible(self):
+        return current_user.is_authenticated
+
+    def inaccessible_callback(self, name, **kwargs):
+        # Redirect to login page if user is not authenticated
+        return redirect(url_for('login'))
+
 # manually configuring the Imam model
-class ImamModelView(ModelView):
+class ImamModelView(BaseModelView): # Inherit from BaseModelView
     form_columns = ['name', 'mosque', 'audio_sample', 'youtube_link']
     column_list = ['name', 'mosque', 'audio_sample', 'youtube_link']
 
@@ -44,9 +92,32 @@ class ImamModelView(ModelView):
         }
     }
 
-admin = Admin(app, name='إدارة أئمة التراويح', template_mode='bootstrap3')
-admin.add_view(ModelView(Mosque, db.session, name='المساجد'))
+# ModelView for Mosque, also inheriting from BaseModelView
+class MosqueModelView(BaseModelView): # Inherit from BaseModelView
+    pass # Uses default configurations
+
+admin = Admin(app, name='إدارة أئمة التراويح', template_mode='bootstrap3', index_view=MyAdminIndexView())
+admin.add_view(MosqueModelView(Mosque, db.session, name='المساجد'))
 admin.add_view(ImamModelView(Imam, db.session, name='الأئمة'))
+
+# Login route
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+        if user and user.check_password(password):
+            login_user(user)
+            return redirect(url_for('admin.index')) # Redirect to admin index page
+    return render_template('login.html')
+
+# Logout route
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('index')) # Redirect to your main index page
 
 # Main route
 @app.route('/')
