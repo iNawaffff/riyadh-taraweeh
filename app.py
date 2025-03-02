@@ -52,7 +52,7 @@ with app.app_context():
         # Create default admin user if not exists
         if not User.query.filter_by(username='admin').first():
             default_admin = User(username='admin')
-            default_admin.set_password('adminpassword') # Change this to a strong password
+            default_admin.set_password(ADMIN_PASSWORD) # Change this to a strong password
             db.session.add(default_admin)
             db.session.commit()
     except Exception as e:
