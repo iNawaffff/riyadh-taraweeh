@@ -1,3 +1,4 @@
+# keeping this only for reference, im not using it atm
 import boto3
 import os
 from botocore.exceptions import NoCredentialsError, ClientError
@@ -24,8 +25,8 @@ def upload_to_s3(local_file_path, s3_file_name=None):
     # Initialize S3 client
     s3_client = boto3.client(
         's3',
-        aws_access_key_id=os.environ.get('AWS_ACCESS_KEY_ID'),
-        aws_secret_access_key=os.environ.get('AWS_SECRET_ACCESS_KEY')
+        aws_access_key_id="AKIAXKPU2A3Z2X6OUYM4",
+        aws_secret_access_key="YYvTgj56FY1ybRG8Dh+afIsQc6wyRtUqdrSTbQyIr"
     )
 
     try:

@@ -6,9 +6,6 @@ from models import db, Mosque, Imam
 from wtforms_sqlalchemy.fields import QuerySelectField
 
 import os
-import tempfile
-from s3_utils import upload_to_s3, delete_from_s3
-
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
@@ -57,17 +54,14 @@ def load_user(user_id):
 # Initialize database if needed
 with app.app_context():
     try:
-
         print("Creating database tables...")
         db.create_all()
         print("Tables created successfully!")
-
 
         ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
         ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'adminpassword')
 
         print(f"Checking for admin user: {ADMIN_USERNAME}")
-
 
         admin_user = User.query.filter_by(username=ADMIN_USERNAME).first()
         if not admin_user:
@@ -101,73 +95,54 @@ class BaseModelView(ModelView):
         return redirect(url_for('login'))
 
 
-# manually configuring the Imam model
-from wtforms.fields import FileField
-from werkzeug.utils import secure_filename
-import os
-import tempfile
-from s3_utils import upload_to_s3, delete_from_s3
+class MosqueModelView(BaseModelView):
+    form_columns = ['name', 'location', 'area', 'map_link']
+    column_list = ['name', 'location', 'area', 'map_link']
+    can_view_details = True
 
+    form_args = {
+        'name': {
+            'label': 'اسم المسجد'
+        },
+        'location': {
+            'label': 'الموقع'
+        },
+        'area': {
+            'label': 'المنطقة'
+        },
+        'map_link': {
+            'label': 'رابط الخريطة'
+        }
+    }
 
 
 class ImamModelView(BaseModelView):
     form_columns = ['name', 'mosque', 'audio_sample', 'youtube_link']
     column_list = ['name', 'mosque', 'audio_sample', 'youtube_link']
+    can_view_details = True
 
-    # Add file upload field
-    form_extra_fields = {
-        'audio_file': FileField('Audio File (MP3)')
-    }
-
-
+    # Override form field type for the relationship
     form_overrides = {
         'mosque': QuerySelectField
     }
 
     form_args = {
+        'name': {
+            'label': 'اسم الإمام'
+        },
         'mosque': {
             'label': 'المسجد',
             'query_factory': lambda: Mosque.query.all(),
-            'get_label': 'name'  # name attribute of Mosque for display
+            'get_label': 'name'
+        },
+        'audio_sample': {
+            'label': 'رابط الملف الصوتي',
+            'description': 'أدخل رابط الملف الصوتي من S3 هنا'
+        },
+        'youtube_link': {
+            'label': 'رابط يوتيوب'
         }
     }
-
-    def on_model_change(self, form, model, is_created):
-        """Process audio file upload to S3 if provided"""
-        file_data = form.audio_file.data
-
-        # checking if file was uploaded
-        if file_data and hasattr(file_data, 'filename') and file_data.filename:
-            # secures the filename to prevent any path traversal attacks
-            filename = secure_filename(file_data.filename)
-
-
-            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-                temp_path = temp_file.name
-                file_data.save(temp_path)
-
-            try:
-                # Upload to S3
-                s3_url = upload_to_s3(temp_path, filename)
-
-
-                if s3_url and s3_url.startswith('http'):
-
-                    old_url = model.audio_sample
-                    if old_url and old_url.startswith('https://imams-riyadh-audio.s3'):
-
-                        old_filename = old_url.split('/')[-1]
-                        delete_from_s3(old_filename)
-
-
-                    model.audio_sample = s3_url
-            finally:
-                #  clean up the temporary file
-                if os.path.exists(temp_path):
-                    os.unlink(temp_path)
-
-class MosqueModelView(BaseModelView):
-    pass  # Uses default configurations
 
 
 admin = Admin(app, name='إدارة أئمة التراويح', template_mode='bootstrap3', index_view=MyAdminIndexView())
@@ -234,7 +209,6 @@ def get_mosques():
     return jsonify(result)
 
 
-
 @app.route('/api/mosques/search')
 def search_mosques():
     query = request.args.get('q', '')
@@ -256,9 +230,7 @@ def search_mosques():
     if area and area != 'الكل':
         mosque_query = mosque_query.filter(Mosque.area == area)
 
-
     mosques = mosque_query.all()
-
 
     result = []
     for mosque in mosques:
@@ -279,6 +251,5 @@ def search_mosques():
 
 
 if __name__ == '__main__':
-
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 5002))
     app.run(host='0.0.0.0', port=port)
