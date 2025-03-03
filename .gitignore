@@ -22,6 +22,7 @@ var/
 .installed.cfg
 *.egg
 .env
+*.env
 # Flask
 instance/
 .webassets-cache
