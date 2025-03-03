@@ -33,7 +33,7 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 
-# User model for authentication
+# user model for authentication
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True)
@@ -51,7 +51,7 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-# Initialize database if needed
+# initialize the database if needed
 with app.app_context():
     try:
         print("Creating database tables...")
@@ -77,7 +77,7 @@ with app.app_context():
         print(f"Database initialization error: {e}")
 
 
-# Custom Admin Index View
+
 class MyAdminIndexView(AdminIndexView):
     @expose('/')
     @login_required
@@ -85,13 +85,13 @@ class MyAdminIndexView(AdminIndexView):
         return super(MyAdminIndexView, self).index()
 
 
-# Base ModelView with login required
+
 class BaseModelView(ModelView):
     def is_accessible(self):
         return current_user.is_authenticated
 
     def inaccessible_callback(self, name, **kwargs):
-        # Redirect to login page if user is not authenticated
+        # redirect to the login page if user is not authenticated
         return redirect(url_for('login'))
 
 
@@ -121,7 +121,7 @@ class ImamModelView(BaseModelView):
     column_list = ['name', 'mosque', 'audio_sample', 'youtube_link']
     can_view_details = True
 
-    # Override form field type for the relationship
+
     form_overrides = {
         'mosque': QuerySelectField
     }
@@ -190,7 +190,7 @@ def index():
 # API route: Get all mosques with their imams
 @app.route('/api/mosques')
 def get_mosques():
-    mosques = Mosque.query.all()
+    mosques = Mosque.query.order_by(Mosque.name).all()
     result = []
     for mosque in mosques:
         # Get the imam for this mosque
@@ -216,7 +216,7 @@ def search_mosques():
 
     mosque_query = db.session.query(Mosque).outerjoin(Imam)
 
-    # Filter by search term if provided
+    # filter by the search term if it was provided
     if query:
         mosque_query = mosque_query.filter(
             db.or_(
@@ -226,10 +226,11 @@ def search_mosques():
             )
         )
 
-    # Filter by area if provided and not "all"
+    # filter by the area if provided and not "all" the items
     if area and area != 'الكل':
         mosque_query = mosque_query.filter(Mosque.area == area)
 
+    mosque_query = mosque_query.order_by(Mosque.name)
     mosques = mosque_query.all()
 
     result = []

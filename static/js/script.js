@@ -221,4 +221,26 @@ document.addEventListener('DOMContentLoaded', function() {
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
         lastUpdateElement.textContent = today.toLocaleDateString('ar-SA', options);
     }
+
+    // Handle the About section link
+    const aboutLinks = document.querySelectorAll('a[href="#about"]');
+
+    aboutLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // Scroll to the about section smoothly
+            const aboutSection = document.getElementById('about');
+            if (aboutSection) {
+                aboutSection.scrollIntoView({
+                    behavior: 'smooth'
+                });
+            }
+
+            // If on mobile, close the menu after clicking
+            if (mobileMenu && window.getComputedStyle(mobileMenu).display === 'block') {
+                mobileMenu.style.display = 'none';
+            }
+        });
+    });
 });
