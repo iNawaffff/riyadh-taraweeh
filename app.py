@@ -10,11 +10,9 @@ from flask_login import LoginManager, UserMixin, login_required, login_user, log
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 
-
 load_dotenv()
 
 app = Flask(__name__)
-
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///mosques.db')
 
@@ -23,7 +21,6 @@ if app.config['SQLALCHEMY_DATABASE_URI'] and app.config['SQLALCHEMY_DATABASE_URI
                                                                                           'postgresql://')
     print(f"Database URL converted to: {app.config['SQLALCHEMY_DATABASE_URI']}")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_local_secret_key')
 
@@ -77,13 +74,11 @@ with app.app_context():
         print(f"Database initialization error: {e}")
 
 
-
 class MyAdminIndexView(AdminIndexView):
     @expose('/')
     @login_required
     def index(self):
         return super(MyAdminIndexView, self).index()
-
 
 
 class BaseModelView(ModelView):
@@ -120,7 +115,6 @@ class ImamModelView(BaseModelView):
     form_columns = ['name', 'mosque', 'audio_sample', 'youtube_link']
     column_list = ['name', 'mosque', 'audio_sample', 'youtube_link']
     can_view_details = True
-
 
     form_overrides = {
         'mosque': QuerySelectField
@@ -186,6 +180,16 @@ def index():
     areas = [area[0] for area in areas]  # Extract area names from tuples
     return render_template('index.html', areas=areas)
 
+# about page
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+
+# contact page
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
 
 # API route: Get all mosques with their imams
 @app.route('/api/mosques')
@@ -216,27 +220,36 @@ def search_mosques():
 
     mosque_query = db.session.query(Mosque).outerjoin(Imam)
 
-    # filter by the search term if it was provided
-    if query:
-        mosque_query = mosque_query.filter(
-            db.or_(
-                Mosque.name.ilike(f'%{query}%'),
-                Mosque.location.ilike(f'%{query}%'),
-                Imam.name.ilike(f'%{query}%')
-            )
-        )
-
-    # filter by the area if provided and not "all" the items
+    # Filter by area if provided
     if area and area != 'الكل':
         mosque_query = mosque_query.filter(Mosque.area == area)
 
     mosque_query = mosque_query.order_by(Mosque.name)
     mosques = mosque_query.all()
 
+    # if there's a search query, apply the fuzzy matching in Python
+    if query:
+        from utils import normalize_arabic
+        normalized_query = normalize_arabic(query)
+
+        # filter mosques with fuzzy matching in Python
+        filtered_mosques = []
+        for mosque in mosques:
+            # Check if the query matches any of these fields (original or normalized)
+            if (query.lower() in mosque.name.lower() or
+                    query.lower() in mosque.location.lower() or
+                    any(query.lower() in imam.name.lower() for imam in mosque.imams) or
+                    normalized_query in normalize_arabic(mosque.name) or
+                    normalized_query in normalize_arabic(mosque.location) or
+                    any(normalized_query in normalize_arabic(imam.name) for imam in mosque.imams)):
+                filtered_mosques.append(mosque)
+
+        mosques = filtered_mosques
+
+    # Format results as before
     result = []
     for mosque in mosques:
         imam = Imam.query.filter_by(mosque_id=mosque.id).first()
-
         result.append({
             'id': mosque.id,
             'name': mosque.name,
@@ -251,6 +264,7 @@ def search_mosques():
     return jsonify(result)
 
 
+
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5002))
+    port = int(os.environ.get('PORT', 5001))
     app.run(host='0.0.0.0', port=port)
