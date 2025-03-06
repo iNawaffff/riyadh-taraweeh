@@ -271,7 +271,7 @@ a:focus, button:focus, input:focus, select:focus {
     transition: transform 0.5s ease;
     width: 100%;
     max-width: 300px;
-
+}
 .nav-menu.active .nav-links {
     transform: translateY(0);
 }
@@ -1626,4 +1626,3 @@ body.menu-open {
     }
 }
 
-}
