@@ -1,5 +1,25 @@
-/* Base Styles */
+/*=========================================
+ * THE WEBSITE STYLES
+ *
+ * CONTENTS:
+ * 1. CSS Variables & Base Styles
+ * 2. Layout & Common Elements
+ * 3. Header & Navigation
+ * 4. Search Section
+ * 5. Mosque Cards & Information
+ * 6. Buttons & Interactive Elements
+ * 7. Page-Specific Styles
+ * 8. Animations
+ * 9. Media Queries & Responsive Design
+ *=========================================*/
+
+
+/*=========================================
+ * 1. CSS VARIABLES & BASE STYLES
+ *=========================================*/
+
 :root {
+    /* Color Palette */
     --primary-color: #0d4b33;       /* darker green for elegance */
     --primary-dark: #083524;        /* even darker green for depth */
     --primary-light: #e6f2ee;       /* lighter shade for backgrounds */
@@ -10,29 +30,34 @@
     --background: #f8f8f8;          /* off-white background */
     --white: #ffffff;               /* full white */
     --border-color: #e0e0e0;        /* light gray borders */
-    --shadow: 0 2px 10px rgba(0, 0, 0, 0.08); /* a bit of shadow */
+
+    /* Effects */
+    --shadow: 0 2px 10px rgba(0, 0, 0, 0.08); /* subtle shadow */
+
+    /* Brand colors for external services */
+    --youtube-red: #ff0000;          /* YouTube brand color */
+    --youtube-red-dark: #cc0000;     /* Darker YouTube color for hover */
+    --twitter-blue: #1DA1F2;         /* Twitter brand color */
+    --google-blue: #4285F4;          /* Google Maps blue */
 }
 
+/* Reset styles */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
+/* Base typography and colors */
 body {
     font-family: 'Tajawal', sans-serif;
     background-color: var(--background);
     color: var(--text-color);
     line-height: 1.6;
+    direction: rtl; /* right-to-left rendering for arabic */
 }
 
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
-}
-
-/* custom scrollbar */
+/* Custom scrollbar for better usability */
 ::-webkit-scrollbar {
     width: 8px;
 }
@@ -50,13 +75,55 @@ body {
     background: var(--primary-dark);
 }
 
-/* Focus styles for accessibility */
+/* Accessibility focus styles */
 a:focus, button:focus, input:focus, select:focus {
     outline: 2px solid var(--accent-color);
     outline-offset: 2px;
 }
 
-/* Header */
+
+/*=========================================
+ * 2. LAYOUT & COMMON ELEMENTS
+ *=========================================*/
+
+/* main container with responsive width */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Skip link for keyboard users (hidden visually but accessible) */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: var(--primary-color);
+    color: white;
+    padding: 8px;
+    z-index: 100;
+    transition: top 0.3s;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
+/* Utility classes for spacing */
+.mt-4 {
+    margin-top: 20px;
+}
+
+.mt-5 {
+    margin-top: 30px;
+}
+
+
+/*=========================================
+ * 3. HEADER & NAVIGATION
+ *=========================================*/
+
+/* Main site header */
 .main-header {
     background-color: var(--primary-color);
     color: var(--white);
@@ -67,6 +134,7 @@ a:focus, button:focus, input:focus, select:focus {
     box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
 }
 
+/* Decorative pattern overlay */
 .main-header::before {
     content: "";
     position: absolute;
@@ -79,17 +147,19 @@ a:focus, button:focus, input:focus, select:focus {
     pointer-events: none;
 }
 
+/* Header content layout */
 .header-content {
     display: flex;
     align-items: center;
     position: relative;
 }
 
+/* Logo styling */
 .logo {
     display: flex;
     align-items: center;
     margin: 0 auto;
-    padding-right: 28px;
+    padding-right: 28px; /* Space for hamburger button */
 }
 
 .moon-icon {
@@ -118,7 +188,7 @@ a:focus, button:focus, input:focus, select:focus {
     margin: 0;
 }
 
-/* Hamburger Menu Button Styles */
+/* Hamburger Menu Button */
 .hamburger-menu {
     display: flex;
     flex-direction: column;
@@ -137,7 +207,7 @@ a:focus, button:focus, input:focus, select:focus {
     transform: translateY(-50%);
 }
 
-/* Invisible touch area extension for mobile */
+/* Expanded touch target for mobile */
 .hamburger-menu::before {
     content: '';
     position: absolute;
@@ -156,7 +226,7 @@ a:focus, button:focus, input:focus, select:focus {
     transform-origin: center;
 }
 
-/* Hamburger animation when active */
+/* Animation for hamburger to X */
 .hamburger-menu.active .hamburger-line:nth-child(1) {
     transform: translateY(9px) rotate(45deg);
 }
@@ -169,65 +239,7 @@ a:focus, button:focus, input:focus, select:focus {
     transform: translateY(-9px) rotate(-45deg);
 }
 
-/* Responsive adjustments */
-@media (max-width: 767px) {
-    .logo {
-        padding-right: 24px;
-    }
-
-    .hamburger-menu {
-        width: 24px;
-        height: 20px;
-    }
-
-    /* Adjust the animation calculation for the smaller size */
-    .hamburger-menu.active .hamburger-line:nth-child(1) {
-        transform: translateY(8px) rotate(45deg);
-    }
-
-    .hamburger-menu.active .hamburger-line:nth-child(3) {
-        transform: translateY(-8px) rotate(-45deg);
-    }
-
-    .moon-icon img {
-        width: 32px;
-        height: 32px;
-    }
-
-    .logo h1 {
-        font-size: 1.3rem;
-    }
-
-    .logo p {
-        font-size: 0.75rem;
-    }
-}
-
-/* Extra small devices */
-@media (max-width: 375px) {
-    .logo {
-        padding-right: 20px;
-    }
-
-    .moon-icon {
-        margin-left: 10px;
-    }
-
-    .moon-icon img {
-        width: 28px;
-        height: 28px;
-    }
-
-    .logo h1 {
-        font-size: 1.1rem;
-    }
-
-    .logo p {
-        font-size: 0.7rem;
-    }
-}
-
-/* Navigation Menu Overlay */
+/* Navigation menu overlay */
 .nav-menu {
     position: fixed;
     top: 0;
@@ -245,6 +257,7 @@ a:focus, button:focus, input:focus, select:focus {
     backdrop-filter: blur(5px);
 }
 
+/* Decorative pattern overlay */
 .nav-menu::before {
     content: "";
     position: absolute;
@@ -257,11 +270,13 @@ a:focus, button:focus, input:focus, select:focus {
     pointer-events: none;
 }
 
+/* Active state for menu */
 .nav-menu.active {
     opacity: 1;
     visibility: visible;
 }
 
+/* Navigation links container */
 .nav-links {
     display: flex;
     flex-direction: column;
@@ -272,10 +287,12 @@ a:focus, button:focus, input:focus, select:focus {
     width: 100%;
     max-width: 300px;
 }
+
 .nav-menu.active .nav-links {
     transform: translateY(0);
 }
 
+/* Individual navigation items */
 .nav-item {
     color: var(--white);
     font-size: 1.8rem;
@@ -293,6 +310,7 @@ a:focus, button:focus, input:focus, select:focus {
     gap: 10px;
 }
 
+/* Underline effect on hover/active */
 .nav-item::after {
     content: "";
     position: absolute;
@@ -321,48 +339,13 @@ a:focus, button:focus, input:focus, select:focus {
     text-align: center;
 }
 
-/* Subtle animation for icons */
+/* Icon animation on hover */
 .nav-item:hover i {
     transform: scale(1.2);
     transition: transform 0.3s ease;
 }
 
-/* Responsive Media Queries for Navigation */
-@media (max-width: 767px) {
-    .nav-item {
-        font-size: 1.5rem;
-        padding: 15px 20px; /* Even larger touch target on small screens */
-    }
-
-    .nav-item i {
-        font-size: 1.1rem;
-    }
-}
-
-@media (max-width: 375px) {
-    .nav-item {
-        font-size: 1.3rem;
-        padding: 12px 15px;
-    }
-
-    .nav-item i {
-        font-size: 1rem;
-    }
-}
-
-/* Landscape orientation adjustments */
-@media (max-height: 500px) and (orientation: landscape) {
-    .nav-links {
-        gap: 15px;
-    }
-
-    .nav-item {
-        font-size: 1.3rem;
-        padding: 8px 15px;
-    }
-}
-
-/* Ensure body doesn't scroll when menu is open */
+/* prevents body scrolling when menu is open */
 body.menu-open {
     overflow: hidden;
     position: fixed;
@@ -404,7 +387,12 @@ body.menu-open {
     max-width: 700px;
 }
 
-/* Search Section */
+
+/*=========================================
+ * 4. SEARCH SECTION
+ *=========================================*/
+
+/* Search container */
 .search-section {
     background-color: var(--white);
     border-radius: 10px;
@@ -412,9 +400,10 @@ body.menu-open {
     margin: 20px 0;
     box-shadow: var(--shadow);
     border: none;
-    transform: translateY(-20px);
+    transform: translateY(-20px); /* Overlap with hero section */
 }
 
+/* Search input container */
 .search-box {
     position: relative;
     margin-bottom: 15px;
@@ -437,6 +426,7 @@ body.menu-open {
     transform: translateY(-1px);
 }
 
+/* Button container within search box */
 .search-actions {
     position: absolute;
     left: 10px;
@@ -447,6 +437,7 @@ body.menu-open {
     gap: 8px;
 }
 
+/* Search button styling */
 .search-box .search-button {
     background: none;
     border: none;
@@ -473,6 +464,7 @@ body.menu-open {
     transform: scale(0.95);
 }
 
+/* Clear button styling */
 .search-box .clear-button {
     background: none;
     border: none;
@@ -507,11 +499,13 @@ body.menu-open {
     animation: spin 0.8s infinite linear;
 }
 
+/* Animation for spinner */
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
 
+/* States for showing loader */
 .searching .search-button i {
     opacity: 0;
 }
@@ -520,12 +514,12 @@ body.menu-open {
     display: block;
 }
 
-/* Only when search is active */
 .search-box.searching .search-button {
     background-color: var(--primary-color);
     color: var(--white);
 }
 
+/* Area filter dropdown */
 .filter-section select {
     width: 100%;
     padding: 12px;
@@ -549,7 +543,7 @@ body.menu-open {
     transform: translateY(-1px);
 }
 
-/*  hover effect for desktop */
+/* Hover effect for desktop */
 @media (hover: hover) {
     .filter-section select:hover {
         border-color: var(--primary-color);
@@ -557,14 +551,7 @@ body.menu-open {
     }
 }
 
-/* Desktop specific adjustments */
-@media (min-width: 992px) {
-    .filter-section select {
-        background-position: left 10px center;
-        padding-left: 35px;
-    }
-}
-
+/* Search results info */
 .search-results-info {
     display: flex;
     justify-content: space-between;
@@ -574,65 +561,12 @@ body.menu-open {
     color: var(--light-text);
 }
 
-/* Responsive adjustments for search */
-@media (max-width: 767px) {
-    .search-section {
-        padding: 20px;
-        transform: translateY(0);
-    }
-}
 
-@media (max-width: 576px) {
-    .search-box input {
-        padding: 12px 40px 12px 12px;
-        font-size: 0.95rem;
-    }
+/*=========================================
+ * 5. MOSQUE CARDS & INFORMATION
+ *=========================================*/
 
-    .search-actions {
-        left: 8px;
-        gap: 5px;
-    }
-
-    .search-box .search-button {
-        width: 28px;
-        height: 28px;
-        font-size: 1rem;
-    }
-
-    .search-box .clear-button {
-        width: 22px;
-        height: 22px;
-        font-size: 0.8rem;
-    }
-
-    .search-loader {
-        width: 14px;
-        height: 14px;
-        border-width: 1.5px;
-    }
-
-
-    .filter-section select {
-        padding: 10px 10px 10px 30px;
-        background-position: left 8px center;
-    }
-}
-
-/* Extra small devices */
-@media (max-width: 375px) {
-    .search-section {
-        padding: 15px;
-    }
-
-    .search-box input {
-        padding: 10px 36px 10px 10px;
-    }
-
-    .search-actions {
-        left: 6px;
-    }
-}
-/* Mosques Grid */
+/* Mosque grid layout */
 .mosques-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -640,6 +574,7 @@ body.menu-open {
     margin-bottom: 40px;
 }
 
+/* Individual mosque card */
 .mosque-card {
     background-color: var(--white);
     border-radius: 10px;
@@ -653,6 +588,7 @@ body.menu-open {
     animation-fill-mode: both;
 }
 
+/* Right edge accent on hover */
 .mosque-card::after {
     content: "";
     position: absolute;
@@ -673,6 +609,7 @@ body.menu-open {
     height: 100%;
 }
 
+/* Mosque name styling */
 .mosque-name {
     font-size: 1.4rem;
     font-weight: 700;
@@ -682,6 +619,7 @@ body.menu-open {
     align-items: center;
 }
 
+/* Mosque icon before name */
 .mosque-name::before {
     content: "";
     background-image: url('../images/mosque-icon.svg');
@@ -695,6 +633,7 @@ body.menu-open {
     vertical-align: middle;
 }
 
+/* Information rows in cards */
 .info-row {
     display: flex;
     justify-content: space-between;
@@ -703,9 +642,10 @@ body.menu-open {
     padding: 12px;
     border-radius: 8px;
     margin-bottom: 12px;
+    flex-wrap: wrap;
 }
 
-/* styles for the location row which i changed it now to an anchor tag */
+/* Location row specific styles */
 .location-row {
     display: flex;
     justify-content: space-between;
@@ -714,20 +654,27 @@ body.menu-open {
     padding: 12px;
     border-radius: 8px;
     margin-bottom: 12px;
-    text-decoration: none;
     color: inherit;
     transition: all 0.2s ease;
 }
 
-.location-row:hover {
-    background-color: var(--accent-light);
-}
-
+/* Information label container */
 .info-label {
     display: flex;
     align-items: center;
+    flex: 1;
+    min-width: 0;
+    margin-left: 10px;
 }
 
+.info-label p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+    hyphens: auto;
+}
+
+/* Generic icon in info rows */
 .info-icon {
     margin-left: 10px;
     color: var(--primary-color);
@@ -737,16 +684,43 @@ body.menu-open {
     position: relative;
 }
 
+/* Location icon specific styling */
 .location-row .info-icon {
     background-image: url('../images/location-icon.svg');
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-
     font-size: 0;
     color: transparent;
 }
 
+
+/*=========================================
+ * 6. BUTTONS & INTERACTIVE ELEMENTS
+ *=========================================*/
+
+/* Container for action buttons */
+.action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap; /* Allow wrapping on very small screens */
+    flex-shrink: 0;
+}
+
+/* Base button style for all action buttons */
+.action-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 20px;
+    border: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
+}
+
+/* Audio button styling */
 .audio-button {
     display: flex;
     align-items: center;
@@ -760,6 +734,8 @@ body.menu-open {
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
+    height: 36px;
 }
 
 .audio-button:hover, .audio-button.playing {
@@ -772,11 +748,13 @@ body.menu-open {
     outline-offset: 2px;
 }
 
+/* Audio controls container */
 .audio-controls {
     display: flex;
     gap: 8px;
 }
 
+/* YouTube button styling */
 .youtube-button {
     display: flex;
     align-items: center;
@@ -784,24 +762,47 @@ body.menu-open {
     padding: 6px 12px;
     border-radius: 20px;
     border: none;
-    background-color: #ff0000;
+    background-color: var(--youtube-red);
     color: white;
     font-size: 0.85rem;
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     text-decoration: none;
+    flex-shrink: 0;
 }
 
 .youtube-button:hover {
-    background-color: #cc0000;
+    background-color: var(--youtube-red-dark);
     transform: translateY(-2px);
 }
 
+/* Responsive adjustments */
 .youtube-button i {
     font-size: 1rem;
 }
+@media (max-width: 576px) {
+    .youtube-button {
+        width: 34px;
+        height: 34px;
+    }
 
+    .youtube-button i {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 375px) {
+    .youtube-button {
+        width: 32px;
+        height: 32px;
+    }
+
+    .youtube-button i {
+        font-size: 1rem;
+    }
+}
+/* Google Maps link styling */
 .map-link {
     display: flex;
     align-items: center;
@@ -827,26 +828,41 @@ body.menu-open {
 
 .map-link i {
     font-size: 1.1rem;
-    color: #4285F4;
+    color: var(--google-blue);
 }
 
 .map-link:hover i {
     color: var(--primary-color);
 }
 
-/* Responsive */
-@media (max-width: 576px) {
-    .map-link {
-        padding: 5px 10px;
-        font-size: 0.8rem;
-    }
-
-    .map-link i {
-        font-size: 0.9rem;
-    }
+/* Dynamic text for buttons - will hide on small screens */
+.button-text {
+    display: inline;
 }
 
-/* Page header Styles (About/Contact pages) */
+/* Reset search button */
+.reset-button {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    cursor: pointer;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.reset-button:hover {
+    background-color: var(--primary-light);
+    text-decoration: none;
+}
+
+
+/*=========================================
+ * 7. PAGE-SPECIFIC STYLES
+ *=========================================*/
+
+/* Page header for About/Contact pages */
 .page-header {
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
     color: var(--white);
@@ -879,13 +895,7 @@ body.menu-open {
     font-size: 0.9em;
 }
 
-@media (max-width: 767px) {
-    .page-icon {
-        font-size: 0.85em;
-    }
-}
-
-/* Content Card Styles */
+/* Content card for page content */
 .content-card {
     background-color: var(--white);
     border-radius: 10px;
@@ -896,7 +906,9 @@ body.menu-open {
     animation: fadeIn 0.5s ease-out;
 }
 
-/* About Section Styles */
+/* ABOUT PAGE STYLES */
+
+/* Section headers in about page */
 .about-section h3 {
     color: var(--primary-color);
     margin: 25px 0 15px;
@@ -924,6 +936,7 @@ body.menu-open {
     margin-bottom: 20px;
 }
 
+/* Feature list styling */
 .features-list {
     padding-right: 20px;
     margin-bottom: 20px;
@@ -943,7 +956,7 @@ body.menu-open {
     font-weight: bold;
 }
 
-/* Author Introduction Styles with consistent design across devices */
+/* author information */
 .author-intro {
     background-color: var(--primary-light);
     padding: 25px;
@@ -1004,6 +1017,7 @@ body.menu-open {
     z-index: 1;
 }
 
+/* Developer signature styling */
 .developer-signature {
     text-align: left;
     margin-top: 20px;
@@ -1031,26 +1045,6 @@ body.menu-open {
     background-color: var(--accent-color);
 }
 
-/* Responsive adjustments to ensure consistency */
-@media (max-width: 767px) {
-    .author-intro {
-        padding: 20px;
-    }
-
-    .author-intro h3 {
-        font-size: 1.3rem;
-    }
-}
-
-@media (max-width: 375px) {
-    .author-intro {
-        padding: 15px;
-    }
-
-    .author-intro h3 {
-        font-size: 1.2rem;
-    }
-}
 
 .dua-text {
     font-style: italic;
@@ -1062,6 +1056,7 @@ body.menu-open {
     border-top: 1px dashed var(--border-color);
 }
 
+/* Last update info */
 .last-update {
     font-size: 0.9rem;
     color: var(--light-text);
@@ -1082,40 +1077,10 @@ body.menu-open {
     border-top: 1px dashed var(--border-color);
 }
 
-/* Responsive adjustments */
-@media (max-width: 767px) {
-    .about-section h3 {
-        font-size: 1.3rem;
-    }
 
-    .features-list li {
-        margin-bottom: 15px; /* More space between items on mobile */
-    }
+/* CONTACT PAGE STYLES */
 
-    .author-intro {
-        padding: 15px;
-    }
-
-    .author-intro h3 {
-        font-size: 1.3rem;
-    }
-}
-
-@media (max-width: 375px) {
-    .about-section h3,
-    .author-intro h3 {
-        font-size: 1.2rem;
-    }
-
-    .about-section p {
-        font-size: 0.95rem;
-    }
-
-    .features-list {
-        padding-right: 15px;
-    }
-}
-/* Contact Section Styles */
+/* Section headers in contact page */
 .contact-section h3 {
     color: var(--primary-color);
     margin: 25px 0 15px;
@@ -1143,6 +1108,7 @@ body.menu-open {
     margin-bottom: 20px;
 }
 
+/* Contact method card */
 .contact-method {
     display: flex;
     align-items: center;
@@ -1238,9 +1204,10 @@ body.menu-open {
 }
 
 .twitter-button {
-    color: #1DA1F2;
+    color: var(--twitter-blue);
 }
 
+/* Submission list styling */
 .submission-list {
     padding-right: 20px;
     margin-bottom: 20px;
@@ -1260,7 +1227,7 @@ body.menu-open {
     font-weight: bold;
 }
 
-/* Community info Section  */
+/* Community information box */
 .community-info {
     background-color: var(--white);
     border-radius: 10px;
@@ -1307,30 +1274,12 @@ body.menu-open {
     background-color: var(--accent-color);
 }
 
-.dua-text {
-    font-style: italic;
-    font-weight: 500;
-    color: var(--primary-dark);
-    text-align: center;
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px dashed var(--border-color);
-}
 
-.last-update {
-    font-size: 0.9rem;
-    color: var(--light-text);
-    margin-top: 15px;
-    display: flex;
-    align-items: center;
-}
+/*=========================================
+ * 8. FOOTER & STATUS INDICATORS
+ *=========================================*/
 
-.last-update::before {
-    content: "🕒";
-    margin-left: 8px;
-}
-
-/* Footer */
+/* Site footer */
 .main-footer {
     background-color: var(--primary-dark);
     color: var(--white);
@@ -1359,7 +1308,7 @@ body.menu-open {
     position: relative;
 }
 
-/* Loading and Empty State */
+/* Loading and empty state indicators */
 .loading, .empty-state {
     text-align: center;
     padding: 50px 0;
@@ -1384,37 +1333,18 @@ body.menu-open {
     color: var(--accent-color);
 }
 
-.reset-button {
-    background: none;
-    border: none;
-    color: var(--primary-color);
-    cursor: pointer;
-    font-weight: 500;
-    padding: 5px 10px;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-}
 
-.reset-button:hover {
-    background-color: var(--primary-light);
-    text-decoration: none;
-}
+/*=========================================
+ * 9. ANIMATIONS
+ *=========================================*/
 
-/* Utility Classes */
-.mt-4 {
-    margin-top: 20px;
-}
-
-.mt-5 {
-    margin-top: 30px;
-}
-
-/* Animations */
+/* Fade in animation */
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
 }
 
+/* Fade in up animation */
 @keyframes fadeInUp {
     from {
         opacity: 0;
@@ -1433,22 +1363,33 @@ body.menu-open {
 .mosque-card:nth-child(5) { animation-delay: 0.2s; }
 .mosque-card:nth-child(6) { animation-delay: 0.25s; }
 
-/* Media Queries */
+
+/*=========================================
+ * 10. MEDIA QUERIES & RESPONSIVE DESIGN
+ *=========================================*/
+
+/* Tablets and larger screens */
 @media (min-width: 768px) {
     .mosques-grid {
         grid-template-columns: 1fr 1fr;
     }
 }
 
+/* Medium screens */
 @media (max-width: 767px) {
+    /* Header adjustments */
+    .logo {
+        padding-right: 24px;
+    }
+
     .hamburger-menu {
-        width: 24px; /* Slightly smaller visual size on mobile */
+        width: 24px;
         height: 20px;
         margin-left: 0;
         margin-right: 15px;
     }
 
-    /* Adjust the animation calculation for the smaller size */
+    /* Adjust hamburger animation for smaller size */
     .hamburger-menu.active .hamburger-line:nth-child(1) {
         transform: translateY(8px) rotate(45deg);
     }
@@ -1457,19 +1398,37 @@ body.menu-open {
         transform: translateY(-8px) rotate(-45deg);
     }
 
-    .nav-item {
-        font-size: 1.5rem;
-        padding: 15px 20px; /* Even larger touch target on small screens */
-    }
-
-    /* Header adjustments */
-    .header-content {
-        justify-content: flex-start;
-    }
-
     .moon-icon img {
         width: 32px;
         height: 32px;
+    }
+
+    .logo h1 {
+        font-size: 1.3rem;
+    }
+
+    .logo p {
+        font-size: 0.75rem;
+    }
+
+    /* Navigation items */
+    .nav-item {
+        font-size: 1.5rem;
+        padding: 15px 20px;
+    }
+
+    .nav-item i {
+        font-size: 1.1rem;
+    }
+
+    /* Page icon size */
+    .page-icon {
+        font-size: 0.85em;
+    }
+
+    /* Header content alignment */
+    .header-content {
+        justify-content: flex-start;
     }
 
     /* Hero banner mobile styles */
@@ -1488,6 +1447,7 @@ body.menu-open {
     /* Search section mobile styles */
     .search-section {
         transform: translateY(0);
+        padding: 20px;
     }
 
     /* Mosque card mobile styles */
@@ -1531,36 +1491,17 @@ body.menu-open {
         font-size: 1.3rem;
     }
 
-  .developer-signature {
-    text-align: left;
-    margin-top: 15px;
-    margin-bottom: 5px;
-    font-weight: normal;
-}
+    /* Developer signature */
+    .developer-signature {
+        text-align: left;
+        margin-top: 15px;
+        margin-bottom: 5px;
+    }
 
-.developer-name {
-    font-size: 1.05rem;
-    font-weight: 600;
-    color: var(--primary-dark);
-    position: relative;
-    display: inline-block;
-    padding: 4px 15px 4px 0;
-    border-right: 3px solid var(--accent-color);
-}
-
-.developer-name::before {
-    content: "";
-    position: absolute;
-    bottom: -2px;
-    right: 0;
-    width: 40px;
-    height: 2px;
-    background-color: var(--accent-color);
-}
     /* List items spacing */
     .features-list li,
     .submission-list li {
-        margin-bottom: 15px; /* More space between items on mobile */
+        margin-bottom: 15px;
     }
 
     /* Community info section */
@@ -1568,28 +1509,132 @@ body.menu-open {
         padding: 20px;
         margin: 30px 0;
     }
+
+    /* Author intro box */
+    .author-intro {
+        padding: 15px;
+    }
+
+    .author-intro h3 {
+        font-size: 1.3rem;
+    }
+}
+
+/* Small screens (mobile) */
+@media (max-width: 576px) {
+    /* Search box responsiveness */
+    .search-box input {
+        padding: 12px 40px 12px 12px;
+        font-size: 0.95rem;
+    }
+
+    .search-actions {
+        left: 8px;
+        gap: 5px;
+    }
+
+    .search-box .search-button {
+        width: 28px;
+        height: 28px;
+        font-size: 1rem;
+    }
+
+    .search-box .clear-button {
+        width: 22px;
+        height: 22px;
+        font-size: 0.8rem;
+    }
+
+    .search-loader {
+        width: 14px;
+        height: 14px;
+        border-width: 1.5px;
+    }
+
+    /* Filter dropdown */
+    .filter-section select {
+        padding: 10px 10px 10px 30px;
+        background-position: left 8px center;
+    }
+
+    /* Interactive buttons */
+    .map-link, .audio-button, .youtube-button {
+        padding: 5px 10px;
+        font-size: 0.8rem;
+    }
+
+    .map-link i, .audio-button i, .youtube-button i {
+        font-size: 0.9rem;
+    }
+
+    /* Button text on small screens */
+    @media (max-width: 360px) {
+        .button-text {
+            display: none;
+        }
+
+        .audio-button, .youtube-button, .map-link {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            justify-content: center;
+        }
+    }
 }
 
 /* Extra small devices */
 @media (max-width: 375px) {
+    /* Header elements */
+    .logo {
+        padding-right: 20px;
+    }
+
+    .moon-icon {
+        margin-left: 10px;
+    }
+
+    .moon-icon img {
+        width: 28px;
+        height: 28px;
+    }
+
+    .logo h1 {
+        font-size: 1.1rem;
+    }
+
+    .logo p {
+        font-size: 0.7rem;
+    }
+
+    /* Nav items */
     .nav-item {
         font-size: 1.3rem;
         padding: 12px 15px;
     }
 
+    .nav-item i {
+        font-size: 1rem;
+    }
+
+    /* Hamburger positioning */
     .hamburger-menu {
         margin-right: 10px;
     }
 
-    .moon-icon img {
-        width: 30px;
-        height: 30px;
+    /* Search section */
+    .search-section {
+        padding: 15px;
     }
 
-    .logo h1 {
-        font-size: 1.3rem;
+    .search-box input {
+        padding: 10px 36px 10px 10px;
     }
 
+    .search-actions {
+        left: 6px;
+    }
+
+    /* Content sections */
     .content-card {
         padding: 15px 12px;
     }
@@ -1612,9 +1657,18 @@ body.menu-open {
     .submission-list {
         padding-right: 15px;
     }
+
+    /* Author introduction */
+    .author-intro {
+        padding: 15px;
+    }
+
+    .author-intro h3 {
+        font-size: 1.2rem;
+    }
 }
 
-/* Landscape orientation simple adjustments*/
+/* Landscape orientation adjustments */
 @media (max-height: 500px) and (orientation: landscape) {
     .nav-links {
         gap: 15px;
@@ -1626,3 +1680,13 @@ body.menu-open {
     }
 }
 
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}

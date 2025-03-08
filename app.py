@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, make_response
 from flask_admin import Admin, AdminIndexView, expose
 from flask_admin.contrib.sqla import ModelView
 from models import db, Mosque, Imam
@@ -264,6 +264,19 @@ def search_mosques():
     return jsonify(result)
 
 
+@app.route('/sitemap.xml')
+def sitemap():
+    mosques = Mosque.query.all()
+    return render_template('sitemap.xml', mosques=mosques)
+
+@app.route('/robots.txt')
+def robots():
+    response = make_response("""User-agent: *
+Allow: /
+Sitemap: https://taraweeh.org/sitemap.xml
+""")
+    response.headers["Content-Type"] = "text/plain"
+    return response
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))

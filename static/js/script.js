@@ -209,70 +209,100 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // render mosque cards to page
     function renderMosques(mosques) {
-        // show empty state if no results
-        if (mosques.length === 0) {
-            mosquesGrid.innerHTML = `
-                <div class="empty-state">
-                    <p>لم يتم العثور على مساجد مطابقة للبحث</p>
-                    <button id="resetSearchEmpty" class="reset-button">إعادة ضبط البحث</button>
-                </div>
-            `;
+    // show empty state if no results
+    if (mosques.length === 0) {
+        mosquesGrid.innerHTML = `
+            <div class="empty-state">
+                <p>لم يتم العثور على مساجد مطابقة للبحث</p>
+                <button id="resetSearchEmpty" class="reset-button">إعادة ضبط البحث</button>
+            </div>
+        `;
 
-            const resetButton = document.getElementById('resetSearchEmpty');
-            resetButton.addEventListener('click', function() {
-                searchInput.value = '';
-                areaFilter.value = 'الكل';
-                clearButton.style.display = 'none';
-                searchMosques();
-            });
-
-            return;
-        }
-
-        mosquesGrid.innerHTML = '';
-
-        // create card for each mosque
-        mosques.forEach(mosque => {
-            const mosqueCard = document.createElement('div');
-            mosqueCard.className = 'mosque-card';
-            mosqueCard.innerHTML = `
-                <h2 class="mosque-name">${mosque.name}</h2>
-                
-                <div class="info-row">
-                    <div class="info-label">
-                        <span class="info-icon"></span>
-                        <p>${mosque.imam || 'غير محدد'}</p>
-                    </div>
-                    ${mosque.audio_sample ? `
-                        <button class="audio-button" data-audio="${mosque.audio_sample}" data-id="${mosque.id}">
-                            <i class="fas fa-play"></i> استماع
-                        </button>
-                    ` : ''}
-                    ${mosque.youtube_link ? `
-                        <a href="${mosque.youtube_link}" target="_blank" class="youtube-button">
-                            <i class="fab fa-youtube"></i> يوتيوب
-                        </a>
-                    ` : ''}
-                </div>
-                
-                  <div class="info-row location-row">
-                    <div class="info-label">
-                        <span class="info-icon"></span>
-                        <p>${mosque.location}</p>
-                    </div>
-                    <a href="${mosque.map_link}" target="_blank" class="map-link">
-                        <i class="fas fa-directions"></i>
-                        فتح في قوقل ماب
-                    </a>
-                </div>
-            `;
-
-            mosquesGrid.appendChild(mosqueCard);
+        const resetButton = document.getElementById('resetSearchEmpty');
+        resetButton.addEventListener('click', function() {
+            searchInput.value = '';
+            areaFilter.value = 'الكل';
+            clearButton.style.display = 'none';
+            searchMosques();
         });
 
-        // setup audio buttons
-        setupAudioButtons();
+        return;
     }
+
+    mosquesGrid.innerHTML = '';
+
+    // Create schema.org structured data
+    let schemaData = {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "itemListElement": []
+    };
+
+    // create card for each mosque
+    mosques.forEach((mosque, index) => {
+        const mosqueCard = document.createElement('div');
+        mosqueCard.className = 'mosque-card';
+        mosqueCard.innerHTML = `
+            <h2 class="mosque-name">${mosque.name}</h2>
+            
+    <div class="info-row">
+        <div class="info-label">
+            <span class="info-icon"></span>
+            <p>${mosque.imam || 'غير محدد'}</p>
+        </div>
+        <div class="action-buttons">
+            ${mosque.audio_sample ? `
+                <button class="action-button audio-button" data-audio="${mosque.audio_sample}" data-id="${mosque.id}">
+                    <i class="fas fa-play"></i> <span class="button-text">استماع</span>
+                </button>
+            ` : ''}
+            ${mosque.youtube_link ? `
+                <a href="${mosque.youtube_link}" target="_blank" class="youtube-button" aria-label="يوتيوب">
+                    <i class="fab fa-youtube"></i> 
+                </a>
+            ` : ''}
+        </div>
+    </div>
+            
+              <div class="info-row location-row">
+                <div class="info-label">
+                    <span class="info-icon"></span>
+                    <p>${mosque.location}</p>
+                </div>
+                <a href="${mosque.map_link}" target="_blank" class="action-button map-link">
+                    <i class="fas fa-directions"></i> <span class="button-text">فتح في قوقل ماب</span>
+                </a>
+            </div>
+        `;
+
+        mosquesGrid.appendChild(mosqueCard);
+
+        // Add this mosque to the schema data - MOVED INSIDE THE LOOP
+        schemaData.itemListElement.push({
+            "@type": "ListItem",
+            "position": index + 1,
+            "item": {
+                "@type": "PlaceOfWorship",
+                "name": mosque.name,
+                "address": {
+                    "@type": "PostalAddress",
+                    "addressLocality": "الرياض",
+                    "addressRegion": mosque.area || "الرياض"
+                },
+                "description": `مسجد ${mosque.name} - إمام التراويح: ${mosque.imam || 'غير محدد'}`
+            }
+        });
+    });
+
+    // schema data (one for all mosques)
+    const schemaScript = document.createElement('script');
+    schemaScript.type = 'application/ld+json';
+    schemaScript.innerHTML = JSON.stringify(schemaData);
+    document.head.appendChild(schemaScript);
+
+    // setup audio buttons
+    setupAudioButtons();
+}
 
     // ========== AUDIO PLAYBACK ==========
 

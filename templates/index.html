@@ -15,6 +15,7 @@
 <div class="container">
     <div class="search-section">
         <div class="search-box">
+            <label for="searchInput" class="sr-only">ابحث عن مسجد أو إمام</label>
             <input type="text" id="searchInput" placeholder="ابحث عن مسجد أو إمام..." autocomplete="off">
             <div class="search-actions">
                 <button id="clearSearch" class="clear-button" style="display: none;">
@@ -26,7 +27,9 @@
                 </button>
             </div>
         </div>
+
         <div class="filter-section">
+            <label for="areaFilter" class="sr-only">تصفية حسب المنطقة</label>
             <select id="areaFilter">
                 <option value="الكل">كل المناطق</option>
                 {% for area in areas %}
