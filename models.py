@@ -9,6 +9,8 @@ class Mosque(db.Model):
     location = db.Column(db.String(200), nullable=False)
     area = db.Column(db.String(50), nullable=False)  # Area as a string field
     map_link = db.Column(db.String(500))
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
 
     def __repr__(self):
         return self.name

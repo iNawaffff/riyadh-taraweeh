@@ -1,31 +1,38 @@
+# --- imports ---
 from flask import Flask, render_template, request, jsonify, redirect, url_for, make_response
 from flask_admin import Admin, AdminIndexView, expose
 from flask_admin.contrib.sqla import ModelView
 from models import db, Mosque, Imam
-
 from wtforms_sqlalchemy.fields import QuerySelectField
-
-import os
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_migrate import Migrate
 from dotenv import load_dotenv
+import os
+
 
 load_dotenv()
 
 app = Flask(__name__)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///mosques.db')
+# database configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql:///taraweeh_db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# convert heroku postgres url if needed
 if app.config['SQLALCHEMY_DATABASE_URI'] and app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgres://'):
     app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://',
                                                                                           'postgresql://')
-    print(f"Database URL converted to: {app.config['SQLALCHEMY_DATABASE_URI']}")
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    print(f"database url converted to: {app.config['SQLALCHEMY_DATABASE_URI']}")
+
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_local_secret_key')
 
+# --- database setup ---
 db.init_app(app)
+migrate = Migrate(app, db)
 
+# --- user authentication ---
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
@@ -48,32 +55,34 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-# initialize the database if needed
+# initialize database and create admin user if needed
 with app.app_context():
     try:
-        print("Creating database tables...")
+        print("creating database tables...")
         db.create_all()
-        print("Tables created successfully!")
+        print("tables created successfully!")
 
+        # set up admin user
         ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
         ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'adminpassword')
 
-        print(f"Checking for admin user: {ADMIN_USERNAME}")
-
+        print(f"checking for admin user: {ADMIN_USERNAME}")
         admin_user = User.query.filter_by(username=ADMIN_USERNAME).first()
+
         if not admin_user:
-            print(f"Admin user {ADMIN_USERNAME} not found. Creating new admin user...")
+            print(f"admin user {ADMIN_USERNAME} not found. creating new admin user...")
             default_admin = User(username=ADMIN_USERNAME)
             default_admin.set_password(ADMIN_PASSWORD)
             db.session.add(default_admin)
             db.session.commit()
-            print(f"Admin user {ADMIN_USERNAME} created successfully!")
+            print(f"admin user {ADMIN_USERNAME} created successfully!")
         else:
-            print(f"Admin user {ADMIN_USERNAME} already exists.")
+            print(f"admin user {ADMIN_USERNAME} already exists.")
     except Exception as e:
-        print(f"Database initialization error: {e}")
+        print(f"database initialization error: {e}")
 
 
+# --- admin panel setup ---
 class MyAdminIndexView(AdminIndexView):
     @expose('/')
     @login_required
@@ -91,23 +100,17 @@ class BaseModelView(ModelView):
 
 
 class MosqueModelView(BaseModelView):
-    form_columns = ['name', 'location', 'area', 'map_link']
-    column_list = ['name', 'location', 'area', 'map_link']
+    form_columns = ['name', 'location', 'area', 'map_link', 'latitude', 'longitude']
+    column_list = ['name', 'location', 'area', 'map_link', 'latitude', 'longitude']
     can_view_details = True
 
     form_args = {
-        'name': {
-            'label': 'اسم المسجد'
-        },
-        'location': {
-            'label': 'الموقع'
-        },
-        'area': {
-            'label': 'المنطقة'
-        },
-        'map_link': {
-            'label': 'رابط الخريطة'
-        }
+        'name': {'label': 'اسم المسجد'},
+        'location': {'label': 'الموقع'},
+        'area': {'label': 'المنطقة'},
+        'map_link': {'label': 'رابط الخريطة'},
+        'latitude': {'label': 'خط العرض'},
+        'longitude': {'label': 'خط الطول'}
     }
 
 
@@ -121,9 +124,7 @@ class ImamModelView(BaseModelView):
     }
 
     form_args = {
-        'name': {
-            'label': 'اسم الإمام'
-        },
+        'name': {'label': 'اسم الإمام'},
         'mosque': {
             'label': 'المسجد',
             'query_factory': lambda: Mosque.query.all(),
@@ -133,71 +134,71 @@ class ImamModelView(BaseModelView):
             'label': 'رابط الملف الصوتي',
             'description': 'أدخل رابط الملف الصوتي من S3 هنا'
         },
-        'youtube_link': {
-            'label': 'رابط يوتيوب'
-        }
+        'youtube_link': {'label': 'رابط يوتيوب'}
     }
 
 
+# initialize admin
 admin = Admin(app, name='إدارة أئمة التراويح', template_mode='bootstrap3', index_view=MyAdminIndexView())
 admin.add_view(MosqueModelView(Mosque, db.session, name='المساجد'))
 admin.add_view(ImamModelView(Imam, db.session, name='الأئمة'))
 
 
-# Login route
+# --- authentication routes ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
 
-        print(f"Login attempt for user: {username}")
+        print(f"login attempt for user: {username}")
 
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
             login_user(user)
-            print(f"Login successful for user: {username}")
-            return redirect(url_for('admin.index'))  # Redirect to admin index page
+            print(f"login successful for user: {username}")
+            return redirect(url_for('admin.index'))  # redirect to admin index page
         else:
-            print(f"Login failed for user: {username}")
+            print(f"login failed for user: {username}")
 
     return render_template('login.html')
 
 
-# Logout route
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('index'))  # Redirect to your main index page
+    return redirect(url_for('index'))  # redirect to main index page
 
 
-# Main route
+# --- main routes ---
 @app.route('/')
 def index():
-    # Get unique areas for the filter dropdown
+    # get unique areas for the filter dropdown
     areas = db.session.query(Mosque.area).distinct().all()
-    areas = [area[0] for area in areas]  # Extract area names from tuples
+    areas = [area[0] for area in areas]  # extract area names from tuples
     return render_template('index.html', areas=areas)
 
-# about page
+
 @app.route('/about')
 def about():
     return render_template('about.html')
 
 
-# contact page
 @app.route('/contact')
 def contact():
     return render_template('contact.html')
 
-# API route: Get all mosques with their imams
+
+# --- api routes ---
 @app.route('/api/mosques')
 def get_mosques():
+    # get all mosques ordered by name
     mosques = Mosque.query.order_by(Mosque.name).all()
     result = []
+
     for mosque in mosques:
-        # Get the imam for this mosque
+        # get the imam for this mosque
         imam = Imam.query.filter_by(mosque_id=mosque.id).first()
 
         result.append({
@@ -206,6 +207,8 @@ def get_mosques():
             'location': mosque.location,
             'area': mosque.area,
             'map_link': mosque.map_link,
+            'latitude': mosque.latitude,
+            'longitude': mosque.longitude,
             'imam': imam.name if imam else None,
             'audio_sample': imam.audio_sample if imam else None,
             'youtube_link': imam.youtube_link if imam else None
@@ -218,24 +221,25 @@ def search_mosques():
     query = request.args.get('q', '')
     area = request.args.get('area', '')
 
+    # build base query with imam join
     mosque_query = db.session.query(Mosque).outerjoin(Imam)
 
-    # Filter by area if provided
+    # filter by area if provided
     if area and area != 'الكل':
         mosque_query = mosque_query.filter(Mosque.area == area)
 
     mosque_query = mosque_query.order_by(Mosque.name)
     mosques = mosque_query.all()
 
-    # if there's a search query, apply the fuzzy matching in Python
+    # if there's a search query, apply the fuzzy matching in python
     if query:
         from utils import normalize_arabic
         normalized_query = normalize_arabic(query)
 
-        # filter mosques with fuzzy matching in Python
+        # filter mosques with fuzzy matching in python
         filtered_mosques = []
         for mosque in mosques:
-            # Check if the query matches any of these fields (original or normalized)
+            # check if the query matches any of these fields (original or normalized)
             if (query.lower() in mosque.name.lower() or
                     query.lower() in mosque.location.lower() or
                     any(query.lower() in imam.name.lower() for imam in mosque.imams) or
@@ -246,7 +250,7 @@ def search_mosques():
 
         mosques = filtered_mosques
 
-    # Format results as before
+    # format results for api response
     result = []
     for mosque in mosques:
         imam = Imam.query.filter_by(mosque_id=mosque.id).first()
@@ -256,6 +260,8 @@ def search_mosques():
             'location': mosque.location,
             'area': mosque.area,
             'map_link': mosque.map_link,
+            'latitude': mosque.latitude,
+            'longitude': mosque.longitude,
             'imam': imam.name if imam else None,
             'audio_sample': imam.audio_sample if imam else None,
             'youtube_link': imam.youtube_link if imam else None
@@ -264,13 +270,20 @@ def search_mosques():
     return jsonify(result)
 
 
+# --- seo routes ---
 @app.route('/sitemap.xml')
 def sitemap():
+    # generate sitemap with all mosques
     mosques = Mosque.query.all()
-    return render_template('sitemap.xml', mosques=mosques)
+    sitemap_xml = render_template('sitemap.xml', mosques=mosques)
+    response = make_response(sitemap_xml)
+    response.headers["Content-Type"] = "application/xml"
+    return response
+
 
 @app.route('/robots.txt')
 def robots():
+    # serve robots.txt file for search engines
     response = make_response("""User-agent: *
 Allow: /
 Sitemap: https://taraweeh.org/sitemap.xml
@@ -278,6 +291,53 @@ Sitemap: https://taraweeh.org/sitemap.xml
     response.headers["Content-Type"] = "text/plain"
     return response
 
+
+@app.route('/api/mosques/nearby')
+def nearby_mosques():
+    lat = request.args.get('lat', type=float)
+    lng = request.args.get('lng', type=float)
+
+    if not lat or not lng:
+        return jsonify({"error": "Latitude and longitude are required"}), 400
+
+    # Calculate distance using the Haversine formula
+    # This is a raw SQL expression that calculates distance in kilometers
+    distance_formula = db.func.acos(
+        db.func.sin(db.func.radians(lat)) *
+        db.func.sin(db.func.radians(Mosque.latitude)) +
+        db.func.cos(db.func.radians(lat)) *
+        db.func.cos(db.func.radians(Mosque.latitude)) *
+        db.func.cos(db.func.radians(lng) - db.func.radians(Mosque.longitude))
+    ) * 6371  # Earth radius in km
+
+    mosques = db.session.query(
+        Mosque,
+        distance_formula.label('distance')
+    ).filter(
+        Mosque.latitude.isnot(None),
+        Mosque.longitude.isnot(None)
+    ).order_by('distance').all()
+
+    result = []
+    for mosque, distance in mosques:
+        imam = Imam.query.filter_by(mosque_id=mosque.id).first()
+        result.append({
+            'id': mosque.id,
+            'name': mosque.name,
+            'location': mosque.location,
+            'area': mosque.area,
+            'map_link': mosque.map_link,
+            'latitude': mosque.latitude,
+            'longitude': mosque.longitude,
+            'distance': round(distance, 2),  # Distance in km, rounded to 2 decimal places
+            'imam': imam.name if imam else None,
+            'audio_sample': imam.audio_sample if imam else None,
+            'youtube_link': imam.youtube_link if imam else None
+        })
+
+    return jsonify(result)
+
+# --- application entry point ---
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5001))
+    port = int(os.environ.get('PORT', 5003))
     app.run(host='0.0.0.0', port=port)

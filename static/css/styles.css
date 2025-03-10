@@ -647,15 +647,29 @@ body.menu-open {
 
 /* Location row specific styles */
 .location-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    position: relative;
     background-color: var(--primary-light);
     padding: 12px;
     border-radius: 8px;
     margin-bottom: 12px;
-    color: inherit;
     transition: all 0.2s ease;
+}
+
+.location-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background-color: var(--white);
+    border-radius: 50%;
+    margin-left: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.location-icon i {
+    color: var(--primary-color);
+    font-size: 0.9rem;
 }
 
 /* Information label container */
@@ -1689,4 +1703,221 @@ body.menu-open {
     overflow: hidden;
     clip: rect(0, 0, 0, 0);
     border: 0;
+}
+
+/* Proximity sorting button container */
+.proximity-container {
+    display: flex;
+    justify-content: center;
+    margin: 16px 0 8px;
+}
+
+/* Refined proximity button */
+.proximity-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: var(--white);
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+    border-radius: 24px;
+    padding: 8px 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    width: auto;
+    min-width: 140px;
+    max-width: 180px;
+}
+
+/* Improved mosque header with distance badge */
+.mosque-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+/* Mosque name should take priority but allow wrapping */
+.mosque-name {
+    margin-bottom: 0;
+    flex: 1;
+    min-width: 200px;
+}
+
+/* Enhanced distance badge */
+.distance-badge {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--accent-light) 100%);
+    color: var(--primary-dark);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+    border-right: 3px solid var(--accent-color);
+    transition: all 0.3s ease;
+}
+
+.distance-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.distance-badge i {
+    margin-left: 8px;
+    font-size: 1.1rem;
+    color: var(--primary-color);
+}
+
+/* Enhanced proximity button */
+.proximity-button {
+    position: relative;
+    overflow: hidden;
+}
+
+.proximity-button::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.proximity-button:hover::after {
+    opacity: 1;
+}
+
+.proximity-button.active {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
+/* Visual feedback for sorted results */
+.proximity-sorted .mosque-card {
+    border-left: 3px solid var(--accent-color);
+}
+
+/* Distance categories - visual differentiation */
+.distance-walking {
+    background: linear-gradient(135deg, #e7f5e8 0%, var(--accent-light) 100%);
+}
+
+.distance-bicycle {
+    background: linear-gradient(135deg, #e8f4f8 0%, var(--accent-light) 100%);
+}
+
+.distance-car {
+    background: linear-gradient(135deg, #f8f4e8 0%, var(--accent-light) 100%);
+}
+
+/* Animation for distance badges */
+@keyframes pulseDistance {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.mosque-card:hover .distance-badge {
+    animation: pulseDistance 1s infinite;
+}
+
+/* Modal for first-time location permission */
+.location-permission-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.location-permission-modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.permission-content {
+    background-color: var(--white);
+    border-radius: 10px;
+    padding: 25px;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+}
+
+.permission-content h3 {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+}
+
+.permission-content p {
+    margin-bottom: 20px;
+}
+
+.permission-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.permission-allow {
+    background-color: var(--primary-color);
+    color: var(--white);
+    border: none;
+    padding: 8px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.permission-deny {
+    background-color: var(--light-text);
+    color: var(--white);
+    border: none;
+    padding: 8px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.permission-illustration {
+    margin-bottom: 20px;
+    font-size: 3rem;
+    color: var(--accent-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .mosque-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .mosque-name {
+        margin-bottom: 10px;
+    }
+
+    .distance-badge {
+        align-self: flex-start;
+    }
 }
