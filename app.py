@@ -10,7 +10,6 @@ from flask_migrate import Migrate
 from dotenv import load_dotenv
 import os
 
-
 load_dotenv()
 
 app = Flask(__name__)
@@ -24,7 +23,6 @@ if app.config['SQLALCHEMY_DATABASE_URI'] and app.config['SQLALCHEMY_DATABASE_URI
     app.config['SQLALCHEMY_DATABASE_URI'] = app.config['SQLALCHEMY_DATABASE_URI'].replace('postgres://',
                                                                                           'postgresql://')
     print(f"database url converted to: {app.config['SQLALCHEMY_DATABASE_URI']}")
-
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_local_secret_key')
 
@@ -300,27 +298,24 @@ def nearby_mosques():
     if not lat or not lng:
         return jsonify({"error": "Latitude and longitude are required"}), 400
 
-    # Calculate distance using the Haversine formula
-    # This is a raw SQL expression that calculates distance in kilometers
-    distance_formula = db.func.acos(
-        db.func.sin(db.func.radians(lat)) *
-        db.func.sin(db.func.radians(Mosque.latitude)) +
-        db.func.cos(db.func.radians(lat)) *
-        db.func.cos(db.func.radians(Mosque.latitude)) *
-        db.func.cos(db.func.radians(lng) - db.func.radians(Mosque.longitude))
-    ) * 6371  # Earth radius in km
-
-    mosques = db.session.query(
-        Mosque,
-        distance_formula.label('distance')
-    ).filter(
+    mosques = Mosque.query.filter(
         Mosque.latitude.isnot(None),
         Mosque.longitude.isnot(None)
-    ).order_by('distance').all()
+    ).all()
+
+    from geopy.distance import geodesic
+
+    user_location = (lat, lng)
 
     result = []
-    for mosque, distance in mosques:
+    for mosque in mosques:
+        # calculate distance using Vincenty formula (geodesic implementation)
+        mosque_location = (mosque.latitude, mosque.longitude)
+        distance = geodesic(user_location, mosque_location).kilometers
+
+        # Get the imam for this mosque
         imam = Imam.query.filter_by(mosque_id=mosque.id).first()
+
         result.append({
             'id': mosque.id,
             'name': mosque.name,
@@ -329,13 +324,17 @@ def nearby_mosques():
             'map_link': mosque.map_link,
             'latitude': mosque.latitude,
             'longitude': mosque.longitude,
-            'distance': round(distance, 2),  # Distance in km, rounded to 2 decimal places
+            'distance': round(distance, 2),  # the distance in km, rounded to 2 decimal places
             'imam': imam.name if imam else None,
             'audio_sample': imam.audio_sample if imam else None,
             'youtube_link': imam.youtube_link if imam else None
         })
 
+    # Sort by distance
+    result.sort(key=lambda x: x['distance'])
+
     return jsonify(result)
+
 
 # --- application entry point ---
 if __name__ == '__main__':

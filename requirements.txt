@@ -12,6 +12,8 @@ Flask-Admin==1.6.1
 Flask-Login==0.6.3
 Flask-Migrate==4.1.0
 Flask-SQLAlchemy==3.1.1
+geographiclib==2.0
+geopy==2.4.1
 gunicorn==23.0.0
 idna==3.10
 itsdangerous==2.2.0
