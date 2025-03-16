@@ -7,7 +7,7 @@ class Mosque(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     location = db.Column(db.String(200), nullable=False)
-    area = db.Column(db.String(50), nullable=False)  # Area as a string field
+    area = db.Column(db.String(50), nullable=False)
     map_link = db.Column(db.String(500))
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)

@@ -3,13 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="دليل أئمة التراويح في الرياض - تصفح المساجد واستمع للتلاوات لاختيار المسجد المناسب لك في رمضان">
-    <meta name="keywords" content="أئمة التراويح, مساجد الرياض, صلاة التراويح, رمضان, قراءة القرآن, مكان مسجد في الرياض,افضل مساجد في الرياض، تراويح الرياض " />
+    <meta name="description" content="دليل أئمة التراويح في الرياض ٢٠٢٥ - تصفح المساجد واستمع للتلاوات لاختيار المسجد المناسب لك في رمضان">
+    <meta name="keywords" content="أئمة التراويح, مساجد الرياض, صلاة التراويح, رمضان, قراءة القرآن, مسجد في الرياض,افضل مساجد في الرياض،ائمة التراويح في الرياض ٢٠٢٥ " />
     <meta name="robots" content="index, follow" />
+
+    <!-- Favicon  -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon-16x16.png') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    <!-- end of favicon section -->
 
     <meta property="og:title" content="أئمة التراويح - الرياض">
     <meta property="og:description" content="دليل أئمة التراويح في الرياض - تصفح المساجد واستمع للتلاوات">
     <meta property="og:image" content="https://taraweeh.org/static/images/og-image.png">
+    <!-- open graph image dimensions -->
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     <meta property="og:url" content="https://taraweeh.org">
     <meta property="og:type" content="website">
 
@@ -78,5 +87,18 @@
     </footer>
 
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+    <!-- Structured Data for Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "أئمة التراويح - الرياض",
+      "url": "https://taraweeh.org",
+      "logo": "https://taraweeh.org/static/images/logo.png",
+      "image": "https://taraweeh.org/static/images/og-image.png",
+      "description": "دليل أئمة التراويح في الرياض - تصفح المساجد واستمع للتلاوات لاختيار المسجد المناسب لك في رمضان"
+    }
+    </script>
 </body>
 </html>

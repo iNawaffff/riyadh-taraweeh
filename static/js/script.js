@@ -347,13 +347,13 @@ document.addEventListener('DOMContentLoaded', function() {
             mosqueCard.className = 'mosque-card';
             mosqueCard.setAttribute('data-distance', mosque.distance || '999999');
 
-            // Enhanced distance badge with contextual icons and styling
+
             let distanceText = '';
             let distanceIcon = 'fa-map-marker-alt'; // Default icon
             let distanceClass = '';
 
             if (mosque.distance !== undefined) {
-                // Choose appropriate icon and class based on distance
+                // the appropriate icon and class based on distance
                 if (mosque.distance < 1) {
                     distanceIcon = 'fa-walking';
                     distanceClass = 'distance-walking';
@@ -365,18 +365,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     distanceClass = 'distance-car';
                 }
 
-                // Format distance text
+                //format distance text
                 if (mosque.distance < 1) {
-                    // Less than 1 km, show in meters
+                    // less than 1 km, show in meters
                     let meters = Math.round(mosque.distance * 1000);
                     distanceText = `<span class="distance-badge ${distanceClass}"><i class="fas ${distanceIcon}"></i> ${meters} م</span>`;
                 } else {
-                    // More than 1 km
+                    // more than 1 km
                     distanceText = `<span class="distance-badge ${distanceClass}"><i class="fas ${distanceIcon}"></i> ${mosque.distance.toFixed(1)} كم</span>`;
                 }
             }
 
-            // Enhanced mosque card with better layout
+            //mosque card with better layout
             mosqueCard.innerHTML = `
                 <div class="mosque-header">
                     <h2 class="mosque-name">${mosque.name}</h2>
@@ -527,26 +527,26 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Update button text
                     proximityButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري البحث عن المساجد القريبة...';
 
-                    // Call the API to get mosques sorted by proximity
+                    //calling the API to get mosques sorted by proximity
                     fetch(`/api/mosques/nearby?lat=${latitude}&lng=${longitude}`)
                         .then(response => response.json())
                         .then(data => {
-                            // Reset button state with success message
+                            //success message
                             proximityButton.classList.remove('loading');
                             proximityButton.innerHTML = '<i class="fas fa-check"></i> تم الترتيب حسب الأقرب';
 
-                            // Keep the active state to show sorting is active
+                            // keep the active state to show sorting is active
                             setTimeout(() => {
                                 proximityButton.innerHTML = '<i class="fas fa-location-arrow"></i> الأقرب إليك';
                             }, 2000);
 
-                            // Render the sorted mosques with distance
+
                             renderMosquesWithDistance(data);
 
-                            // Update result count
+
                             updateSearchResults(data.length, '', areaFilter.value);
 
-                            // Add a "sorted by proximity" indicator
+
                             const sortingInfo = document.createElement('div');
                             sortingInfo.className = 'sorting-info';
                             sortingInfo.innerHTML = '<i class="fas fa-info-circle"></i> تم ترتيب المساجد حسب الأقرب إليك';
@@ -565,7 +565,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             mosquesGrid.innerHTML = '<div class="empty-state">حدث خطأ أثناء البحث. الرجاء المحاولة لاحقاً.</div>';
                         });
                 },
-                // Error callback
+                // error callback
                 function(error) {
                     proximityButton.classList.remove('loading');
                     proximityButton.classList.remove('active');
@@ -591,7 +591,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <button id="retryLocation" class="reset-button">إعادة المحاولة</button>
                     </div>`;
 
-                    // Add retry button functionality
+                    //retry button functionality
                     const retryButton = document.getElementById('retryLocation');
                     if (retryButton) {
                         retryButton.addEventListener('click', function() {
@@ -599,7 +599,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                     }
                 },
-                // Options
+
                 {
                     enableHighAccuracy: true,
                     timeout: 10000,
