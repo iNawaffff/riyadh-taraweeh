@@ -1921,3 +1921,389 @@ body.menu-open {
         align-self: flex-start;
     }
 }
+
+/* Mosque Detail Page Styles */
+.mosque-detail-section {
+    margin-bottom: 30px;
+}
+
+.detail-header {
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--accent-color);
+    padding-bottom: 10px;
+}
+
+.detail-header h3 {
+    color: var(--primary-color);
+    font-size: 1.3rem;
+    margin: 0;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.detail-item {
+    background-color: var(--primary-light);
+    padding: 15px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+.detail-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: var(--primary-color);
+}
+
+.detail-value {
+    word-break: break-word; /* Ensures long text doesn't overflow */
+}
+
+.detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: center; /* Center buttons on mobile */
+}
+
+.detail-button {
+    padding: 10px 15px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    min-height: 44px; /* Ensures minimum touch target size */
+    min-width: 120px; /* Minimum width for buttons */
+    justify-content: center;
+}
+
+.map-button {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+}
+
+.map-button:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.map-container {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    height: 0;
+    padding-bottom: 56.25%; /* 16:9 Aspect Ratio for responsive iframe */
+    position: relative;
+}
+
+.map-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+/* Error Reporting Button */
+.error-report-section {
+    margin: 30px 0;
+    text-align: center;
+}
+
+.error-report-button {
+    background-color: white;
+    color: #d32f2f;
+    border: 1px solid #d32f2f;
+    border-radius: 20px;
+    padding: 12px 20px; /* Slightly larger for better touch targets */
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px; /* Minimum touch target size */
+}
+
+.error-report-button:hover {
+    background-color: #ffebee;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
+}
+
+.error-report-button i {
+    font-size: 16px;
+}
+
+/* Error Report Modal */
+.error-report-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    overflow: auto;
+    padding: 20px;
+}
+
+.error-report-content {
+    background-color: white;
+    margin: 5% auto; /* Reduced from 10% for better display on small screens */
+    padding: 25px;
+    border-radius: 10px;
+    width: calc(100% - 20px); /* Full width minus some padding */
+    max-width: 500px;
+    position: relative;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+}
+
+.close-modal {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    font-size: 22px;
+    color: #666;
+    cursor: pointer;
+    transition: color 0.3s;
+    padding: 5px; /* Increase touch target size */
+    line-height: 1;
+    height: 30px;
+    width: 30px;
+    text-align: center;
+}
+
+.close-modal:hover {
+    color: #d32f2f;
+}
+
+.error-report-content h3 {
+    margin-top: 0;
+    color: #d32f2f;
+    text-align: center;
+    margin-bottom: 15px;
+    font-size: 1.2rem; /* Slightly adjusted for better mobile display */
+    padding-right: 30px; /* Space for close button */
+}
+
+.checkbox-group {
+    margin-bottom: 12px;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 5px 0; /* Larger touch target */
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 18px; /* Slightly larger checkbox */
+    height: 18px;
+    min-width: 18px; /* Prevent checkbox from shrinking */
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.form-group textarea,
+.form-group input {
+    width: 100%;
+    padding: 12px; /* Increased for better touch targets */
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-family: inherit;
+    font-size: 16px; /* Prevent iOS zoom on focus */
+}
+
+.form-actions {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.submit-report {
+    background-color: #d32f2f;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 12px 24px; /* Larger for better touch targets */
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 44px; /* Minimum touch target size */
+    min-width: 120px;
+}
+
+.submit-report:hover {
+    background-color: #b71c1c;
+    transform: translateY(-2px);
+}
+
+.close-success {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 12px 24px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 15px;
+    min-height: 44px;
+}
+
+.back-link-container {
+    margin-top: 30px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--primary-color);
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+    min-height: 44px;
+}
+
+.back-link:hover {
+    background-color: var(--primary-light);
+    transform: translateY(-2px);
+}
+
+/* Additional Responsive Adjustments */
+@media (min-width: 768px) {
+    .detail-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .detail-actions {
+        justify-content: flex-start; /* align left on larger screens */
+    }
+}
+
+@media (max-width: 480px) {
+    .error-report-content {
+        padding: 20px 15px; /* Smaller padding on the smallest screens */
+    }
+
+    .detail-button {
+        width: 100%; /* Full width buttons on very small screens */
+    }
+
+    .detail-header h3 {
+        font-size: 1.2rem;
+    }
+
+    .close-modal {
+        top: 10px;
+        left: 10px;
+    }
+}
+
+/* Breadcrumb Navigation */
+.breadcrumb-nav {
+    margin: 15px 0;
+}
+
+.breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    background-color: transparent;
+}
+
+.breadcrumb-item {
+    position: relative;
+    margin-left: 20px;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+    display: inline-block;
+    padding-right: 10px;
+    color: var(--light-text);
+    position: absolute;
+    right: -25px;
+    top: 0;
+}
+
+.breadcrumb-item a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.breadcrumb-item a:hover {
+    color: var(--accent-color);
+    text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+    color: var(--light-text);
+}
+
+/* Mosque Description */
+.mosque-description {
+    background-color: var(--primary-light);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    border-right: 3px solid var(--accent-color);
+    line-height: 1.8;
+}
+
+.mosque-description p {
+    margin: 0;
+    text-align: justify;
+    font-size: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .breadcrumb {
+        font-size: 0.9rem;
+    }
+
+    .mosque-description {
+        padding: 15px;
+    }
+
+    .mosque-description p {
+        font-size: 0.8rem; /* Smaller font size for mobile */
+        line-height: 1.6; /* Tighter line height for mobile */
+        text-align: right; /* Right-aligned text might look better on mobile */
+    }
+
+}
+
+/* Extra-small screens */
+@media (max-width: 375px) {
+    .mosque-description p {
+        font-size: 0.7rem; /* Even smaller text for very small screens */
+    }
+}

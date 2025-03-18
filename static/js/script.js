@@ -18,17 +18,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // ========== NAVIGATION MENU HANDLING ==========
 
     // menu handling - toggle when hamburger is clicked
-    menuToggle.addEventListener('click', function() {
-        toggleMenu();
-    });
+    if (menuToggle) {
+        menuToggle.addEventListener('click', function() {
+            toggleMenu();
+        });
+    }
 
     // close menu when clicked anywhere in the menu background
-    navMenu.addEventListener('click', function(event) {
-        // only close if clicking the menu background (not the links)
-        if (event.target === navMenu) {
-            closeMenu();
-        }
-    });
+    if (navMenu) {
+        navMenu.addEventListener('click', function(event) {
+            // only close if clicking the menu background (not the links)
+            if (event.target === navMenu) {
+                closeMenu();
+            }
+        });
+    }
 
     // esc key closes menu
     document.addEventListener('keydown', function(e) {
@@ -39,16 +43,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // toggle menu open/closed
     function toggleMenu() {
-        menuToggle.classList.toggle('active');
-        navMenu.classList.toggle('active');
-        document.body.classList.toggle('menu-open');
+        if (menuToggle && navMenu) {
+            menuToggle.classList.toggle('active');
+            navMenu.classList.toggle('active');
+            document.body.classList.toggle('menu-open');
+        }
     }
 
     // close menu
     function closeMenu() {
-        menuToggle.classList.remove('active');
-        navMenu.classList.remove('active');
-        document.body.classList.remove('menu-open');
+        if (menuToggle && navMenu) {
+            menuToggle.classList.remove('active');
+            navMenu.classList.remove('active');
+            document.body.classList.remove('menu-open');
+        }
     }
 
     // mark current page as active in navigation
@@ -65,111 +73,137 @@ document.addEventListener('DOMContentLoaded', function() {
     // ========== SEARCH FUNCTIONALITY ==========
 
     // Handle search input changes with debounce
-    searchInput.addEventListener('input', function() {
-        // Show/hide clear button based on input content
-        if (this.value.length > 0) {
-            clearButton.style.display = 'flex';
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            // Show/hide clear button based on input content
+            if (this.value.length > 0 && clearButton) {
+                clearButton.style.display = 'flex';
 
-            // Implement debounced search (for a smoother experience)
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                searchMosques();
-            }, 500); // 500ms delay
-        } else {
-            clearButton.style.display = 'none';
-
-            // If search is cleared, reset to show all mosques
-            if (areaFilter.value === 'الكل') {
+                // Implement debounced search (for a smoother experience)
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(() => {
-                    fetchMosques();
-                }, 100);
-            } else {
-                searchMosques();
+                    searchMosques();
+                }, 500); // 500ms delay
+            } else if (clearButton) {
+                clearButton.style.display = 'none';
+
+                // If search is cleared, reset to show all mosques
+                if (areaFilter && areaFilter.value === 'الكل') {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        fetchMosques();
+                    }, 100);
+                } else {
+                    searchMosques();
+                }
             }
-        }
-    });
+        });
+    }
 
     // search when button is clicked
-    searchButton.addEventListener('click', function() {
-        clearTimeout(searchTimeout);
-        searchMosques();
-    });
-
-    // handle clear button
-    clearButton.addEventListener('click', function() {
-        searchInput.value = '';
-        clearButton.style.display = 'none';
-        searchInput.focus();
-
-        // reset search if area filter is also set to all
-        if (areaFilter.value === 'الكل') {
-            fetchMosques();
-        } else {
-            searchMosques();
-        }
-    });
-
-    // search on enter key
-    searchInput.addEventListener('keyup', function(event) {
-        if (event.key === 'Enter') {
+    if (searchButton) {
+        searchButton.addEventListener('click', function() {
             clearTimeout(searchTimeout);
             searchMosques();
-        }
-    });
+        });
+    }
+
+    // handle clear button
+    if (clearButton) {
+        clearButton.addEventListener('click', function() {
+            if (searchInput) {
+                searchInput.value = '';
+                clearButton.style.display = 'none';
+                searchInput.focus();
+
+                // reset search if area filter is also set to all
+                if (areaFilter && areaFilter.value === 'الكل') {
+                    fetchMosques();
+                } else {
+                    searchMosques();
+                }
+            }
+        });
+    }
+
+    // search on enter key
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                clearTimeout(searchTimeout);
+                searchMosques();
+            }
+        });
+    }
 
     // search when filter changes
-    areaFilter.addEventListener('change', function() {
-        searchMosques();
-    });
+    if (areaFilter) {
+        areaFilter.addEventListener('change', function() {
+            searchMosques();
+        });
+    }
 
     // ========== API INTERACTIONS ==========
 
     // fetch all mosques from api
     function fetchMosques() {
         // Show the loading state
-        searchBox.classList.add('searching');
+        if (!mosquesGrid) return;
+
+        if (searchBox) searchBox.classList.add('searching');
         mosquesGrid.innerHTML = '<div class="loading">جاري تحميل البيانات...</div>';
 
         fetch('/api/mosques')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
                 setTimeout(() => {
                     renderMosques(data);
-                    searchBox.classList.remove('searching');
+                    if (searchBox) searchBox.classList.remove('searching');
                 }, 300);
             })
             .catch(error => {
                 console.error('Error fetching mosques:', error);
                 mosquesGrid.innerHTML = '<div class="empty-state">حدث خطأ أثناء تحميل البيانات. الرجاء المحاولة لاحقاً.</div>';
-                searchBox.classList.remove('searching');
+                if (searchBox) searchBox.classList.remove('searching');
             });
     }
 
     // search for mosques with filter
     function searchMosques() {
+        if (!mosquesGrid || !searchInput || !areaFilter) return;
+
         const query = searchInput.value.trim();
         const area = areaFilter.value;
 
-        searchBox.classList.add('searching');
+        if (searchBox) searchBox.classList.add('searching');
 
         // show loading message
         mosquesGrid.innerHTML = '<div class="loading">جاري البحث...</div>';
 
         fetch(`/api/mosques/search?q=${encodeURIComponent(query)}&area=${encodeURIComponent(area)}`)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
                 // small delay to show the animation (feels more responsive)
                 setTimeout(() => {
                     renderMosques(data);
                     updateSearchResults(data.length, query, area);
-                    searchBox.classList.remove('searching');
+                    if (searchBox) searchBox.classList.remove('searching');
                 }, 300);
             })
             .catch(error => {
                 console.error('Error searching mosques:', error);
                 mosquesGrid.innerHTML = '<div class="empty-state">حدث خطأ أثناء البحث. الرجاء المحاولة لاحقاً.</div>';
-                searchBox.classList.remove('searching');
+                if (searchBox) searchBox.classList.remove('searching');
             });
     }
 
@@ -177,6 +211,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // show search result count and reset button
     function updateSearchResults(count, query, area) {
+        if (!searchResults) return;
+
         if (query || area !== 'الكل') {
             searchResults.innerHTML = `
                 <p>تم العثور على ${count} مسجد</p>
@@ -185,7 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
 
             const resetButton = document.getElementById('resetSearch');
-            if (resetButton) {
+            if (resetButton && searchInput && areaFilter && clearButton) {
                 resetButton.addEventListener('click', function() {
                     searchInput.value = '';
                     areaFilter.value = 'الكل';
@@ -200,6 +236,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // render mosque cards to page
     function renderMosques(mosques) {
+        if (!mosquesGrid) return;
+
         // Reset proximity-sorted class if present
         mosquesGrid.classList.remove('proximity-sorted');
 
@@ -213,12 +251,14 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
 
             const resetButton = document.getElementById('resetSearchEmpty');
-            resetButton.addEventListener('click', function() {
-                searchInput.value = '';
-                areaFilter.value = 'الكل';
-                clearButton.style.display = 'none';
-                searchMosques();
-            });
+            if (resetButton && searchInput && areaFilter && clearButton) {
+                resetButton.addEventListener('click', function() {
+                    searchInput.value = '';
+                    areaFilter.value = 'الكل';
+                    clearButton.style.display = 'none';
+                    searchMosques();
+                });
+            }
 
             return;
         }
@@ -236,22 +276,31 @@ document.addEventListener('DOMContentLoaded', function() {
         mosques.forEach((mosque, index) => {
             const mosqueCard = document.createElement('div');
             mosqueCard.className = 'mosque-card';
+
+            // Handle potential undefined values safely
+            const imamName = mosque.imam || 'غير محدد';
+            const audioSample = mosque.audio_sample || '';
+            const youtubeLink = mosque.youtube_link || '';
+            const mapLink = mosque.map_link || '#';
+
             mosqueCard.innerHTML = `
-                <h2 class="mosque-name">${mosque.name}</h2>
+                <h2 class="mosque-name">
+                    <a href="/mosque/${mosque.id}" style="text-decoration: none; color: inherit;">${mosque.name}</a>
+                </h2>
                 
                 <div class="info-row">
                     <div class="info-label">
                         <span class="info-icon"></span>
-                        <p>${mosque.imam || 'غير محدد'}</p>
+                        <p>${imamName}</p>
                     </div>
                     <div class="action-buttons">
-                        ${mosque.audio_sample ? `
-                            <button class="action-button audio-button" data-audio="${mosque.audio_sample}" data-id="${mosque.id}">
+                        ${audioSample ? `
+                            <button class="action-button audio-button" data-audio="${audioSample}" data-id="${mosque.id}">
                                 <i class="fas fa-play"></i> <span class="button-text">استماع</span>
                             </button>
                         ` : ''}
-                        ${mosque.youtube_link ? `
-                            <a href="${mosque.youtube_link}" target="_blank" class="youtube-button" aria-label="يوتيوب">
+                        ${youtubeLink ? `
+                            <a href="${youtubeLink}" target="_blank" rel="noopener" class="youtube-button" aria-label="يوتيوب">
                                 <i class="fab fa-youtube"></i> 
                             </a>
                         ` : ''}
@@ -263,9 +312,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         <span class="info-icon"></span>
                         <p>${mosque.location}</p>
                     </div>
-                    <a href="${mosque.map_link}" target="_blank" class="action-button map-link">
+                    ${mapLink !== '#' ? `
+                    <a href="${mapLink}" target="_blank" rel="noopener" class="action-button map-link">
                         <i class="fas fa-directions"></i> <span class="button-text">فتح في قوقل ماب</span>
                     </a>
+                    ` : ''}
                 </div>
             `;
 
@@ -283,7 +334,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         "addressLocality": "الرياض",
                         "addressRegion": mosque.area || "الرياض"
                     },
-                    "description": `مسجد ${mosque.name} - إمام التراويح: ${mosque.imam || 'غير محدد'}`,
+                    "description": `مسجد ${mosque.name} - إمام التراويح: ${imamName}`,
                     "geo": mosque.latitude && mosque.longitude ? {
                         "@type": "GeoCoordinates",
                         "latitude": mosque.latitude,
@@ -312,6 +363,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Render mosques with improved distance display
     function renderMosquesWithDistance(mosques) {
+        if (!mosquesGrid) return;
+
         // Empty state handling
         if (mosques.length === 0) {
             mosquesGrid.innerHTML = `
@@ -322,12 +375,14 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
 
             const resetButton = document.getElementById('resetSearchEmpty');
-            resetButton.addEventListener('click', function() {
-                searchInput.value = '';
-                areaFilter.value = 'الكل';
-                clearButton.style.display = 'none';
-                searchMosques();
-            });
+            if (resetButton && searchInput && areaFilter && clearButton) {
+                resetButton.addEventListener('click', function() {
+                    searchInput.value = '';
+                    areaFilter.value = 'الكل';
+                    clearButton.style.display = 'none';
+                    searchMosques();
+                });
+            }
 
             return;
         }
@@ -347,6 +402,11 @@ document.addEventListener('DOMContentLoaded', function() {
             mosqueCard.className = 'mosque-card';
             mosqueCard.setAttribute('data-distance', mosque.distance || '999999');
 
+            // Handle potential undefined values safely
+            const imamName = mosque.imam || 'غير محدد';
+            const audioSample = mosque.audio_sample || '';
+            const youtubeLink = mosque.youtube_link || '';
+            const mapLink = mosque.map_link || '#';
 
             let distanceText = '';
             let distanceIcon = 'fa-map-marker-alt'; // Default icon
@@ -379,23 +439,25 @@ document.addEventListener('DOMContentLoaded', function() {
             //mosque card with better layout
             mosqueCard.innerHTML = `
                 <div class="mosque-header">
-                    <h2 class="mosque-name">${mosque.name}</h2>
+                    <h2 class="mosque-name">
+                        <a href="/mosque/${mosque.id}" style="text-decoration: none; color: inherit;">${mosque.name}</a>
+                    </h2>
                     ${distanceText}
                 </div>
                 
                 <div class="info-row">
                     <div class="info-label">
                         <span class="info-icon"></span>
-                        <p>${mosque.imam || 'غير محدد'}</p>
+                        <p>${imamName}</p>
                     </div>
                     <div class="action-buttons">
-                        ${mosque.audio_sample ? `
-                            <button class="action-button audio-button" data-audio="${mosque.audio_sample}" data-id="${mosque.id}">
+                        ${audioSample ? `
+                            <button class="action-button audio-button" data-audio="${audioSample}" data-id="${mosque.id}">
                                 <i class="fas fa-play"></i> <span class="button-text">استماع</span>
                             </button>
                         ` : ''}
-                        ${mosque.youtube_link ? `
-                            <a href="${mosque.youtube_link}" target="_blank" class="youtube-button" aria-label="يوتيوب">
+                        ${youtubeLink ? `
+                            <a href="${youtubeLink}" target="_blank" rel="noopener" class="youtube-button" aria-label="يوتيوب">
                                 <i class="fab fa-youtube"></i> 
                             </a>
                         ` : ''}
@@ -407,9 +469,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         <span class="info-icon"></span>
                         <p>${mosque.location}</p>
                     </div>
-                    <a href="${mosque.map_link}" target="_blank" class="action-button map-link">
+                    ${mapLink !== '#' ? `
+                    <a href="${mapLink}" target="_blank" rel="noopener" class="action-button map-link">
                         <i class="fas fa-directions"></i> <span class="button-text">فتح في قوقل ماب</span>
                     </a>
+                    ` : ''}
                 </div>
             `;
 
@@ -427,7 +491,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         "addressLocality": "الرياض",
                         "addressRegion": mosque.area || "الرياض"
                     },
-                    "description": `مسجد ${mosque.name} - إمام التراويح: ${mosque.imam || 'غير محدد'}`,
+                    "description": `مسجد ${mosque.name} - إمام التراويح: ${imamName}`,
                     "geo": mosque.latitude && mosque.longitude ? {
                         "@type": "GeoCoordinates",
                         "latitude": mosque.latitude,
@@ -465,28 +529,40 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Create permission modal
-        const permissionModal = document.createElement('div');
-        permissionModal.className = 'location-permission-modal';
-        permissionModal.innerHTML = `
-            <div class="permission-content">
-                <div class="permission-illustration">
-                    <i class="fas fa-map-marker-alt"></i>
+        // Create permission modal if it doesn't exist yet
+        if (!document.querySelector('.location-permission-modal')) {
+            const permissionModal = document.createElement('div');
+            permissionModal.className = 'location-permission-modal';
+            permissionModal.innerHTML = `
+                <div class="permission-content">
+                    <div class="permission-illustration">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <h3>السماح بتحديد موقعك</h3>
+                    <p>لعرض المساجد الأقرب إليك، نحتاج إلى إذن للوصول إلى موقعك الحالي. سيتم استخدام هذه المعلومات فقط لترتيب المساجد حسب المسافة.</p>
+                    <div class="permission-buttons">
+                        <button class="permission-allow">السماح</button>
+                        <button class="permission-deny">لاحقاً</button>
+                    </div>
                 </div>
-                <h3>السماح بتحديد موقعك</h3>
-                <p>لعرض المساجد الأقرب إليك، نحتاج إلى إذن للوصول إلى موقعك الحالي. سيتم استخدام هذه المعلومات فقط لترتيب المساجد حسب المسافة.</p>
-                <div class="permission-buttons">
-                    <button class="permission-allow">السماح</button>
-                    <button class="permission-deny">لاحقاً</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(permissionModal);
+            `;
+            document.body.appendChild(permissionModal);
+        }
 
+        const permissionModal = document.querySelector('.location-permission-modal');
+        // Create fresh event listeners to avoid duplicates
         const allowButton = permissionModal.querySelector('.permission-allow');
         const denyButton = permissionModal.querySelector('.permission-deny');
 
-        // Function to get position
+        // Create cloned buttons to prevent multiple event handlers
+        const newAllowButton = allowButton.cloneNode(true);
+        const newDenyButton = denyButton.cloneNode(true);
+
+        // Replace old buttons with clones
+        allowButton.parentNode.replaceChild(newAllowButton, allowButton);
+        denyButton.parentNode.replaceChild(newDenyButton, denyButton);
+
+        // Function to get position with better error handling
         function getProximity(showPermissionDialog = true) {
             // Check if we've already requested permission before
             const hasRequestedPermission = localStorage.getItem('proximityPermissionRequested');
@@ -494,13 +570,16 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!hasRequestedPermission && showPermissionDialog) {
                 permissionModal.classList.add('active');
 
-                allowButton.addEventListener('click', function() {
+                const currentAllowButton = permissionModal.querySelector('.permission-allow');
+                const currentDenyButton = permissionModal.querySelector('.permission-deny');
+
+                currentAllowButton.addEventListener('click', function() {
                     permissionModal.classList.remove('active');
                     localStorage.setItem('proximityPermissionRequested', 'true');
                     getLocation();
                 });
 
-                denyButton.addEventListener('click', function() {
+                currentDenyButton.addEventListener('click', function() {
                     permissionModal.classList.remove('active');
                     localStorage.setItem('proximityPermissionRequested', 'true');
                 });
@@ -517,7 +596,7 @@ document.addEventListener('DOMContentLoaded', function() {
             proximityButton.classList.add('active');
             proximityButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري تحديد موقعك...';
 
-            // Get user's location
+            // Get user's location with timeout
             navigator.geolocation.getCurrentPosition(
                 // Success callback
                 function(position) {
@@ -529,7 +608,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     //calling the API to get mosques sorted by proximity
                     fetch(`/api/mosques/nearby?lat=${latitude}&lng=${longitude}`)
-                        .then(response => response.json())
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
                         .then(data => {
                             //success message
                             proximityButton.classList.remove('loading');
@@ -540,20 +624,19 @@ document.addEventListener('DOMContentLoaded', function() {
                                 proximityButton.innerHTML = '<i class="fas fa-location-arrow"></i> الأقرب إليك';
                             }, 2000);
 
-
                             renderMosquesWithDistance(data);
 
+                            if (searchResults && areaFilter) {
+                                updateSearchResults(data.length, '', areaFilter.value);
 
-                            updateSearchResults(data.length, '', areaFilter.value);
+                                const sortingInfo = document.createElement('div');
+                                sortingInfo.className = 'sorting-info';
+                                sortingInfo.innerHTML = '<i class="fas fa-info-circle"></i> تم ترتيب المساجد حسب الأقرب إليك';
 
-
-                            const sortingInfo = document.createElement('div');
-                            sortingInfo.className = 'sorting-info';
-                            sortingInfo.innerHTML = '<i class="fas fa-info-circle"></i> تم ترتيب المساجد حسب الأقرب إليك';
-
-                            // Only append if it doesn't exist already
-                            if (!searchResults.querySelector('.sorting-info')) {
-                                searchResults.appendChild(sortingInfo);
+                                // Only append if it doesn't exist already
+                                if (!searchResults.querySelector('.sorting-info')) {
+                                    searchResults.appendChild(sortingInfo);
+                                }
                             }
                         })
                         .catch(error => {
@@ -562,7 +645,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             proximityButton.classList.remove('active');
                             proximityButton.innerHTML = '<i class="fas fa-location-arrow"></i> الأقرب إليك';
 
-                            mosquesGrid.innerHTML = '<div class="empty-state">حدث خطأ أثناء البحث. الرجاء المحاولة لاحقاً.</div>';
+                            if (mosquesGrid) {
+                                mosquesGrid.innerHTML = '<div class="empty-state">حدث خطأ أثناء البحث. الرجاء المحاولة لاحقاً.</div>';
+                            }
                         });
                 },
                 // error callback
@@ -586,17 +671,19 @@ document.addEventListener('DOMContentLoaded', function() {
                             errorMessage += 'حدث خطأ غير معروف.';
                     }
 
-                    mosquesGrid.innerHTML = `<div class="empty-state">
-                        <p>${errorMessage}</p>
-                        <button id="retryLocation" class="reset-button">إعادة المحاولة</button>
-                    </div>`;
+                    if (mosquesGrid) {
+                        mosquesGrid.innerHTML = `<div class="empty-state">
+                            <p>${errorMessage}</p>
+                            <button id="retryLocation" class="reset-button">إعادة المحاولة</button>
+                        </div>`;
 
-                    //retry button functionality
-                    const retryButton = document.getElementById('retryLocation');
-                    if (retryButton) {
-                        retryButton.addEventListener('click', function() {
-                            getProximity(false); // Don't show permission dialog again on retry
-                        });
+                        //retry button functionality
+                        const retryButton = document.getElementById('retryLocation');
+                        if (retryButton) {
+                            retryButton.addEventListener('click', function() {
+                                getProximity(false); // Don't show permission dialog again on retry
+                            });
+                        }
                     }
                 },
 
@@ -644,8 +731,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 const audio = new Audio(audioPath);
 
-                // play audio and update button
-                audio.play();
+                // play audio and update button with error handling
+                audio.play().catch(error => {
+                    console.error('Error playing audio:', error);
+                    button.innerHTML = '<i class="fas fa-exclamation-circle"></i> خطأ';
+                    setTimeout(() => {
+                        button.innerHTML = '<i class="fas fa-play"></i> استماع';
+                        button.classList.remove('playing');
+                    }, 2000);
+                    return;
+                });
+
                 this.innerHTML = '<i class="fas fa-pause"></i> إيقاف';
                 this.classList.add('playing');
 
@@ -681,16 +777,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // set today's date in hijri calendar
     const updateDateElements = document.querySelectorAll('#lastUpdateDate, #mainPageLastUpdate');
     if (updateDateElements.length > 0) {
-        const today = new Date();
-        const options = { year: 'numeric', month: 'long', day: 'numeric' };
-        updateDateElements.forEach(element => {
-            element.textContent = today.toLocaleDateString('ar-SA', options);
-        });
+        try {
+            const today = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            updateDateElements.forEach(element => {
+                if (element) {
+                    element.textContent = today.toLocaleDateString('ar-SA', options);
+                }
+            });
+        } catch (error) {
+            console.error('Error updating date elements:', error);
+        }
     }
 
     // ========== INITIALIZATION ==========
 
-    // Initialize the app
-    fetchMosques();
-    setupProximitySorting();
+    // Only initialize mosque-related features if we're on the right page
+    if (mosquesGrid) {
+        fetchMosques();
+        setupProximitySorting();
+    }
+
+    // Initialize audio buttons on all pages
+    setupAudioButtons();
 });

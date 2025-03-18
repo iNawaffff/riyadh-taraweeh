@@ -2,27 +2,55 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <meta name="description" content="دليل أئمة التراويح في الرياض ٢٠٢٥ - تصفح المساجد واستمع للتلاوات لاختيار المسجد المناسب لك في رمضان">
     <meta name="keywords" content="أئمة التراويح, مساجد الرياض, صلاة التراويح, رمضان, قراءة القرآن, مسجد في الرياض,افضل مساجد في الرياض،ائمة التراويح في الرياض ٢٠٢٥ " />
     <meta name="robots" content="index, follow" />
+
+    <!-- SEO Geographic metadata -->
+    <meta name="geo.region" content="SA" />
+    <meta name="geo.placename" content="Riyadh" />
+
+    <!-- Mobile optimization -->
+    <meta name="theme-color" content="#0d4b33">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Default canonical tag -->
+    <link rel="canonical" href="https://taraweeh.org{{ request.path }}" />
 
     <!-- Favicon  -->
     <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='images/favicon-32x32.png') }}">
     <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='images/favicon-16x16.png') }}">
     <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/apple-touch-icon.png') }}">
     <!-- end of favicon section -->
 
-    <meta property="og:title" content="أئمة التراويح - الرياض">
-    <meta property="og:description" content="دليل أئمة التراويح في الرياض - تصفح المساجد واستمع للتلاوات">
+    <!-- Open Graph / Social Media -->
+    <meta property="og:title" content="{% block og_title %}أئمة التراويح - الرياض{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}دليل أئمة التراويح في الرياض - تصفح المساجد واستمع للتلاوات{% endblock %}">
     <meta property="og:image" content="https://taraweeh.org/static/images/og-image.png">
-    <!-- open graph image dimensions -->
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:url" content="https://taraweeh.org">
+    <meta property="og:url" content="https://taraweeh.org{{ request.path }}">
     <meta property="og:type" content="website">
+    <meta property="og:locale" content="ar_SA">
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}أئمة التراويح - الرياض{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}دليل أئمة التراويح في الرياض - تصفح المساجد واستمع للتلاوات{% endblock %}">
+    <meta name="twitter:image" content="https://taraweeh.org/static/images/og-image.png">
+
+    {% block head_extras %}{% endblock %}
 
     <title>{% block title %}أئمة التراويح - الرياض{% endblock %}</title>
+
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -31,7 +59,11 @@
     <script defer data-domain="taraweeh.org" src="https://plausible.io/js/script.file-downloads.outbound-links.js"></script>
     <script>window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
 </head>
+
 <body>
+    <!-- Skip to content link for accessibility -->
+    <a href="#main-content" class="skip-link">تخطي إلى المحتوى الرئيسي</a>
+
     <!-- Header -->
     <header class="main-header">
         <div class="container">
@@ -45,7 +77,7 @@
 
                 <div class="logo">
                     <div class="moon-icon">
-                        <img src="{{ url_for('static', filename='images/animated-moon.gif') }}" alt="Moon icon">
+                        <img src="{{ url_for('static', filename='images/animated-moon.gif') }}" alt="هلال رمضان" width="40" height="40">
                     </div>
                     <div>
                         <h1>أئمة التراويح</h1>
@@ -57,27 +89,29 @@
     </header>
 
     <!-- Navigation Menu Overlay with Icons -->
-    <div id="navMenu" class="nav-menu">
+    <div id="navMenu" class="nav-menu" role="navigation" aria-label="القائمة الرئيسية">
         <div class="container">
             <nav class="nav-links">
-                <a href="{{ url_for('index') }}" class="nav-item {% if request.path == url_for('index') %}active{% endif %}">
-                    <i class="fas fa-mosque"></i>
+                <a href="{{ url_for('index') }}" class="nav-item {% if request.path == url_for('index') %}active{% endif %}" {% if request.path == url_for('index') %}aria-current="page"{% endif %}>
+                    <i class="fas fa-mosque" aria-hidden="true"></i>
                     المساجد
                 </a>
-                <a href="{{ url_for('about') }}" class="nav-item {% if request.path == url_for('about') %}active{% endif %}">
-                    <i class="fas fa-info-circle"></i>
+                <a href="{{ url_for('about') }}" class="nav-item {% if request.path == url_for('about') %}active{% endif %}" {% if request.path == url_for('about') %}aria-current="page"{% endif %}>
+                    <i class="fas fa-info-circle" aria-hidden="true"></i>
                     عن الموقع
                 </a>
-                <a href="{{ url_for('contact') }}" class="nav-item {% if request.path == url_for('contact') %}active{% endif %}">
-                    <i class="fas fa-envelope"></i>
+                <a href="{{ url_for('contact') }}" class="nav-item {% if request.path == url_for('contact') %}active{% endif %}" {% if request.path == url_for('contact') %}aria-current="page"{% endif %}>
+                    <i class="fas fa-envelope" aria-hidden="true"></i>
                     تواصل معنا
                 </a>
             </nav>
         </div>
     </div>
 
-    <!-- Page Content -->
-    {% block content %}{% endblock %}
+    <!-- Main Content -->
+    <main id="main-content">
+        {% block content %}{% endblock %}
+    </main>
 
     <!-- Footer -->
     <footer class="main-footer">
@@ -98,6 +132,21 @@
       "logo": "https://taraweeh.org/static/images/logo.png",
       "image": "https://taraweeh.org/static/images/og-image.png",
       "description": "دليل أئمة التراويح في الرياض - تصفح المساجد واستمع للتلاوات لاختيار المسجد المناسب لك في رمضان"
+    }
+    </script>
+
+    <!-- Site navigation structured data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "أئمة التراويح - الرياض",
+      "url": "https://taraweeh.org/",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://taraweeh.org/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
     }
     </script>
 </body>
