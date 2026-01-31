@@ -4,29 +4,8 @@ import { MosqueGrid } from '@/components/mosque'
 import { useDebounce, useSearchMosques, useAreas, useNearbyMosques, useGeolocation, useFavorites } from '@/hooks'
 import { formatArabicDate } from '@/lib/arabic-utils'
 import { cn } from '@/lib/utils'
-import { Info, Heart, Moon, AlertTriangle } from 'lucide-react'
+import { Info, Heart, AlertTriangle } from 'lucide-react'
 import { Link } from 'react-router-dom'
-
-const toArabicNum = (n: number) => n.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[+d])
-
-function getRamadanInfo() {
-  // Ramadan 1447: approximately Feb 18 – Mar 19, 2026
-  const ramadanStart = new Date(2026, 1, 18) // Feb 18
-  const ramadanEnd = new Date(2026, 2, 19)   // Mar 19
-  const now = new Date()
-  now.setHours(0, 0, 0, 0)
-
-  if (now < ramadanStart) {
-    const diff = Math.ceil((ramadanStart.getTime() - now.getTime()) / 86400000)
-    return { type: 'before' as const, daysUntil: diff }
-  }
-  if (now > ramadanEnd) {
-    return { type: 'after' as const }
-  }
-  const nightNum = Math.ceil((now.getTime() - ramadanStart.getTime()) / 86400000) + 1
-  const daysLeft = Math.ceil((ramadanEnd.getTime() - now.getTime()) / 86400000)
-  return { type: 'during' as const, nightNum: Math.min(nightNum, 30), daysLeft }
-}
 
 export function HomePage() {
   // Search state
@@ -160,27 +139,11 @@ export function HomePage() {
   const resultsCount = mosques.length
   const hasActiveFilters = searchQuery || selectedArea !== 'الكل' || showFavoritesOnly
 
-  const ramadan = getRamadanInfo()
-
   return (
     <>
       <HeroBanner />
 
       <div className="container relative z-10 -mt-5 mb-8">
-        {/* Ramadan countdown / current night badge */}
-        {ramadan.type === 'before' && (
-          <div className="mb-3 flex items-center justify-center gap-2 rounded-lg bg-primary/5 px-4 py-2 text-sm text-primary">
-            <Moon className="h-4 w-4" />
-            <span>باقي {toArabicNum(ramadan.daysUntil)} يوم على بداية رمضان</span>
-          </div>
-        )}
-        {ramadan.type === 'during' && (
-          <div className="mb-3 flex items-center justify-center gap-2 rounded-lg bg-primary/5 px-4 py-2 text-sm text-primary">
-            <Moon className="h-4 w-4" />
-            <span>اليوم ليلة {toArabicNum(ramadan.nightNum)} من رمضان — باقي {toArabicNum(ramadan.daysLeft)} يوم</span>
-          </div>
-        )}
-
         {/* Search Section */}
         <section className="rounded-2xl bg-white p-5 shadow-card md:p-6">
           {/* Search + Area Filter */}
