@@ -1,0 +1,202 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 0 0% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 20%;
+
+    --primary: 154 70% 17%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 45 46% 55%;
+    --secondary-foreground: 154 70% 17%;
+
+    --muted: 154 20% 93%;
+    --muted-foreground: 0 0% 40%;
+
+    --accent: 45 46% 55%;
+    --accent-foreground: 154 70% 17%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 154 70% 17%;
+
+    --radius: 0.625rem;
+  }
+
+  html {
+    direction: rtl;
+  }
+
+  body {
+    @apply font-tajawal bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  * {
+    @apply border-border;
+  }
+}
+
+@layer components {
+  /* Skip link for accessibility */
+  .skip-link {
+    @apply absolute -top-10 left-0 bg-primary text-primary-foreground p-2 z-50 transition-all duration-300;
+  }
+
+  .skip-link:focus {
+    @apply top-0;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-background;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-primary rounded;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary-dark;
+  }
+
+  /* Islamic geometric pattern overlay */
+  .islamic-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M30 0L60 30L30 60L0 30z' fill='none' stroke='%23ffffff' stroke-width='1' opacity='0.08'%3E%3C/path%3E%3Ccircle cx='30' cy='30' r='15' fill='none' stroke='%23ffffff' stroke-width='1' opacity='0.08'%3E%3C/circle%3E%3C/svg%3E");
+    opacity: 0.15;
+    pointer-events: none;
+  }
+
+  .islamic-pattern-large {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cpath d='M50 0L100 50L50 100L0 50z' fill='none' stroke='%23ffffff' stroke-width='1' opacity='0.05'%3E%3C/path%3E%3Ccircle cx='50' cy='50' r='40' fill='none' stroke='%23ffffff' stroke-width='1' opacity='0.05'%3E%3C/circle%3E%3C/svg%3E");
+    opacity: 0.1;
+    pointer-events: none;
+  }
+}
+
+@layer utilities {
+  /* Animation utilities */
+  .animate-delay-100 {
+    animation-delay: 0.1s;
+  }
+
+  .animate-delay-200 {
+    animation-delay: 0.2s;
+  }
+
+  .animate-delay-300 {
+    animation-delay: 0.3s;
+  }
+
+  /* Staggered card animations */
+  .mosque-card:nth-child(1) { animation-delay: 0s; }
+  .mosque-card:nth-child(2) { animation-delay: 0.05s; }
+  .mosque-card:nth-child(3) { animation-delay: 0.1s; }
+  .mosque-card:nth-child(4) { animation-delay: 0.15s; }
+  .mosque-card:nth-child(5) { animation-delay: 0.2s; }
+  .mosque-card:nth-child(6) { animation-delay: 0.25s; }
+  .mosque-card:nth-child(7) { animation-delay: 0.3s; }
+  .mosque-card:nth-child(8) { animation-delay: 0.35s; }
+
+  /* Smooth scroll */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Button press effect */
+  .btn-press {
+    @apply transition-transform active:scale-95;
+  }
+
+  /* Hover lift effect */
+  .hover-lift {
+    @apply transition-transform duration-200 hover:-translate-y-0.5;
+  }
+
+  /* Skeleton shimmer effect */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 25%,
+      hsl(var(--muted-foreground) / 0.1) 50%,
+      hsl(var(--muted)) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* Page transition */
+  .page-enter {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  .page-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+  }
+
+  /* Hero fade-in animation */
+  @keyframes heroFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .hero-fade-in {
+    animation: heroFadeIn 0.6s ease-out both;
+  }
+
+  .animation-delay-150 {
+    animation-delay: 0.15s;
+  }
+
+  /* Not found page fade-in */
+  .not-found-fade-in {
+    animation: heroFadeIn 0.5s ease-out 0.2s both;
+  }
+
+  /* Focus-visible ring for keyboard accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
+  }
+
+  /* Brand selection color */
+  ::selection {
+    background-color: hsl(var(--accent) / 0.25);
+    color: hsl(var(--primary));
+  }
+}

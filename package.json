@@ -1,0 +1,12 @@
+{
+  "name": "riyadh-taraweeh",
+  "version": "1.0.0",
+  "description": "Taraweeh Imams Directory - Riyadh",
+  "private": true,
+  "scripts": {
+    "heroku-postbuild": "cd frontend && npm ci && npm run build"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

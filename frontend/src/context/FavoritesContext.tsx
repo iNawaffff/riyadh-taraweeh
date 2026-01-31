@@ -1,6 +1,9 @@
-import { createContext, useCallback, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useState, useEffect, useRef, type ReactNode } from 'react'
 import { AuthContext } from '@/context/AuthContext'
+import { authFetch } from '@/lib/api'
 import { toast } from 'sonner'
+
+const EMPTY_FAVORITES: number[] = []
 
 interface FavoritesContextValue {
   favorites: number[]
@@ -23,14 +26,39 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
   const authCtx = useContext(AuthContext)
   const isAuthenticated = authCtx?.isAuthenticated ?? false
   const token = authCtx?.token ?? null
-  const serverFavorites = authCtx?.user?.favorites ?? []
+  const serverFavorites = authCtx?.user?.favorites ?? EMPTY_FAVORITES
 
   // Local optimistic state — syncs from server
   const [optimistic, setOptimistic] = useState<number[]>(serverFavorites)
+  const prevServerRef = useRef(serverFavorites)
 
   useEffect(() => {
-    setOptimistic(serverFavorites)
+    // Only update if the server array actually changed (by value)
+    if (
+      serverFavorites.length !== prevServerRef.current.length ||
+      serverFavorites.some((id, i) => id !== prevServerRef.current[i])
+    ) {
+      prevServerRef.current = serverFavorites
+      setOptimistic(serverFavorites)
+    }
   }, [serverFavorites])
+
+  // Handle pending favorite from pre-login intent
+  useEffect(() => {
+    if (!isAuthenticated || !token) return
+    const pendingId = localStorage.getItem('pendingFavorite')
+    if (pendingId) {
+      localStorage.removeItem('pendingFavorite')
+      const mosqueId = Number(pendingId)
+      if (mosqueId && !optimistic.includes(mosqueId)) {
+        setOptimistic(f => [...f, mosqueId])
+        fetch(`/api/user/favorites/${mosqueId}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        }).then(() => authCtx?.refreshProfile()).catch(() => {})
+      }
+    }
+  }, [isAuthenticated, token]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const favorites = isAuthenticated ? optimistic : []
 
@@ -38,7 +66,7 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
     async (url: string, method: string, rollback: number[]) => {
       if (!token) return
       try {
-        const res = await fetch(url, {
+        const res = await authFetch(url, {
           method,
           headers: { Authorization: `Bearer ${token}` },
         })

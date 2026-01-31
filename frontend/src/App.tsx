@@ -1,0 +1,84 @@
+import { lazy, Suspense } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { HelmetProvider } from 'react-helmet-async'
+import * as Sentry from '@sentry/react'
+import { Toaster } from '@/components/ui/sonner'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import { AudioProvider } from '@/context/AudioContext'
+import { AuthProvider } from '@/context/AuthContext'
+import { FavoritesProvider } from '@/context/FavoritesContext'
+import { Layout } from '@/components/layout'
+import { FloatingAudioPlayer } from '@/components/audio'
+import { BaseStructuredData } from '@/components/seo'
+import { ErrorFallback } from '@/components/ErrorFallback'
+import { PageLoader } from '@/components/PageLoader'
+
+// Lazy load pages for code splitting
+const HomePage = lazy(() => import('@/pages/HomePage').then(m => ({ default: m.HomePage })))
+const MosqueDetailPage = lazy(() => import('@/pages/MosqueDetailPage').then(m => ({ default: m.MosqueDetailPage })))
+const AboutPage = lazy(() => import('@/pages/AboutPage').then(m => ({ default: m.AboutPage })))
+const ContactPage = lazy(() => import('@/pages/ContactPage').then(m => ({ default: m.ContactPage })))
+const FavoritesPage = lazy(() => import('@/pages/FavoritesPage').then(m => ({ default: m.FavoritesPage })))
+const TrackerPage = lazy(() => import('@/pages/TrackerPage').then(m => ({ default: m.TrackerPage })))
+const ProfilePage = lazy(() => import('@/pages/ProfilePage').then(m => ({ default: m.ProfilePage })))
+const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })))
+
+// Create a client for React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
+  },
+})
+
+function App() {
+  return (
+    <Sentry.ErrorBoundary fallback={({ error, resetError }) => (
+      <ErrorFallback error={error instanceof Error ? error : undefined} resetError={resetError} />
+    )}>
+      <HelmetProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+          <FavoritesProvider>
+            <AudioProvider>
+              <TooltipProvider delayDuration={300}>
+              <BrowserRouter>
+              {/* Base structured data for all pages */}
+              <BaseStructuredData />
+
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Layout />}>
+                    <Route index element={<HomePage />} />
+                    <Route path="mosque/:id" element={<MosqueDetailPage />} />
+                    <Route path="favorites" element={<FavoritesPage />} />
+                    <Route path="tracker" element={<TrackerPage />} />
+                    <Route path="about" element={<AboutPage />} />
+                    <Route path="contact" element={<ContactPage />} />
+                    <Route path="u/:username" element={<ProfilePage />} />
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Route>
+                </Routes>
+              </Suspense>
+
+              {/* Floating audio player */}
+              <FloatingAudioPlayer />
+
+              {/* Toast notifications */}
+              <Toaster position="top-center" />
+              </BrowserRouter>
+              </TooltipProvider>
+            </AudioProvider>
+          </FavoritesProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </HelmetProvider>
+    </Sentry.ErrorBoundary>
+  )
+}
+
+export default App

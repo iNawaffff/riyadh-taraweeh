@@ -41,7 +41,15 @@ export async function signInWithGoogle() {
 let recaptchaVerifier: RecaptchaVerifier | null = null
 
 function getOrCreateRecaptcha(elementId: string): RecaptchaVerifier {
-  if (recaptchaVerifier) return recaptchaVerifier
+  // Always clear previous verifier to avoid stale state
+  if (recaptchaVerifier) {
+    try { recaptchaVerifier.clear() } catch { /* ignore */ }
+    recaptchaVerifier = null
+  }
+  // Clear any leftover reCAPTCHA iframes/badges from the container
+  const container = document.getElementById(elementId)
+  if (container) container.innerHTML = ''
+
   recaptchaVerifier = new RecaptchaVerifier(auth, elementId, { size: 'invisible' })
   return recaptchaVerifier
 }
@@ -51,6 +59,9 @@ export function resetRecaptcha() {
     try { recaptchaVerifier.clear() } catch { /* ignore */ }
     recaptchaVerifier = null
   }
+  // Clean up any leftover reCAPTCHA DOM elements
+  const container = document.getElementById('recaptcha-container')
+  if (container) container.innerHTML = ''
 }
 
 export async function sendPhoneOtp(

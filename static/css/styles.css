@@ -2307,3 +2307,33 @@ body.menu-open {
         font-size: 0.7rem; /* Even smaller text for very small screens */
     }
 }
+
+/* SEO Heading and Footer Styles */
+.seo-heading {
+    color: var(--primary-color);
+    font-size: 1.3rem;
+    margin: 15px 0;
+    text-align: center;
+}
+
+.seo-footer {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: var(--primary-light);
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+/* Hide on larger screens for better user experience */
+@media (min-width: 992px) {
+    .seo-heading, .seo-footer {
+        font-size: 0.9rem;
+        opacity: 0.85;
+    }
+}
+
+@media (max-width: 576px) {
+    .seo-heading {
+        font-size: 1.1rem;
+    }
+}

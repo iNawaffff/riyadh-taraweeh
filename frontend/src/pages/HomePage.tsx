@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { HeroBanner, SearchBar, AreaFilter, ProximityButton, LocationPermissionModal, FavoritesFilterButton } from '@/components/search'
 import { MosqueGrid } from '@/components/mosque'
 import { useDebounce, useSearchMosques, useAreas, useNearbyMosques, useGeolocation, useFavorites } from '@/hooks'
@@ -127,7 +127,7 @@ export function HomePage() {
   }, [geoError])
 
   // Show success state briefly when proximity results arrive
-  useMemo(() => {
+  useEffect(() => {
     if (nearbyResults && nearbyResults.length > 0 && isProximitySorted) {
       setProximitySuccess(true)
       const timer = setTimeout(() => setProximitySuccess(false), 2000)

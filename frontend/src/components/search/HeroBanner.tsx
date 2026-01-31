@@ -1,25 +1,5 @@
 import { Moon, Star } from 'lucide-react'
-
-const toArabicNum = (n: number) => n.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[+d])
-
-function getRamadanInfo() {
-  // Ramadan 1447: approximately Feb 18 – Mar 19, 2026
-  const ramadanStart = new Date(2026, 1, 18)
-  const ramadanEnd = new Date(2026, 2, 19)
-  const now = new Date()
-  now.setHours(0, 0, 0, 0)
-
-  if (now < ramadanStart) {
-    const diff = Math.ceil((ramadanStart.getTime() - now.getTime()) / 86400000)
-    return { type: 'before' as const, daysUntil: diff }
-  }
-  if (now > ramadanEnd) {
-    return { type: 'after' as const }
-  }
-  const nightNum = Math.ceil((now.getTime() - ramadanStart.getTime()) / 86400000) + 1
-  const daysLeft = Math.ceil((ramadanEnd.getTime() - now.getTime()) / 86400000)
-  return { type: 'during' as const, nightNum: Math.min(nightNum, 30), daysLeft }
-}
+import { toArabicNum, getRamadanInfo } from '@/lib/arabic-utils'
 
 export function HeroBanner() {
   const ramadan = getRamadanInfo()
@@ -62,13 +42,13 @@ export function HeroBanner() {
         {ramadan.type === 'before' && (
           <div className="hero-fade-in animation-delay-150 mt-5 inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-white/10 px-5 py-2.5 text-sm backdrop-blur-sm md:text-base">
             <Moon className="h-4 w-4 text-amber-300" />
-            <span>باقي <strong className="text-amber-200">{toArabicNum(ramadan.daysUntil)}</strong> يوم على بداية رمضان ١٤٤٧ هـ</span>
+            <span>باقي <strong className="text-amber-200">{toArabicNum(ramadan.daysUntil!)}</strong> يوم على بداية رمضان ١٤٤٧ هـ</span>
           </div>
         )}
         {ramadan.type === 'during' && (
           <div className="hero-fade-in animation-delay-150 mt-5 inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-white/10 px-5 py-2.5 text-sm backdrop-blur-sm md:text-base">
             <Moon className="h-4 w-4 text-amber-300" />
-            <span>الليلة <strong className="text-amber-200">{toArabicNum(ramadan.nightNum)}</strong> من رمضان — باقي {toArabicNum(ramadan.daysLeft)} يوم</span>
+            <span>الليلة <strong className="text-amber-200">{toArabicNum(ramadan.nightNum!)}</strong> من رمضان — باقي {toArabicNum(ramadan.daysLeft!)} يوم</span>
           </div>
         )}
       </div>

@@ -9,9 +9,8 @@ import { useAuth } from '@/hooks/use-auth'
 import { fetchTracker, toggleNight, removeNight } from '@/lib/api'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { toArabicNum } from '@/lib/arabic-utils'
 import type { TrackerData } from '@/types'
-
-const toArabicNum = (n: number) => n.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[+d])
 
 const RAMADAN_START = new Date(2026, 1, 18) // Feb 18, 2026
 
@@ -210,19 +209,19 @@ export function TrackerPage() {
                 key={night}
                 onClick={() => handleCellClick(night)}
                 className={cn(
-                  'relative flex min-h-[72px] flex-col items-center justify-center rounded-xl border-2 transition-all duration-200',
+                  'relative flex min-h-[76px] flex-col items-center justify-center rounded-xl border-2 transition-all duration-200',
                   'active:scale-95',
                   attended
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border bg-white text-muted-foreground hover:border-primary/30 hover:bg-primary/5'
+                    ? 'border-primary bg-primary/15 text-primary shadow-sm'
+                    : 'border-border/60 bg-white text-muted-foreground hover:border-primary/30 hover:bg-primary/5'
                 )}
               >
                 {attended && (
                   <Check className="absolute top-1 end-1 h-3.5 w-3.5 text-primary" />
                 )}
-                <span className="text-lg font-bold">{toArabicNum(night)}</span>
-                <span className="text-[9px] opacity-60">{hijri}</span>
-                <span className="text-[9px] opacity-50">{gregorian}</span>
+                <span className="text-xl font-bold">{toArabicNum(night)}</span>
+                <span className="text-[10px] opacity-60">{hijri}</span>
+                <span className="text-[10px] opacity-50">{gregorian}</span>
               </button>
             )
           })}

@@ -18,13 +18,13 @@ interface ShareButtonProps {
 }
 
 const sizeClasses = {
-  sm: 'h-11 w-11',
+  sm: 'h-9 w-9',
   md: 'h-11 w-11',
   lg: 'h-12 w-12',
 }
 
 const iconSizes = {
-  sm: 'h-4 w-4',
+  sm: 'h-3.5 w-3.5',
   md: 'h-5 w-5',
   lg: 'h-6 w-6',
 }

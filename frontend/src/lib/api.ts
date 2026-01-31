@@ -3,7 +3,7 @@ import { auth } from '@/lib/firebase'
 
 const API_BASE = '/api'
 
-async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const response = await fetch(url, options)
   if (response.status === 401 && auth.currentUser) {
     const newToken = await auth.currentUser.getIdToken(true)
@@ -77,16 +77,13 @@ export async function fetchNearbyMosques(params: NearbyParams): Promise<Mosque[]
  * Get a single mosque by ID
  */
 export async function fetchMosqueById(id: number): Promise<Mosque> {
-  // We don't have a dedicated API endpoint for single mosque,
-  // so we fetch all and filter. In production, consider adding a dedicated endpoint.
-  const mosques = await fetchMosques()
-  const mosque = mosques.find(m => m.id === id)
+  const response = await fetch(`${API_BASE}/mosques/${id}`)
 
-  if (!mosque) {
+  if (!response.ok) {
     throw new Error('Mosque not found')
   }
 
-  return mosque
+  return response.json()
 }
 
 /**

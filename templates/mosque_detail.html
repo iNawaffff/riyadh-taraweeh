@@ -1,23 +1,26 @@
-{% extends "base.html" %}
-
-{% block title %}{{ mosque.name }} - أئمة التراويح الرياض{% endblock %}
-
-{% block head %}
-{{ super() }}
+{% extends "base.html" %} {% block title %}{{ mosque.name }} - أئمة التراويح
+الرياض{% endblock %} {% block head %} {{ super() }}
 <!--  meta tags for better seo -->
-<meta name="description" content="تفاصيل مسجد {{ mosque.name }} - إمام التراويح {{ imam.name if imam else 'غير محدد' }} في حي {{ mosque.area }} بالرياض. استمع للتلاوة واحصل على الاتجاهات.">
-<meta name="keywords" content="مسجد {{ mosque.name }}, {{ imam.name if imam else 'أئمة التراويح' }}, {{ mosque.area }}, صلاة التراويح, رمضان ١٤٤٦">
+<meta
+    name="description"
+    content="تفاصيل مسجد {{ mosque.name }} - إمام التراويح {{ imam.name if imam else 'غير محدد' }} في حي {{ mosque.area }} بالرياض. استمع للتلاوة واحصل على الاتجاهات."
+/>
+<meta
+    name="keywords"
+    content="مسجد {{ mosque.name }}, {{ imam.name if imam else 'أئمة التراويح' }}, {{ mosque.area }}, صلاة التراويح, رمضان ١٤٤٦"
+/>
 <!-- canonical url for better seo -->
 <link rel="canonical" href="https://taraweeh.org/mosque/{{ mosque.id }}" />
 
 <!-- open graph metadata for better social sharing -->
 <meta property="og:title" content="{{ mosque.name }} - أئمة التراويح الرياض" />
-<meta property="og:description" content="تفاصيل مسجد {{ mosque.name }} - إمام التراويح: {{ imam.name if imam else 'غير محدد' }} في {{ mosque.area }}" />
+<meta
+    property="og:description"
+    content="تفاصيل مسجد {{ mosque.name }} - إمام التراويح: {{ imam.name if imam else 'غير محدد' }} في {{ mosque.area }}"
+/>
 <meta property="og:url" content="https://taraweeh.org/mosque/{{ mosque.id }}" />
 <meta property="og:type" content="website" />
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="page-header">
     <div class="container">
         <h2><i class="fas fa-mosque page-icon"></i> {{ mosque.name }}</h2>
@@ -34,16 +37,18 @@
     </nav>
 
     <div class="content-card">
-        <!-- Mosque Description -->
+        <!-- Mosque Description - Enhanced for SEO -->
         <div class="mosque-description">
             <p>
-                {% if imam %}
-                مسجد {{ mosque.name }} هو أحد المساجد المميزة في منطقة {{ mosque.area }} الرياض، يقود صلاة التراويح فيه {{ imam.name }}.
-                {% else %}
-                مسجد {{ mosque.name }} هو أحد المساجد المميزة في منطقة {{ mosque.area }} بمدينة الرياض، يُقام فيه صلاة التراويح خلال شهر رمضان المبارك.
-                {% endif %}
+                {% if imam %} مسجد {{ mosque.name }} هو أحد المساجد المميزة في
+                منطقة {{ mosque.area }} بالرياض، يقود صلاة التراويح فيه {{
+                imam.name }} خلال رمضان ١٤٤٦. يتميز المسجد بموقعه المناسب وسهولة
+                الوصول إليه للمصلين الراغبين بالاستماع لتلاوة متميزة. {% else %}
+                مسجد {{ mosque.name }} هو أحد المساجد المميزة في منطقة {{
+                mosque.area }} بمدينة الرياض، يُقام فيه صلاة التراويح والقيام
+                خلال شهر رمضان المبارك. يعتبر من الوجهات المفضلة للمصلين خلال
+                ليالي الشهر الفضيل. {% endif %}
             </p>
-        </div>
         </div>
 
         <!-- Mosque Information -->
@@ -54,39 +59,55 @@
 
             <div class="detail-grid">
                 <div class="detail-item">
-                    <span class="detail-label"><i class="fas fa-map-marker-alt"></i> الموقع:</span>
+                    <span class="detail-label"
+                        ><i class="fas fa-map-marker-alt"></i> الموقع:</span
+                    >
                     <span class="detail-value">{{ mosque.location }}</span>
                 </div>
 
                 <div class="detail-item">
-                    <span class="detail-label"><i class="fas fa-compass"></i> المنطقة:</span>
+                    <span class="detail-label"
+                        ><i class="fas fa-compass"></i> المنطقة:</span
+                    >
                     <span class="detail-value">{{ mosque.area }}</span>
                 </div>
 
                 {% if imam %}
                 <div class="detail-item">
-                    <span class="detail-label"><i class="fas fa-user"></i> إمام التراويح:</span>
+                    <span class="detail-label"
+                        ><i class="fas fa-user"></i> إمام التراويح:</span
+                    >
                     <span class="detail-value">{{ imam.name }}</span>
                 </div>
                 {% endif %}
             </div>
 
-            <!-- Interactive Elements -->
+            <!-- Interactive Elements with Enhanced Button Text -->
             <div class="detail-actions">
                 {% if mosque.map_link %}
-                <a href="{{ mosque.map_link }}" target="_blank" rel="noopener" class="detail-button map-button">
+                <a
+                    href="{{ mosque.map_link }}"
+                    target="_blank"
+                    rel="noopener"
+                    class="detail-button map-button"
+                >
                     <i class="fas fa-directions"></i> الاتجاهات في خرائط Google
                 </a>
-                {% endif %}
-
-                {% if imam and imam.audio_sample %}
-                <button class="detail-button audio-button" data-audio="{{ imam.audio_sample }}" data-id="{{ mosque.id }}">
-                    <i class="fas fa-play"></i> استماع لتلاوة الإمام
+                {% endif %} {% if imam and imam.audio_sample %}
+                <button
+                    class="detail-button audio-button"
+                    data-audio="{{ imam.audio_sample }}"
+                    data-id="{{ mosque.id }}"
+                >
+                    <i class="fas fa-play"></i> استمع لتلاوة {{ imam.name }}
                 </button>
-                {% endif %}
-
-                {% if imam and imam.youtube_link %}
-                <a href="{{ imam.youtube_link }}" target="_blank" rel="noopener" class="detail-button youtube-button">
+                {% endif %} {% if imam and imam.youtube_link %}
+                <a
+                    href="{{ imam.youtube_link }}"
+                    target="_blank"
+                    rel="noopener"
+                    class="detail-button youtube-button"
+                >
                     <i class="fab fa-youtube"></i> مشاهدة على YouTube
                 </a>
                 {% endif %}
@@ -109,7 +130,8 @@
                     marginwidth="0"
                     loading="lazy"
                     title="خريطة {{ mosque.name }}"
-                    src="https://maps.google.com/maps?q={{ mosque.latitude }},{{ mosque.longitude }}&z=15&output=embed">
+                    src="https://maps.google.com/maps?q={{ mosque.latitude }},{{ mosque.longitude }}&z=15&output=embed"
+                >
                 </iframe>
             </div>
         </div>
@@ -118,7 +140,8 @@
         <!-- Error Reporting Button -->
         <div class="error-report-section">
             <button id="reportErrorBtn" class="error-report-button">
-                <i class="fas fa-exclamation-circle"></i> ابلاغ عن خطأ في المعلومات
+                <i class="fas fa-exclamation-circle"></i> ابلاغ عن خطأ في
+                المعلومات
             </button>
 
             <!-- Error Reporting Modal (hidden by default) -->
@@ -128,42 +151,82 @@
                     <h3>ابلاغ عن خطأ في معلومات المسجد</h3>
                     <p>يرجى تحديد نوع الخطأ وإضافة أي معلومات إضافية</p>
 
-                    <form id="errorReportForm" method="POST" action="/report-error">
-                        <input type="hidden" name="mosque_id" value="{{ mosque.id }}">
+                    <form
+                        id="errorReportForm"
+                        method="POST"
+                        action="/report-error"
+                    >
+                        <input
+                            type="hidden"
+                            name="mosque_id"
+                            value="{{ mosque.id }}"
+                        />
 
                         <div class="checkbox-group">
                             <label>
-                                <input type="checkbox" name="error_type" value="location"> موقع المسجد غير صحيح
+                                <input
+                                    type="checkbox"
+                                    name="error_type"
+                                    value="location"
+                                />
+                                موقع المسجد غير صحيح
                             </label>
                         </div>
                         <div class="checkbox-group">
                             <label>
-                                <input type="checkbox" name="error_type" value="imam"> معلومات الإمام غير محدثة
+                                <input
+                                    type="checkbox"
+                                    name="error_type"
+                                    value="imam"
+                                />
+                                معلومات الإمام غير محدثة
                             </label>
                         </div>
                         <div class="checkbox-group">
                             <label>
-                                <input type="checkbox" name="error_type" value="audio"> الرابط الصوتي لا يعمل
+                                <input
+                                    type="checkbox"
+                                    name="error_type"
+                                    value="audio"
+                                />
+                                الرابط الصوتي لا يعمل
                             </label>
                         </div>
                         <div class="checkbox-group">
                             <label>
-                                <input type="checkbox" name="error_type" value="other"> أخرى
+                                <input
+                                    type="checkbox"
+                                    name="error_type"
+                                    value="other"
+                                />
+                                أخرى
                             </label>
                         </div>
 
                         <div class="form-group">
                             <label for="error_details">تفاصيل إضافية:</label>
-                            <textarea name="error_details" id="error_details" rows="3"></textarea>
+                            <textarea
+                                name="error_details"
+                                id="error_details"
+                                rows="3"
+                            ></textarea>
                         </div>
 
                         <div class="form-group">
-                            <label for="reporter_email">البريد الإلكتروني (اختياري):</label>
-                            <input type="email" name="reporter_email" id="reporter_email">
+                            <label for="reporter_email"
+                                >البريد الإلكتروني (اختياري):</label
+                            >
+                            <input
+                                type="email"
+                                name="reporter_email"
+                                id="reporter_email"
+                            />
                         </div>
 
                         <div class="form-actions">
-                            <button type="submit" class="submit-report">إرسال البلاغ</button>
+                            <button type="submit" class="submit-report">
+                                إرسال البلاغ
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -181,76 +244,76 @@
 
 <!-- Schema.org structured data for mosque - Enhanced for SEO -->
 <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "PlaceOfWorship",
-  "name": "{{ mosque.name }}",
-  "address": {
-    "@type": "PostalAddress",
-    "addressLocality": "الرياض",
-    "addressRegion": "{{ mosque.area }}"
-  },
-  "description": "مسجد {{ mosque.name }} هو أحد المساجد المميزة في منطقة {{ mosque.area }} بمدينة الرياض، ويُعرف بموقعه المتميز وسهولة الوصول إليه.",
-  "hasMap": "{{ mosque.map_link }}",
-  {% if mosque.latitude and mosque.longitude %}
-  "geo": {
-    "@type": "GeoCoordinates",
-    "latitude": "{{ mosque.latitude }}",
-    "longitude": "{{ mosque.longitude }}"
-  },
-  {% endif %}
-  {% if imam %}
-  "employee": {
-    "@type": "Person",
-    "name": "{{ imam.name }}",
-    "jobTitle": "إمام"
-  },
-  {% endif %}
-  "url": "https://taraweeh.org/mosque/{{ mosque.id }}"
-}
+    {
+      "@context": "https://schema.org",
+      "@type": "PlaceOfWorship",
+      "name": "{{ mosque.name }}",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "الرياض",
+        "addressRegion": "{{ mosque.area }}"
+      },
+      "description": "مسجد {{ mosque.name }} هو أحد المساجد المميزة في منطقة {{ mosque.area }} بمدينة الرياض، ويُعرف بموقعه المتميز وسهولة الوصول إليه.",
+      "hasMap": "{{ mosque.map_link }}",
+      {% if mosque.latitude and mosque.longitude %}
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": "{{ mosque.latitude }}",
+        "longitude": "{{ mosque.longitude }}"
+      },
+      {% endif %}
+      {% if imam %}
+      "employee": {
+        "@type": "Person",
+        "name": "{{ imam.name }}",
+        "jobTitle": "إمام"
+      },
+      {% endif %}
+      "url": "https://taraweeh.org/mosque/{{ mosque.id }}"
+    }
 </script>
 
 <!-- Error reporting modal script -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const reportBtn = document.getElementById('reportErrorBtn');
-    const modal = document.getElementById('errorReportModal');
-    const closeBtn = modal.querySelector('.close-modal');
-    const form = document.getElementById('errorReportForm');
+    document.addEventListener("DOMContentLoaded", function () {
+        const reportBtn = document.getElementById("reportErrorBtn");
+        const modal = document.getElementById("errorReportModal");
+        const closeBtn = modal.querySelector(".close-modal");
+        const form = document.getElementById("errorReportForm");
 
-    // Open modal when button is clicked
-    reportBtn.addEventListener('click', function() {
-        modal.style.display = 'block';
-    });
+        // Open modal when button is clicked
+        reportBtn.addEventListener("click", function () {
+            modal.style.display = "block";
+        });
 
-    // Close modal when X is clicked
-    closeBtn.addEventListener('click', function() {
-        modal.style.display = 'none';
-    });
+        // Close modal when X is clicked
+        closeBtn.addEventListener("click", function () {
+            modal.style.display = "none";
+        });
 
-    // Close modal when clicking outside the content
-    window.addEventListener('click', function(event) {
-        if (event.target === modal) {
-            modal.style.display = 'none';
-        }
-    });
+        // Close modal when clicking outside the content
+        window.addEventListener("click", function (event) {
+            if (event.target === modal) {
+                modal.style.display = "none";
+            }
+        });
 
-    // Handle form submission
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
+        // Handle form submission
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
 
-        // Get form data
-        const formData = new FormData(form);
+            // Get form data
+            const formData = new FormData(form);
 
-        // Submit form via fetch
-        fetch('/report-error', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            // Show success message
-            modal.innerHTML = `
+            // Submit form via fetch
+            fetch("/report-error", {
+                method: "POST",
+                body: formData,
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    // Show success message
+                    modal.innerHTML = `
                 <div class="error-report-content">
                     <h3>تم إرسال البلاغ بنجاح</h3>
                     <p>شكراً لمساعدتنا في تحسين الموقع</p>
@@ -258,17 +321,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
 
-            // Add event listener to new close button
-            const closeSuccessBtn = modal.querySelector('.close-success');
-            closeSuccessBtn.addEventListener('click', function() {
-                modal.style.display = 'none';
-            });
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('حدث خطأ أثناء إرسال البلاغ. الرجاء المحاولة لاحقاً.');
+                    // Add event listener to new close button
+                    const closeSuccessBtn =
+                        modal.querySelector(".close-success");
+                    closeSuccessBtn.addEventListener("click", function () {
+                        modal.style.display = "none";
+                    });
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                    alert(
+                        "حدث خطأ أثناء إرسال البلاغ. الرجاء المحاولة لاحقاً.",
+                    );
+                });
         });
     });
-});
 </script>
 {% endblock %}
