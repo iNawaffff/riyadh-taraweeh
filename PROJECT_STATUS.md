@@ -3,7 +3,7 @@
 ## Current State Overview
 
 ### What Non-Authenticated Users Can Do
-- Browse all mosques with search + area filter
+- Browse all mosques with search + area filter + district (حي) filter
 - Sort by proximity (geolocation)
 - View individual mosque detail pages
 - Listen to imam audio samples (floating player)
@@ -13,7 +13,7 @@
 
 ### What Authenticated Users Get (additionally)
 - Favorite mosques (heart button, synced to server)
-- Favorites page (`/favorites`)
+- Favorites page (`/favorites`) with area + district filters
 - Taraweeh tracker — 30-night attendance grid (`/tracker`)
 - Share achievements / profile
 - Tracker link in mobile menu
@@ -36,15 +36,15 @@
 ### Issues & Gaps
 
 #### UI/Design
-- Header says "رمضان ١٤٤٦ هـ" — should be **١٤٤٧**
-- Footer also says "رمضان ١٤٤٦ هـ" — same fix needed
+- ~~Header says "رمضان ١٤٤٦ هـ" — should be **١٤٤٧**~~ ✅ Fixed
+- ~~Footer also says "رمضان ١٤٤٦ هـ"~~ ✅ Fixed
 - Mosque cards are dense — many interactive elements packed tightly, especially on small phones
 - No dark mode (Ramadan-themed dark mode would be fitting)
 - Tracker tile dates at `text-[9px]` are hard to read on mobile
 - No visual distinction between "browsing as guest" vs "logged in" beyond the header button swap
 
 #### UX Flow
-- `fetchMosqueById()` fetches **all** mosques to find one — no dedicated `/api/mosques/:id` endpoint
+- ~~`fetchMosqueById()` fetches **all** mosques to find one — no dedicated `/api/mosques/:id` endpoint~~ ✅ `/api/mosques/<id>` exists
 - UsernameSetup modal is non-dismissible — user is trapped if they just want to browse after Google sign-in
 - Clicking favorite as guest shows login dialog, but there's no "after login, auto-favorite" flow — the intent is lost
 - No onboarding or explanation of features for new visitors
@@ -52,7 +52,7 @@
 - No pagination or infinite scroll if mosque list grows
 
 #### Missing Features
-- No dedicated `/api/mosques/:id` endpoint — detail page is inefficient
+- ~~No district/neighborhood filter~~ ✅ Added — area + district (حي) dropdowns on HomePage and FavoritesPage
 - No "remember favorite intent" after login — user clicks heart, logs in, then has to click again
 - No sorting options — only proximity; could add alphabetical, by area grouping
 - No offline/PWA caching of favorites — PWA is configured but favorites require network
@@ -61,10 +61,11 @@
 - Profile page doesn't show tracker — only shows favorites, not attendance progress
 - No imam detail or comparison — can't browse by imam, compare reciters
 - Contact page lacks a form — only shows email/Twitter, no inline submission
+- Tracker doesn't track rakaat count per night
 
 #### Code Quality
-- `toArabicNum` helper is duplicated in HeroBanner, TrackerPage — should be in `arabic-utils.ts`
-- `getRamadanInfo` logic now lives in HeroBanner but could be needed elsewhere — should be a shared utility
+- ~~`toArabicNum` helper is duplicated~~ ✅ Extracted to shared utils
+- ~~`getRamadanInfo` logic in HeroBanner~~ ✅ Extracted to shared utility
 - `useMemo` used for side effects in HomePage (proximity success timer) — should be `useEffect`
 - `authFetch` only wraps tracker calls; favorites in FavoritesContext still use raw `fetch`
 
@@ -73,23 +74,24 @@
 ## Priority Recommendations
 
 ### Quick Fixes (polish)
-1. Fix "١٤٤٦" → "١٤٤٧" in Header and Footer
-2. Extract `toArabicNum` and `getRamadanInfo` to shared utils
+1. ~~Fix "١٤٤٦" → "١٤٤٧" in Header and Footer~~ ✅ Done
+2. ~~Extract `toArabicNum` and `getRamadanInfo` to shared utils~~ ✅ Done
 3. Use `authFetch` in FavoritesContext too
-4. Add `/api/mosques/:id` backend endpoint
+4. ~~Add `/api/mosques/:id` backend endpoint~~ ✅ Done
 
 ### UX Improvements
 5. Allow dismissing UsernameSetup (let users browse first)
 6. Remember favorite intent through login flow
 7. Show tracker progress on public profile page
 8. Increase tracker tile date font size slightly
+9. Add rakaat count to tracker (after marking attendance, prompt for number of rak'ahs)
 
 ### Bigger Features
-9. Dark mode with Ramadan night theme
-10. Browse/filter by imam
-11. Daily reminder (push notification or in-app)
-12. Inline contact form
-13. Social proof badges on mosque cards
+10. Dark mode with Ramadan night theme
+11. Browse/filter by imam
+12. Daily reminder (push notification or in-app)
+13. Inline contact form
+14. Social proof badges on mosque cards
 
 ---
 
