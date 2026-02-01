@@ -1,4 +1,5 @@
 import { StrictMode } from 'react'
+import { DirectionProvider } from '@radix-ui/react-direction'
 import { createRoot } from 'react-dom/client'
 import * as Sentry from '@sentry/react'
 import './index.css'
@@ -27,6 +28,8 @@ if (sentryDsn && import.meta.env.PROD) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <DirectionProvider dir="rtl">
+      <App />
+    </DirectionProvider>
   </StrictMode>,
 )

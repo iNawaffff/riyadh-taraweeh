@@ -13,7 +13,7 @@ export function HeroBanner() {
       <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-[0.04]">
         <svg
           viewBox="0 0 800 200"
-          className="absolute bottom-0 left-0 w-full"
+          className="absolute bottom-0 start-0 w-full"
           fill="currentColor"
         >
           <ellipse cx="400" cy="160" rx="120" ry="100" />

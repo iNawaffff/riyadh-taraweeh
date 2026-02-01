@@ -6,6 +6,9 @@ import re
 import time
 from functools import lru_cache, wraps
 
+import uuid
+
+import boto3
 import firebase_admin
 from firebase_admin import auth as firebase_auth, credentials as firebase_credentials
 from dotenv import load_dotenv
@@ -21,6 +24,7 @@ from flask import (
     url_for,
 )
 from flask_admin import Admin, AdminIndexView, expose
+from flask_admin.actions import action
 from flask_admin.contrib.sqla import ModelView
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -34,7 +38,9 @@ from flask_login import (
 )
 from flask_mail import Mail, Message
 from flask_migrate import Migrate
+from flask_wtf.csrf import CSRFProtect
 from geopy.distance import geodesic
+from markupsafe import Markup
 from werkzeug.security import check_password_hash, generate_password_hash
 from wtforms_sqlalchemy.fields import QuerySelectField
 
@@ -65,6 +71,19 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "your_local_secret_key")
 # --- database setup ---
 db.init_app(app)
 migrate = Migrate(app, db)
+csrf = CSRFProtect(app)
+
+# Exempt API and non-form routes from CSRF
+app.config["WTF_CSRF_CHECK_DEFAULT"] = False
+
+
+@app.before_request
+def csrf_protect_admin():
+    """Only enforce CSRF on admin and login form POSTs."""
+    if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+        path = request.path
+        if path.startswith("/admin") or path == "/login":
+            csrf.protect()
 
 # --- user authentication ---
 login_manager = LoginManager(app)
@@ -235,10 +254,51 @@ class BaseModelView(ModelView):
         return redirect(url_for("login"))
 
 
+def _imam_name_formatter(view, context, model, name):
+    imam = Imam.query.filter_by(mosque_id=model.id).first()
+    return imam.name if imam else "—"
+
+
+def _map_link_formatter(view, context, model, name):
+    if model.map_link:
+        short = model.map_link[:40] + "..." if len(model.map_link) > 40 else model.map_link
+        return Markup(f'<a href="{model.map_link}" target="_blank">{short}</a>')
+    return "—"
+
+
+def _swap_imam_formatter(view, context, model, name):
+    swap_url = url_for("swap_imam_view", mosque_id=model.id)
+    return Markup(f'<a href="{swap_url}" class="btn btn-xs btn-warning">تبديل الإمام</a>')
+
+
+from wtforms import StringField
+
+
 class MosqueModelView(BaseModelView):
-    form_columns = ["name", "location", "area", "map_link", "latitude", "longitude"]
-    column_list = ["name", "location", "area", "map_link", "latitude", "longitude"]
+    column_list = ["name", "imam", "area", "location", "map_link", "actions"]
+    column_labels = {
+        "name": "المسجد",
+        "imam": "الإمام",
+        "area": "المنطقة",
+        "location": "الموقع",
+        "map_link": "الخريطة",
+        "actions": "",
+    }
     can_view_details = True
+    column_searchable_list = ["name", "location", "area"]
+    column_filters = ["area"]
+    column_default_sort = ("name", False)
+    page_size = 50
+    can_export = True
+
+    column_formatters = {
+        "imam": _imam_name_formatter,
+        "map_link": _map_link_formatter,
+        "actions": _swap_imam_formatter,
+    }
+
+    # Mosque + imam fields on the same form
+    form_columns = ["name", "location", "area", "map_link", "latitude", "longitude"]
 
     form_args = {
         "name": {"label": "اسم المسجد"},
@@ -249,11 +309,70 @@ class MosqueModelView(BaseModelView):
         "longitude": {"label": "خط الطول"},
     }
 
+    # Extra imam fields injected into the form
+    form_extra_fields = {
+        "imam_name": StringField("اسم الإمام"),
+        "imam_audio": StringField("رابط الملف الصوتي"),
+        "imam_youtube": StringField("رابط يوتيوب"),
+    }
+
+    form_columns = ["name", "location", "area", "map_link", "latitude", "longitude",
+                     "imam_name", "imam_audio", "imam_youtube"]
+
+    def on_form_prefill(self, form, id):
+        """Pre-fill imam fields when editing an existing mosque."""
+        imam = Imam.query.filter_by(mosque_id=id).first()
+        if imam:
+            form.imam_name.data = imam.name
+            form.imam_audio.data = imam.audio_sample or ""
+            form.imam_youtube.data = imam.youtube_link or ""
+
+    def after_model_change(self, form, model, is_created):
+        """Create or update the imam record after saving the mosque."""
+        imam_name = form.imam_name.data.strip() if form.imam_name.data else ""
+        imam_audio = form.imam_audio.data.strip() if form.imam_audio.data else None
+        imam_youtube = form.imam_youtube.data.strip() if form.imam_youtube.data else None
+
+        imam = Imam.query.filter_by(mosque_id=model.id).first()
+
+        if imam_name:
+            if imam:
+                imam.name = imam_name
+                imam.audio_sample = imam_audio
+                imam.youtube_link = imam_youtube
+            else:
+                imam = Imam(
+                    name=imam_name,
+                    mosque_id=model.id,
+                    audio_sample=imam_audio,
+                    youtube_link=imam_youtube,
+                )
+                db.session.add(imam)
+            db.session.commit()
+        elif imam and not imam_name:
+            # Clear imam name = unassign imam from this mosque
+            imam.mosque_id = None
+            db.session.commit()
+
+    @action("swap_imam", "تبديل الإمام", "هل تريد تبديل إمام المسجد المحدد؟")
+    def swap_imam_action(self, ids):
+        if len(ids) != 1:
+            return redirect(url_for(".index_view"))
+        return redirect(url_for("swap_imam_view", mosque_id=ids[0]))
+
 
 class ImamModelView(BaseModelView):
     form_columns = ["name", "mosque", "audio_sample", "youtube_link"]
     column_list = ["name", "mosque", "audio_sample", "youtube_link"]
+    column_labels = {
+        "name": "الإمام",
+        "mosque": "المسجد",
+        "audio_sample": "الملف الصوتي",
+        "youtube_link": "يوتيوب",
+    }
     can_view_details = True
+    column_searchable_list = ["name"]
+    column_filters = ["mosque"]
 
     form_overrides = {"mosque": QuerySelectField}
 
@@ -263,13 +382,119 @@ class ImamModelView(BaseModelView):
             "label": "المسجد",
             "query_factory": lambda: Mosque.query.all(),
             "get_label": "name",
+            "allow_blank": True,
+            "blank_text": "بدون مسجد",
         },
         "audio_sample": {
             "label": "رابط الملف الصوتي",
-            "description": "أدخل رابط الملف الصوتي من S3 هنا",
+            "description": "أدخل رابط الملف الصوتي أو ارفع ملف من صفحة المسجد",
         },
         "youtube_link": {"label": "رابط يوتيوب"},
     }
+
+
+# --- S3 audio upload helper ---
+def upload_audio_to_s3(file):
+    bucket = os.environ.get("S3_BUCKET", "imams-riyadh-audio")
+    ext = os.path.splitext(file.filename)[1] or ".mp3"
+    key = f"audio/{uuid.uuid4().hex}{ext}"
+
+    s3 = boto3.client(
+        "s3",
+        aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+    )
+    s3.upload_fileobj(
+        file,
+        bucket,
+        key,
+        ExtraArgs={"ContentType": file.content_type or "audio/mpeg", "ACL": "public-read"},
+    )
+    region = os.environ.get("AWS_REGION", "us-east-1")
+    return f"https://{bucket}.s3.{region}.amazonaws.com/{key}"
+
+
+@app.route("/admin/upload-audio", methods=["POST"])
+@login_required
+def upload_audio():
+    file = request.files.get("file")
+    if not file or not file.filename:
+        return jsonify({"error": "لم يتم اختيار ملف"}), 400
+    try:
+        url = upload_audio_to_s3(file)
+        return jsonify({"url": url})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# --- Imam swap route ---
+@app.route("/admin/mosque/swap-imam/<int:mosque_id>", methods=["GET", "POST"])
+@login_required
+def swap_imam_view(mosque_id):
+    mosque = Mosque.query.get_or_404(mosque_id)
+    current_imam = Imam.query.filter_by(mosque_id=mosque.id).first()
+    # All imams not assigned to this mosque (for "pick existing imam" dropdown)
+    other_imams = Imam.query.filter(Imam.mosque_id != mosque.id).order_by(Imam.name).all()
+    unassigned_imams = Imam.query.filter(Imam.mosque_id.is_(None)).order_by(Imam.name).all()
+    available_imams = other_imams + unassigned_imams
+
+    if request.method == "POST":
+        new_imam_source = request.form.get("new_imam_source", "new")
+
+        # --- Step 1: Figure out incoming imam ---
+        if new_imam_source == "existing":
+            # Moving an existing imam to this mosque
+            incoming_imam_id = request.form.get("existing_imam_id", type=int)
+            incoming_imam = Imam.query.get(incoming_imam_id) if incoming_imam_id else None
+
+            if incoming_imam:
+                # The mosque that incoming imam is leaving
+                source_mosque_id = incoming_imam.mosque_id
+                incoming_imam.mosque_id = mosque.id
+        else:
+            incoming_imam = None
+            source_mosque_id = None
+            # Will create a brand new imam below
+
+        # --- Step 2: Handle this mosque's current imam ---
+        if current_imam:
+            old_action = request.form.get("old_imam_action", "unassign")
+            if old_action == "transfer":
+                transfer_id = request.form.get("transfer_mosque_id", type=int)
+                if transfer_id:
+                    current_imam.mosque_id = transfer_id
+            elif old_action == "swap" and source_mosque_id:
+                # Send current imam to the mosque the incoming imam came from
+                current_imam.mosque_id = source_mosque_id
+            elif old_action == "delete":
+                db.session.delete(current_imam)
+            else:  # unassign
+                current_imam.mosque_id = None
+
+        # --- Step 3: Create new imam if not using existing ---
+        if new_imam_source == "new":
+            new_name = request.form.get("new_imam_name", "").strip()
+            if new_name:
+                new_imam = Imam(
+                    name=new_name,
+                    mosque_id=mosque.id,
+                    audio_sample=request.form.get("new_imam_audio", "").strip() or None,
+                    youtube_link=request.form.get("new_imam_youtube", "").strip() or None,
+                )
+                db.session.add(new_imam)
+
+        db.session.commit()
+        return redirect(url_for("mosque.index_view"))
+
+    mosques = Mosque.query.order_by(Mosque.name).all()
+    return render_template(
+        "admin/swap_imam.html",
+        mosque=mosque,
+        current_imam=current_imam,
+        mosques=mosques,
+        available_imams=available_imams,
+        admin_base_template="admin/base.html",
+    )
 
 
 # initialize admin
@@ -446,6 +671,7 @@ def search_mosques():
     try:
         query = request.args.get("q", "")
         area = request.args.get("area", "")
+        location = request.args.get("location", "")
 
         # build base query with imam join
         mosque_query = db.session.query(Mosque).outerjoin(Imam)
@@ -453,6 +679,10 @@ def search_mosques():
         # filter by area if provided
         if area and area != "الكل":
             mosque_query = mosque_query.filter(Mosque.area == area)
+
+        # filter by location (district) if provided
+        if location and location != "الكل":
+            mosque_query = mosque_query.filter(Mosque.location == location)
 
         mosque_query = mosque_query.order_by(Mosque.name)
         mosques = mosque_query.all()
@@ -502,6 +732,19 @@ def search_mosques():
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": f"Search error: {str(e)}"}), 500
+
+
+@app.route("/api/locations")
+def get_locations():
+    try:
+        area = request.args.get("area", "")
+        query = db.session.query(Mosque.location).distinct()
+        if area and area != "الكل":
+            query = query.filter(Mosque.area == area)
+        locations = sorted([row[0] for row in query.all() if row[0]])
+        return jsonify(locations)
+    except Exception as e:
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 
 # --- seo routes ---

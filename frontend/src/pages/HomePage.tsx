@@ -1,16 +1,24 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { HeroBanner, SearchBar, AreaFilter, ProximityButton, LocationPermissionModal, FavoritesFilterButton } from '@/components/search'
 import { MosqueGrid } from '@/components/mosque'
-import { useDebounce, useSearchMosques, useAreas, useNearbyMosques, useGeolocation, useFavorites } from '@/hooks'
+import { useDebounce, useSearchMosques, useAreas, useLocations, useNearbyMosques, useGeolocation, useFavorites } from '@/hooks'
 import { formatArabicDate } from '@/lib/arabic-utils'
 import { cn } from '@/lib/utils'
-import { Info, Heart, AlertTriangle } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Info, Heart, AlertTriangle, MapPin } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 export function HomePage() {
   // Search state
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedArea, setSelectedArea] = useState('الكل')
+  const [selectedLocation, setSelectedLocation] = useState('الكل')
   const [showPermissionModal, setShowPermissionModal] = useState(false)
   const [isProximitySorted, setIsProximitySorted] = useState(false)
   const [proximitySuccess, setProximitySuccess] = useState(false)
@@ -35,11 +43,13 @@ export function HomePage() {
 
   // Data fetching
   const { data: areas = [], isLoading: isAreasLoading } = useAreas()
+  const { data: locations = [] } = useLocations(selectedArea !== 'الكل' ? selectedArea : undefined)
 
   const searchParams = useMemo(() => ({
     q: debouncedQuery,
     area: selectedArea,
-  }), [debouncedQuery, selectedArea])
+    location: selectedLocation,
+  }), [debouncedQuery, selectedArea, selectedLocation])
 
   const nearbyParams = useMemo(() =>
     position ? { lat: position.latitude, lng: position.longitude } : null
@@ -77,6 +87,15 @@ export function HomePage() {
 
   const handleAreaChange = useCallback((value: string) => {
     setSelectedArea(value)
+    setSelectedLocation('الكل')
+    setIsProximitySorted(false)
+    clearPosition()
+    setProximitySuccess(false)
+    setShowFavoritesOnly(false)
+  }, [clearPosition])
+
+  const handleLocationChange = useCallback((value: string) => {
+    setSelectedLocation(value)
     setIsProximitySorted(false)
     clearPosition()
     setProximitySuccess(false)
@@ -86,6 +105,7 @@ export function HomePage() {
   const handleReset = useCallback(() => {
     setSearchQuery('')
     setSelectedArea('الكل')
+    setSelectedLocation('الكل')
     setIsProximitySorted(false)
     clearPosition()
     setProximitySuccess(false)
@@ -137,7 +157,7 @@ export function HomePage() {
 
   // Calculate results count
   const resultsCount = mosques.length
-  const hasActiveFilters = searchQuery || selectedArea !== 'الكل' || showFavoritesOnly
+  const hasActiveFilters = searchQuery || selectedArea !== 'الكل' || selectedLocation !== 'الكل' || showFavoritesOnly
 
   return (
     <>
@@ -162,6 +182,20 @@ export function HomePage() {
                 areas={areas}
                 isLoading={isAreasLoading}
               />
+            </div>
+            <div className="md:w-56">
+              <Select value={selectedLocation} onValueChange={handleLocationChange}>
+                <SelectTrigger className="h-11 w-full gap-1.5 bg-white text-sm">
+                  <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <SelectValue placeholder="الأحياء" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="الكل">الأحياء</SelectItem>
+                  {locations.map(loc => (
+                    <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

@@ -28,6 +28,7 @@ export interface ApiResponse<T> {
 export interface SearchParams {
   q?: string
   area?: string
+  location?: string
 }
 
 // Nearby params

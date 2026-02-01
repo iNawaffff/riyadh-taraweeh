@@ -1,5 +1,4 @@
 import type { Config } from 'tailwindcss'
-import rtl from 'tailwindcss-rtl'
 import animate from 'tailwindcss-animate'
 
 export default {
@@ -115,5 +114,5 @@ export default {
       },
     },
   },
-  plugins: [rtl, animate],
+  plugins: [animate],
 } satisfies Config

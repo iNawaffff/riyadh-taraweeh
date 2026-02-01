@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchMosques, searchMosques, fetchNearbyMosques, fetchAreas } from '@/lib/api'
+import { fetchMosques, searchMosques, fetchNearbyMosques, fetchAreas, fetchLocations } from '@/lib/api'
 import type { SearchParams, NearbyParams, Mosque } from '@/types'
 
 /**
@@ -44,6 +44,17 @@ export function useAreas() {
   return useQuery({
     queryKey: ['areas'],
     queryFn: fetchAreas,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+  })
+}
+
+/**
+ * Hook to fetch unique locations (districts), optionally filtered by area
+ */
+export function useLocations(area?: string) {
+  return useQuery({
+    queryKey: ['locations', area],
+    queryFn: () => fetchLocations(area),
     staleTime: 10 * 60 * 1000, // 10 minutes
   })
 }

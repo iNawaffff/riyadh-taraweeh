@@ -39,7 +39,7 @@ export function FloatingAudioPlayer() {
   return (
     <div
       className={cn(
-        'fixed bottom-0 left-0 right-0 z-50',
+        'fixed bottom-0 inset-x-0 z-50',
         'bg-gradient-to-t from-primary-dark/95 to-primary/95 backdrop-blur-md',
         'border-t border-white/10 shadow-lg',
         'transform transition-transform duration-300 ease-out',

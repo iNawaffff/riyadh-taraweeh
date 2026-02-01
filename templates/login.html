@@ -21,6 +21,7 @@
 <body>
     <div class="container login-form">
         <form method="post" class="form-signin">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <h2 class="form-signin-heading">Admin Login</h2>
             <label for="username" class="sr-only">Username</label>
             <input type="text" id="username" name="username" class="form-control" placeholder="Username" required autofocus>

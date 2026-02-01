@@ -1,0 +1,157 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+<style>
+  .swap-form { max-width: 600px; direction: rtl; }
+  .swap-form label { font-weight: bold; display: block; margin-top: 12px; }
+  .swap-form input, .swap-form select { width: 100%; padding: 6px 10px; margin-top: 4px; }
+  .swap-form .readonly { background: #f5f5f5; }
+  .swap-form .btn-primary { margin-top: 20px; }
+  .swap-form .section { margin-top: 20px; padding: 12px; background: #fafafa; border: 1px solid #eee; border-radius: 4px; }
+  .swap-form .hidden { display: none; }
+  #audio-upload-swap-status { margin-right: 8px; }
+  .swap-form .radio-group label { font-weight: normal; display: inline; margin-left: 16px; cursor: pointer; }
+  .swap-form .radio-group { margin-top: 8px; }
+</style>
+
+<h2>تبديل الإمام — {{ mosque.name }}</h2>
+
+<form class="swap-form" method="POST" action="{{ url_for('swap_imam_view', mosque_id=mosque.id) }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  {# ── Section 1: Current imam ── #}
+  {% if current_imam %}
+  <div class="section">
+    <h4>الإمام الحالي: {{ current_imam.name }}</h4>
+
+    <label>ماذا يحدث للإمام الحالي؟</label>
+    <select name="old_imam_action" class="form-control" id="old-imam-action">
+      <option value="unassign">بدون مسجد (غير محدد)</option>
+      <option value="swap">ينتقل إلى مسجد الإمام القادم (تبادل)</option>
+      <option value="transfer">نقل إلى مسجد آخر</option>
+      <option value="delete">حذف نهائياً</option>
+    </select>
+
+    <div id="transfer-mosque-div" class="hidden">
+      <label>اختر المسجد</label>
+      <select name="transfer_mosque_id" class="form-control">
+        {% for m in mosques %}
+          {% if m.id != mosque.id %}
+          <option value="{{ m.id }}">{{ m.name }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+    </div>
+
+    <p id="swap-note" class="hidden" style="margin-top:8px; color:#888; font-size:13px;">
+      سيتم نقل الإمام الحالي تلقائياً إلى المسجد الذي سيأتي منه الإمام الجديد.
+      <br>⚠️ هذا الخيار يعمل فقط إذا اخترت إمام موجود أدناه.
+    </p>
+  </div>
+  {% else %}
+  <div class="section">
+    <p>لا يوجد إمام حالي لهذا المسجد.</p>
+  </div>
+  {% endif %}
+
+  {# ── Section 2: New imam ── #}
+  <div class="section">
+    <h4>الإمام الجديد</h4>
+
+    <div class="radio-group">
+      <label><input type="radio" name="new_imam_source" value="new" checked> إمام جديد</label>
+      <label><input type="radio" name="new_imam_source" value="existing"> إمام موجود (نقل من مسجد آخر)</label>
+    </div>
+
+    {# ── New imam fields ── #}
+    <div id="new-imam-fields">
+      <label>اسم الإمام</label>
+      <input type="text" name="new_imam_name" class="form-control">
+
+      <label>رابط الملف الصوتي</label>
+      <input type="text" name="new_imam_audio" class="form-control" id="swap-audio-url">
+      <div style="margin-top: 8px;">
+        <label class="btn btn-default btn-sm" style="cursor: pointer; display: inline-block;">
+          <i class="glyphicon glyphicon-upload"></i> رفع ملف صوتي
+          <input type="file" id="swap-audio-file" accept="audio/*" style="display: none;">
+        </label>
+        <span id="audio-upload-swap-status"></span>
+      </div>
+
+      <label>رابط يوتيوب (اختياري)</label>
+      <input type="text" name="new_imam_youtube" class="form-control">
+    </div>
+
+    {# ── Existing imam picker ── #}
+    <div id="existing-imam-fields" class="hidden">
+      <label>اختر الإمام</label>
+      <select name="existing_imam_id" class="form-control" id="existing-imam-select">
+        <option value="">-- اختر --</option>
+        {% for imam in available_imams %}
+        <option value="{{ imam.id }}" data-mosque="{{ imam.mosque.name if imam.mosque else 'بدون مسجد' }}">
+          {{ imam.name }} — {{ imam.mosque.name if imam.mosque else 'بدون مسجد' }}
+        </option>
+        {% endfor %}
+      </select>
+      <p id="existing-imam-note" style="margin-top:8px; color:#888; font-size:13px;"></p>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary">تنفيذ التبديل</button>
+  <a href="{{ url_for('mosque.index_view') }}" class="btn btn-default" style="margin-top: 20px; margin-right: 8px;">إلغاء</a>
+</form>
+
+<script>
+// Toggle old imam disposition fields
+var oldAction = document.getElementById('old-imam-action');
+if (oldAction) {
+  oldAction.addEventListener('change', function() {
+    document.getElementById('transfer-mosque-div').className = this.value === 'transfer' ? '' : 'hidden';
+    document.getElementById('swap-note').className = this.value === 'swap' ? '' : 'hidden';
+  });
+}
+
+// Toggle new vs existing imam
+var sourceRadios = document.querySelectorAll('input[name="new_imam_source"]');
+sourceRadios.forEach(function(r) {
+  r.addEventListener('change', function() {
+    document.getElementById('new-imam-fields').className = this.value === 'new' ? '' : 'hidden';
+    document.getElementById('existing-imam-fields').className = this.value === 'existing' ? '' : 'hidden';
+  });
+});
+
+// Show note when picking existing imam
+var existingSelect = document.getElementById('existing-imam-select');
+if (existingSelect) {
+  existingSelect.addEventListener('change', function() {
+    var opt = this.options[this.selectedIndex];
+    var note = document.getElementById('existing-imam-note');
+    if (opt.value) {
+      var mosque = opt.getAttribute('data-mosque');
+      note.textContent = 'سينتقل هذا الإمام من "' + mosque + '" إلى "{{ mosque.name }}".';
+    } else {
+      note.textContent = '';
+    }
+  });
+}
+
+// Audio upload
+document.getElementById('swap-audio-file').addEventListener('change', function() {
+  var file = this.files[0];
+  if (!file) return;
+  var status = document.getElementById('audio-upload-swap-status');
+  var urlInput = document.getElementById('swap-audio-url');
+  status.textContent = 'جاري الرفع...';
+  status.style.color = '#333';
+  var formData = new FormData();
+  formData.append('file', file);
+  fetch('/admin/upload-audio', { method: 'POST', body: formData })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.url) { urlInput.value = d.url; status.textContent = 'تم ✓'; status.style.color = 'green'; }
+      else { status.textContent = 'خطأ: ' + (d.error || 'فشل'); status.style.color = 'red'; }
+    })
+    .catch(function() { status.textContent = 'خطأ'; status.style.color = 'red'; });
+});
+</script>
+{% endblock %}

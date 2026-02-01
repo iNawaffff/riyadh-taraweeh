@@ -1,6 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Menu, Heart, LogIn } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { MobileMenu } from './MobileMenu'
 import { useFavorites } from '@/hooks'
 import { useAuth } from '@/hooks/use-auth'
@@ -43,27 +48,45 @@ export function Header() {
 
               {/* Favorites indicator */}
               {isAuthenticated && (
-                <Link
-                  to="/favorites"
-                  className={cn(
-                    'relative flex h-9 w-9 items-center justify-center rounded-full',
-                    'bg-white/10 transition-all duration-300',
-                    'hover:bg-white/20'
-                  )}
-                  title={`${favoritesCount} مسجد في المفضلة`}
-                >
-                  <Heart className={cn('h-5 w-5', favoritesCount > 0 ? 'fill-red-400 text-red-400' : 'text-white/70')} />
-                  {favoritesCount > 0 && (
-                    <span
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to="/favorites"
                       className={cn(
-                        'absolute -top-1 -start-1 flex h-[18px] min-w-[18px] items-center justify-center',
-                        'rounded-full bg-accent px-1 text-[10px] font-bold leading-none text-primary-dark'
+                        'relative flex h-9 w-9 items-center justify-center rounded-full',
+                        'border border-white/10 bg-white/5 backdrop-blur-sm',
+                        'transition-all duration-300',
+                        'hover:bg-white/15 hover:border-white/20',
+                        favoritesCount > 0 && 'bg-white/10'
                       )}
                     >
-                      {favoritesCount}
-                    </span>
-                  )}
-                </Link>
+                      <Heart
+                        className={cn(
+                          'h-[18px] w-[18px] transition-all duration-300',
+                          favoritesCount > 0
+                            ? 'fill-red-400 text-red-400'
+                            : 'text-white/60'
+                        )}
+                      />
+                      {favoritesCount > 0 && (
+                        <span
+                          className={cn(
+                            'absolute -top-1.5 -start-1.5',
+                            'flex h-[18px] min-w-[18px] items-center justify-center',
+                            'rounded-full bg-accent px-1 pt-[3px] pb-[1px]',
+                            'text-[10px] font-bold text-primary-dark',
+                            'ring-2 ring-primary'
+                          )}
+                        >
+                          {favoritesCount}
+                        </span>
+                      )}
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>{favoritesCount > 0 ? `${favoritesCount} مسجد في المفضلة` : 'المفضلة'}</p>
+                  </TooltipContent>
+                </Tooltip>
               )}
 
               {/* Hamburger Menu Button */}

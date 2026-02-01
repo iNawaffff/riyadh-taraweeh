@@ -46,6 +46,10 @@ export async function searchMosques(params: SearchParams): Promise<Mosque[]> {
     searchParams.set('area', params.area)
   }
 
+  if (params.location && params.location !== 'الكل') {
+    searchParams.set('location', params.location)
+  }
+
   const response = await fetch(`${API_BASE}/mosques/search?${searchParams.toString()}`)
 
   if (!response.ok) {
@@ -93,6 +97,21 @@ export async function fetchAreas(): Promise<string[]> {
   const mosques = await fetchMosques()
   const areas = new Set(mosques.map(m => m.area))
   return Array.from(areas).sort()
+}
+
+/**
+ * Fetch unique locations (districts), optionally filtered by area
+ */
+export async function fetchLocations(area?: string): Promise<string[]> {
+  const params = new URLSearchParams()
+  if (area && area !== 'الكل') {
+    params.set('area', area)
+  }
+  const response = await fetch(`${API_BASE}/locations?${params.toString()}`)
+  if (!response.ok) {
+    throw new Error('Failed to fetch locations')
+  }
+  return response.json()
 }
 
 /**

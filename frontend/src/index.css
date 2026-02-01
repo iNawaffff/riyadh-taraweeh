@@ -54,7 +54,7 @@
 @layer components {
   /* Skip link for accessibility */
   .skip-link {
-    @apply absolute -top-10 left-0 bg-primary text-primary-foreground p-2 z-50 transition-all duration-300;
+    @apply absolute -top-10 start-0 bg-primary text-primary-foreground p-2 z-50 transition-all duration-300;
   }
 
   .skip-link:focus {
@@ -187,6 +187,31 @@
   /* Not found page fade-in */
   .not-found-fade-in {
     animation: heroFadeIn 0.5s ease-out 0.2s both;
+  }
+
+  /* Favorite heart pop animation */
+  @keyframes heartPop {
+    0% { transform: scale(1); }
+    15% { transform: scale(1.3); }
+    30% { transform: scale(0.9); }
+    45% { transform: scale(1.15); }
+    60% { transform: scale(0.95); }
+    75% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+  }
+
+  .heart-pop {
+    animation: heartPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+
+  /* Favorite heart ring burst */
+  @keyframes heartRing {
+    0% { transform: scale(0.5); opacity: 0.6; }
+    100% { transform: scale(2.2); opacity: 0; }
+  }
+
+  .heart-ring {
+    animation: heartRing 0.5s ease-out forwards;
   }
 
   /* Focus-visible ring for keyboard accessibility */

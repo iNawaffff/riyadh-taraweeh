@@ -1,0 +1,47 @@
+{% macro render_audio_upload(field) %}
+<div class="audio-upload-widget">
+  <div class="form-group">
+    {{ field(class="form-control", id="audio-url-input") }}
+  </div>
+  <div style="margin-top: 8px;">
+    <label class="btn btn-default btn-sm" style="cursor: pointer;">
+      <i class="glyphicon glyphicon-upload"></i> رفع ملف صوتي
+      <input type="file" id="audio-file-input" accept="audio/*" style="display: none;">
+    </label>
+    <span id="audio-upload-status" style="margin-right: 8px;"></span>
+  </div>
+</div>
+<script>
+document.getElementById('audio-file-input').addEventListener('change', function() {
+  var file = this.files[0];
+  if (!file) return;
+  var status = document.getElementById('audio-upload-status');
+  var urlInput = document.getElementById('audio-url-input');
+  status.textContent = 'جاري الرفع...';
+  status.style.color = '#333';
+
+  var formData = new FormData();
+  formData.append('file', file);
+
+  fetch('/admin/upload-audio', {
+    method: 'POST',
+    body: formData
+  })
+  .then(function(resp) { return resp.json(); })
+  .then(function(data) {
+    if (data.url) {
+      urlInput.value = data.url;
+      status.textContent = 'تم الرفع بنجاح ✓';
+      status.style.color = 'green';
+    } else {
+      status.textContent = 'خطأ: ' + (data.error || 'فشل الرفع');
+      status.style.color = 'red';
+    }
+  })
+  .catch(function(err) {
+    status.textContent = 'خطأ في الرفع';
+    status.style.color = 'red';
+  });
+});
+</script>
+{% endmacro %}
