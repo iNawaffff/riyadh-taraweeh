@@ -541,6 +541,20 @@ REACT_BUILD_DIR = os.path.join(os.path.dirname(__file__), "frontend", "dist")
 USE_REACT_FRONTEND = os.path.exists(REACT_BUILD_DIR)
 
 
+@app.route("/debug-react")
+def debug_react():
+    import json
+    return json.dumps({
+        "REACT_BUILD_DIR": REACT_BUILD_DIR,
+        "exists": os.path.exists(REACT_BUILD_DIR),
+        "USE_REACT_FRONTEND": USE_REACT_FRONTEND,
+        "cwd": os.getcwd(),
+        "app_dir": os.path.dirname(__file__),
+        "ls_root": os.listdir(os.path.dirname(__file__) or "."),
+        "ls_frontend": os.listdir(os.path.join(os.path.dirname(__file__), "frontend")) if os.path.exists(os.path.join(os.path.dirname(__file__), "frontend")) else "NOT FOUND",
+    }, indent=2)
+
+
 def _get_react_html():
     """Read and cache the built React index.html content."""
     index_path = os.path.join(REACT_BUILD_DIR, "index.html")
