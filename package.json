@@ -4,6 +4,7 @@
   "description": "Taraweeh Imams Directory - Riyadh",
   "private": true,
   "scripts": {
+    "build": "cd frontend && npm ci && npm run build",
     "heroku-postbuild": "cd frontend && npm ci && npm run build"
   },
   "engines": {
