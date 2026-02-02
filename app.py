@@ -538,10 +538,6 @@ def logout():
 # --- React SPA serving ---
 # Check if we're using the React frontend
 REACT_BUILD_DIR = os.path.join(os.path.dirname(__file__), "frontend", "dist")
-# Fallback: check react_dist/ at project root (for hosts that strip frontend/dist)
-if not os.path.exists(REACT_BUILD_DIR):
-    REACT_BUILD_DIR = os.path.join(os.path.dirname(__file__), "react_dist")
-
 USE_REACT_FRONTEND = os.path.exists(REACT_BUILD_DIR)
 
 
