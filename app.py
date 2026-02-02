@@ -802,6 +802,17 @@ def serve_react_assets(path):
     return "Not Found", 404
 
 
+# Serve PWA files from React build root (registerSW.js, manifest.webmanifest, sw.js)
+@app.route("/registerSW.js")
+@app.route("/manifest.webmanifest")
+@app.route("/sw.js")
+def serve_pwa_files():
+    if USE_REACT_FRONTEND:
+        filename = request.path.lstrip("/")
+        return send_from_directory(REACT_BUILD_DIR, filename)
+    return "Not Found", 404
+
+
 @app.route("/robots.txt")
 def robots():
     # Add proper line breaks with \n
