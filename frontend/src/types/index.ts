@@ -76,6 +76,7 @@ export interface PublicProfile {
 export interface TrackerNight {
   night: number
   mosque_id: number | null
+  rakaat: number | null
   attended_at: string
 }
 

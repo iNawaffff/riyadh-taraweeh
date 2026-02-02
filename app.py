@@ -1057,7 +1057,7 @@ def get_tracker():
     if not user:
         return jsonify({"error": "Not registered"}), 401
     records = TaraweehAttendance.query.filter_by(user_id=user.id).all()
-    nights = [{"night": r.night, "mosque_id": r.mosque_id, "attended_at": r.attended_at.isoformat()} for r in records]
+    nights = [{"night": r.night, "mosque_id": r.mosque_id, "rakaat": r.rakaat, "attended_at": r.attended_at.isoformat()} for r in records]
     nights_set = {r.night for r in records}
     current_streak, best_streak = _compute_streaks(nights_set)
     return jsonify({
@@ -1082,10 +1082,13 @@ def mark_night(night):
     existing = TaraweehAttendance.query.filter_by(user_id=user.id, night=night).first()
     data = request.get_json() or {}
     mosque_id = data.get("mosque_id")
+    rakaat = data.get("rakaat")
+    app.logger.info(f"mark_night: night={night}, mosque_id={mosque_id}, rakaat={rakaat}, data={data}")
     if existing:
         existing.mosque_id = mosque_id
+        existing.rakaat = rakaat
     else:
-        db.session.add(TaraweehAttendance(user_id=user.id, night=night, mosque_id=mosque_id))
+        db.session.add(TaraweehAttendance(user_id=user.id, night=night, mosque_id=mosque_id, rakaat=rakaat))
     db.session.commit()
     return jsonify({"success": True})
 
@@ -1109,7 +1112,7 @@ def public_tracker(username):
     if not user:
         return jsonify({"error": "User not found"}), 404
     records = TaraweehAttendance.query.filter_by(user_id=user.id).all()
-    nights = [{"night": r.night, "mosque_id": r.mosque_id, "attended_at": r.attended_at.isoformat()} for r in records]
+    nights = [{"night": r.night, "mosque_id": r.mosque_id, "rakaat": r.rakaat, "attended_at": r.attended_at.isoformat()} for r in records]
     nights_set = {r.night for r in records}
     current_streak, best_streak = _compute_streaks(nights_set)
     return jsonify({

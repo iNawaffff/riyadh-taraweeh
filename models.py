@@ -53,6 +53,7 @@ class TaraweehAttendance(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('public_user.id'), nullable=False)
     night = db.Column(db.Integer, nullable=False)  # 1-30
     mosque_id = db.Column(db.Integer, db.ForeignKey('mosque.id'), nullable=True)
+    rakaat = db.Column(db.Integer, nullable=True)
     attended_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     __table_args__ = (db.UniqueConstraint('user_id', 'night'),)
