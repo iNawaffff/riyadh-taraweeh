@@ -1,0 +1,1 @@
+import{j as r}from"./query-CLJXXnyt.js";import{a as s}from"./index-B7gfWGL-.js";function a({className:e,shimmer:t=!0,...m}){return r.jsx("div",{className:s("rounded-md bg-muted",t?"skeleton-shimmer":"animate-pulse",e),...m})}export{a as S};

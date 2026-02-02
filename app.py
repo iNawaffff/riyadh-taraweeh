@@ -538,19 +538,9 @@ def logout():
 # --- React SPA serving ---
 # Check if we're using the React frontend
 REACT_BUILD_DIR = os.path.join(os.path.dirname(__file__), "frontend", "dist")
-
-# Auto-build frontend if dist is missing but source exists
+# Fallback: check react_dist/ at project root (for hosts that strip frontend/dist)
 if not os.path.exists(REACT_BUILD_DIR):
-    frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
-    if os.path.exists(os.path.join(frontend_dir, "package.json")):
-        import subprocess
-        print("frontend/dist not found — building React frontend...")
-        try:
-            subprocess.run(["npm", "ci"], cwd=frontend_dir, check=True, timeout=120)
-            subprocess.run(["npm", "run", "build"], cwd=frontend_dir, check=True, timeout=120)
-            print("Frontend build complete!")
-        except Exception as e:
-            print(f"Frontend build failed: {e}")
+    REACT_BUILD_DIR = os.path.join(os.path.dirname(__file__), "react_dist")
 
 USE_REACT_FRONTEND = os.path.exists(REACT_BUILD_DIR)
 
