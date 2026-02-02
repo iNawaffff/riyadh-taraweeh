@@ -5,14 +5,13 @@ import {
   useCallback,
   type ReactNode,
 } from 'react'
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth'
+import type { User as FirebaseUser, ConfirmationResult } from 'firebase/auth'
 import {
-  auth,
+  onAuthStateChanged,
   signInWithGoogle as fbSignInGoogle,
   sendPhoneOtp,
   firebaseSignOut,
 } from '@/lib/firebase'
-import type { ConfirmationResult } from 'firebase/auth'
 
 export interface PublicUserProfile {
   id: number
@@ -69,7 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+    let unsubscribe: (() => void) | null = null
+
+    onAuthStateChanged(async (fbUser) => {
       setFirebaseUser(fbUser)
       if (fbUser) {
         const idToken = await fbUser.getIdToken()
@@ -81,8 +82,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setNeedsRegistration(false)
       }
       setIsLoading(false)
+    }).then(unsub => {
+      unsubscribe = unsub
     })
-    return unsubscribe
+
+    return () => {
+      if (unsubscribe) unsubscribe()
+    }
   }, [fetchProfile])
 
   // Refresh token periodically (every 50 min)
@@ -114,7 +120,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const signOut = useCallback(async () => {
-    // Clear state immediately so UI doesn't wait for Firebase callback
     setUser(null)
     setToken(null)
     setNeedsRegistration(false)
@@ -122,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await firebaseSignOut()
     } catch {
-      // State is already cleared — safe to ignore
+      // State is already cleared
     }
   }, [])
 
@@ -145,7 +150,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const err = await res.json()
         throw new Error(err.error || 'Registration failed')
       }
-      // Refresh profile after registration
       const profile = await fetchProfile(token)
       if (!profile) throw new Error('Failed to load profile')
       return profile

@@ -1,12 +1,13 @@
 import type { Mosque, SearchParams, NearbyParams, ErrorReport, ErrorReportResponse, PublicProfile, TrackerData, PublicTrackerData } from '@/types'
-import { auth } from '@/lib/firebase'
+import { getAuthSync } from '@/lib/firebase'
 
 const API_BASE = '/api'
 
 export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const response = await fetch(url, options)
-  if (response.status === 401 && auth.currentUser) {
-    const newToken = await auth.currentUser.getIdToken(true)
+  const authInstance = getAuthSync()
+  if (response.status === 401 && authInstance?.currentUser) {
+    const newToken = await authInstance.currentUser.getIdToken(true)
     const retryOptions = {
       ...options,
       headers: {
@@ -94,6 +95,11 @@ export async function fetchMosqueById(id: number): Promise<Mosque> {
  * Get unique areas for filtering
  */
 export async function fetchAreas(): Promise<string[]> {
+  const response = await fetch(`${API_BASE}/locations?areas_only=1`)
+  if (response.ok) {
+    return response.json()
+  }
+  // Fallback: extract from mosques
   const mosques = await fetchMosques()
   const areas = new Set(mosques.map(m => m.area))
   return Array.from(areas).sort()
@@ -163,14 +169,14 @@ export async function fetchTracker(token: string): Promise<TrackerData> {
   return response.json()
 }
 
-export async function toggleNight(token: string, night: number, mosqueId?: number): Promise<void> {
+export async function toggleNight(token: string, night: number, mosqueId?: number, rakaat?: number): Promise<void> {
   await authFetch(`${API_BASE}/user/tracker/${night}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ mosque_id: mosqueId ?? null }),
+    body: JSON.stringify({ mosque_id: mosqueId ?? null, rakaat: rakaat ?? null }),
   })
 }
 

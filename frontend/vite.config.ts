@@ -152,6 +152,9 @@ export default defineConfig({
           'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-slot', '@radix-ui/react-checkbox'],
           // Data fetching
           'query': ['@tanstack/react-query'],
+          // Firebase Auth (lazy-loaded)
+          'firebase-auth': ['firebase/auth'],
+          'firebase-app': ['firebase/app'],
           // Sentry (only loaded in production)
           'sentry': ['@sentry/react'],
         },
