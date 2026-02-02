@@ -11,8 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Info, Heart, AlertTriangle, MapPin } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Info, Heart, AlertTriangle, MapPin, Map } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
 
 export function HomePage() {
   // Search state
@@ -23,6 +24,8 @@ export function HomePage() {
   const [isProximitySorted, setIsProximitySorted] = useState(false)
   const [proximitySuccess, setProximitySuccess] = useState(false)
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
+
+  const navigate = useNavigate()
 
   // Debounced search query
   const debouncedQuery = useDebounce(searchQuery, 500)
@@ -216,6 +219,15 @@ export function HomePage() {
               isActive={showFavoritesOnly}
               count={favoritesCount}
             />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/map')}
+              className="h-10 gap-1.5 rounded-full border-border/60 px-4 text-sm font-medium"
+            >
+              <Map className="h-4 w-4" />
+              خريطة
+            </Button>
           </div>
         </section>
 

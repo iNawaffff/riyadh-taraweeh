@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { Heart, Share2, ArrowRight, MapPin, Landmark, SlidersHorizontal } from 'lucide-react'
+import { Heart, Share2, ArrowRight, MapPin, Landmark, SlidersHorizontal, Map } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -144,10 +144,18 @@ export function FavoritesPage() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <h2 className="text-xl font-bold">المفضلة</h2>
             {stats.total > 0 && (
-              <Button variant="outline" size="sm" onClick={handleShare} className="gap-1.5">
-                <Share2 className="h-4 w-4" />
-                مشاركة
-              </Button>
+              <div className="flex gap-2">
+                <Button asChild variant="outline" size="sm" className="gap-1.5">
+                  <Link to="/map">
+                    <Map className="h-4 w-4" />
+                    خريطة
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleShare} className="gap-1.5">
+                  <Share2 className="h-4 w-4" />
+                  مشاركة
+                </Button>
+              </div>
             )}
           </div>
 

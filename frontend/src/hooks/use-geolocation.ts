@@ -72,9 +72,9 @@ export function useGeolocation(): UseGeolocationReturn {
         setIsLoading(false)
       },
       {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 5000,
+        enableHighAccuracy: false,
+        timeout: 30000,
+        maximumAge: 60000,
       }
     )
   }, [isSupported])
