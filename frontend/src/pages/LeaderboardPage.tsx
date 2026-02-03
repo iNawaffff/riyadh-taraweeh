@@ -1,17 +1,20 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { Trophy, Crown, Medal, Award, Star, ArrowLeft, Sparkles } from 'lucide-react'
+import { Heart, HandHeart, Medal, Award, Star, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Button } from '@/components/ui/button'
 import { useLeaderboard } from '@/hooks/use-transfers'
 import { useAuth } from '@/hooks/use-auth'
+import { LoginDialog } from '@/components/auth'
 import { toArabicNum, pluralizeArabic, arabicNouns } from '@/lib/arabic-utils'
 
 export function LeaderboardPage() {
   const { data: entries = [], isLoading } = useLeaderboard()
   const { isAuthenticated } = useAuth()
+  const [isLoginOpen, setIsLoginOpen] = useState(false)
 
   const top3 = entries.slice(0, 3)
   const rest = entries.slice(3)
@@ -19,7 +22,7 @@ export function LeaderboardPage() {
   return (
     <>
       <Helmet>
-        <title>المتصدرون - أئمة التراويح</title>
+        <title>المساهمون - أئمة التراويح</title>
       </Helmet>
 
       {/* Hero */}
@@ -30,11 +33,11 @@ export function LeaderboardPage() {
         <div className="absolute -bottom-10 -end-10 h-40 w-40 rounded-full bg-white/[0.03]" />
         <div className="container relative text-center">
           <div className="crown-bounce mb-4 inline-block">
-            <Crown className="mx-auto h-12 w-12 text-accent" strokeWidth={1.5} />
+            <HandHeart className="mx-auto h-12 w-12 text-accent" strokeWidth={1.5} />
           </div>
-          <h1 className="hero-fade-in text-3xl font-bold md:text-4xl">المتصدرون</h1>
+          <h1 className="hero-fade-in text-3xl font-bold md:text-4xl">المساهمون</h1>
           <p className="hero-fade-in animation-delay-150 mt-2 text-sm text-white/60">
-            أكثر المساهمين في تحديث بيانات الأئمة
+            شركاؤنا في تحديث بيانات الأئمة
           </p>
         </div>
       </div>
@@ -50,30 +53,29 @@ export function LeaderboardPage() {
           /* ── Empty State ── */
           <div className="celebration-pop mx-auto max-w-sm py-16 text-center">
             <div className="relative mx-auto mb-6 h-28 w-28">
-              {/* Decorative ring */}
               <div className="absolute inset-0 rounded-full border-2 border-dashed border-accent/30" />
               <div className="flex h-full w-full items-center justify-center rounded-full bg-accent-light">
-                <Trophy className="h-14 w-14 text-accent" strokeWidth={1.5} />
+                <HandHeart className="h-14 w-14 text-accent" strokeWidth={1.5} />
               </div>
-              {/* Small stars */}
               <Star className="absolute -end-1 top-2 h-5 w-5 fill-accent/20 text-accent/40" />
               <Star className="absolute -start-2 bottom-4 h-4 w-4 fill-accent/15 text-accent/30" />
             </div>
             <h2 className="mb-2 text-xl font-bold text-foreground">لا توجد مساهمات بعد</h2>
             <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-              كن أول من يساهم في تحديث بيانات الأئمة!
+              كن أول من يساهم في تحديث بيانات الأئمة
               <br />
-              بلّغ عن انتقال إمام وساهم في إثراء المنصة
+              كل تحديث صحيح هو صدقة جارية تُعين المصلين
             </p>
             {isAuthenticated ? (
               <Button asChild className="gap-2 rounded-full px-6">
                 <Link to="/">
                   تصفح المساجد
-                  <ArrowLeft className="h-4 w-4" />
                 </Link>
               </Button>
             ) : (
-              <p className="text-xs text-muted-foreground">سجل دخولك للمساهمة</p>
+              <Button onClick={() => setIsLoginOpen(true)} className="gap-2 rounded-full px-6">
+                سجّل للمساهمة
+              </Button>
             )}
           </div>
         ) : (
@@ -89,7 +91,7 @@ export function LeaderboardPage() {
                     'bg-gradient-to-l from-orange-50 to-amber-50/30 border-amber-200/40',
                   ]
                   const rankColors = ['text-amber-500', 'text-gray-400', 'text-amber-600']
-                  const RankIcon = [Trophy, Medal, Award][index]
+                  const RankIcon = [Heart, Medal, Award][index]
 
                   return (
                     <div
@@ -99,7 +101,10 @@ export function LeaderboardPage() {
                     >
                       {/* Rank icon */}
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center">
-                        <RankIcon className={`${isFirst ? 'h-7 w-7' : 'h-6 w-6'} ${rankColors[index]}`} strokeWidth={isFirst ? 2 : 1.5} />
+                        <RankIcon
+                          className={`${isFirst ? 'h-7 w-7' : 'h-6 w-6'} ${rankColors[index]} ${isFirst ? 'fill-amber-500' : ''}`}
+                          strokeWidth={isFirst ? 2 : 1.5}
+                        />
                       </div>
 
                       {/* User info */}
@@ -128,7 +133,7 @@ export function LeaderboardPage() {
                         </div>
                       </Link>
 
-                      {/* Points */}
+                      {/* Contributions count */}
                       <div
                         className={`count-up shrink-0 rounded-full px-3.5 py-1.5 text-sm font-bold ${
                           isFirst
@@ -137,7 +142,7 @@ export function LeaderboardPage() {
                         }`}
                         style={{ animationDelay: `${index * 100 + 300}ms` }}
                       >
-                        {toArabicNum(entry.points)} {pluralizeArabic(entry.points, arabicNouns.point)}
+                        {toArabicNum(entry.points)} {pluralizeArabic(entry.points, arabicNouns.contribution)}
                       </div>
                     </div>
                   )
@@ -175,7 +180,9 @@ export function LeaderboardPage() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">@{entry.username}</p>
+                        <p className="text-xs text-muted-foreground">
+                          <span dir="ltr" className="inline-block">@{entry.username}</span>
+                        </p>
                       </div>
                     </Link>
 
@@ -186,9 +193,29 @@ export function LeaderboardPage() {
                 ))}
               </div>
             )}
+
+            {/* ── CTA for non-authenticated users ── */}
+            {!isAuthenticated && (
+              <div className="mt-10 rounded-2xl bg-gradient-to-br from-primary/5 to-accent/5 p-6 text-center">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+                  <HandHeart className="h-7 w-7 text-primary" />
+                </div>
+                <h3 className="mb-2 text-lg font-bold text-foreground">ساهم معنا</h3>
+                <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
+                  ساعد المصلين في الوصول للمساجد الصحيحة
+                  <br />
+                  <span className="text-primary">كل تحديث صحيح صدقة جارية</span>
+                </p>
+                <Button onClick={() => setIsLoginOpen(true)} className="rounded-full px-6">
+                  سجّل الآن للمساهمة
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      <LoginDialog open={isLoginOpen} onOpenChange={setIsLoginOpen} />
     </>
   )
 }

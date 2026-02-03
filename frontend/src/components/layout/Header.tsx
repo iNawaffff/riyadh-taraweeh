@@ -1,11 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Menu, Heart, LogIn } from 'lucide-react'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { Menu, Heart } from 'lucide-react'
 import { MobileMenu } from './MobileMenu'
 import { useFavorites } from '@/hooks'
 import { useAuth } from '@/hooks/use-auth'
@@ -30,73 +25,59 @@ export function Header() {
         <div className="container relative py-4">
           <div className="flex items-center">
             {/* Action buttons */}
-            <div className="absolute end-0 top-1/2 -translate-y-1/2 z-50 flex items-center gap-2">
-              {/* Auth button */}
+            <div className="absolute end-0 top-1/2 -translate-y-1/2 z-50 flex items-center gap-1.5">
+              {/* Auth button / User menu */}
               {!isLoading && (
                 isAuthenticated ? (
                   <UserMenu />
                 ) : (
                   <button
                     onClick={() => setIsLoginOpen(true)}
-                    className="flex h-9 items-center gap-1.5 rounded-full bg-white/10 px-3 text-sm transition-all hover:bg-white/20"
+                    className="flex h-9 items-center gap-1.5 rounded-full bg-white/15 px-3.5 text-sm font-medium backdrop-blur-sm transition-all hover:bg-white/25 active:scale-95"
                   >
-                    <LogIn className="h-4 w-4" />
-                    <span>دخول</span>
+                    <span>تسجيل</span>
                   </button>
                 )
               )}
 
-              {/* Favorites indicator */}
-              {isAuthenticated && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="/favorites"
-                      className={cn(
-                        'relative flex h-9 w-9 items-center justify-center rounded-full',
-                        'border border-white/10 bg-white/5 backdrop-blur-sm',
-                        'transition-all duration-300',
-                        'hover:bg-white/15 hover:border-white/20',
-                        favoritesCount > 0 && 'bg-white/10'
-                      )}
-                    >
-                      <Heart
-                        className={cn(
-                          'h-[18px] w-[18px] transition-all duration-300',
-                          favoritesCount > 0
-                            ? 'fill-red-400 text-red-400'
-                            : 'text-white/60'
-                        )}
-                      />
-                      {favoritesCount > 0 && (
-                        <span
-                          className={cn(
-                            'absolute -top-1.5 -start-1.5',
-                            'flex h-[18px] min-w-[18px] items-center justify-center',
-                            'rounded-full bg-accent px-1 pt-[3px] pb-[1px]',
-                            'text-[10px] font-bold text-primary-dark',
-                            'ring-2 ring-primary'
-                          )}
-                        >
-                          {favoritesCount}
-                        </span>
-                      )}
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p>{favoritesCount > 0 ? `${favoritesCount} مسجد في المفضلة` : 'المفضلة'}</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
+              {/* Favorites button - always visible, acts as CTA when logged out */}
+              <Link
+                to={isAuthenticated ? "/favorites" : "#"}
+                onClick={(e) => {
+                  if (!isAuthenticated) {
+                    e.preventDefault()
+                    setIsLoginOpen(true)
+                  }
+                }}
+                className={cn(
+                  'relative flex h-9 items-center gap-1.5 rounded-full px-3 transition-all active:scale-95',
+                  'bg-white/10 backdrop-blur-sm hover:bg-white/20',
+                  favoritesCount > 0 && 'bg-white/15'
+                )}
+              >
+                <Heart
+                  className={cn(
+                    'h-4 w-4 transition-all',
+                    favoritesCount > 0
+                      ? 'fill-red-400 text-red-400'
+                      : 'text-white/80'
+                  )}
+                />
+                {favoritesCount > 0 ? (
+                  <span className="text-sm font-medium">{favoritesCount}</span>
+                ) : (
+                  <span className="text-sm text-white/80">المفضلة</span>
+                )}
+              </Link>
 
               {/* Hamburger Menu Button */}
               <button
                 onClick={toggleMenu}
-                className="rounded-full p-2 transition-all duration-200 hover:bg-white/10 active:scale-90"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm transition-all hover:bg-white/20 active:scale-95"
                 aria-label="فتح القائمة"
                 aria-expanded={isMenuOpen}
               >
-                <Menu className="h-6 w-6" />
+                <Menu className="h-5 w-5" />
               </button>
             </div>
 

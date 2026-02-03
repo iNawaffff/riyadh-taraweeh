@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
-import { Home, Info, Mail, Calendar, Trophy } from 'lucide-react'
+import { Home, Info, Mail, Calendar, HandHeart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -15,7 +15,7 @@ const baseNavItems = [
   { to: '/contact', label: 'تواصل معنا', icon: Mail },
 ]
 
-const leaderboardItem = { to: '/leaderboard', label: 'المتصدرون', icon: Trophy }
+const leaderboardItem = { to: '/leaderboard', label: 'المساهمون', icon: HandHeart }
 const trackerItem = { to: '/tracker', label: 'متابعة التراويح', icon: Calendar }
 
 export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {

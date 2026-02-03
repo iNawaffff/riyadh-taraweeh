@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { LogOut, User, Calendar } from 'lucide-react'
+import { LogOut, User, Calendar, ChevronDown } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,17 +16,23 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white/10 transition-all hover:bg-white/20">
-          {user.avatar_url ? (
-            <img
-              src={user.avatar_url}
-              alt={user.display_name || user.username}
-              className="h-full w-full object-cover"
-              referrerPolicy="no-referrer"
-            />
-          ) : (
-            <User className="h-5 w-5 text-white" />
-          )}
+        <button className="flex h-9 items-center gap-1.5 rounded-full bg-white/15 pe-2.5 ps-1 backdrop-blur-sm transition-all hover:bg-white/25 active:scale-95">
+          <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-white/20">
+            {user.avatar_url ? (
+              <img
+                src={user.avatar_url}
+                alt={user.display_name || user.username}
+                className="h-full w-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <User className="h-4 w-4 text-white" />
+            )}
+          </div>
+          <span className="max-w-[80px] truncate text-sm font-medium">
+            {user.display_name || user.username}
+          </span>
+          <ChevronDown className="h-3.5 w-3.5 text-white/60" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-48">
