@@ -95,7 +95,7 @@ export function Header() {
                 {/* Use inline-grid for pixel-perfect vertical centering */}
                 <span className="inline-grid grid-flow-col items-center gap-1.5">
                   {favoritesCount > 0 && (
-                    <span className="translate-y-[1px] text-[15px] font-semibold tabular-nums">
+                    <span className="translate-y-[2px] text-base font-semibold tabular-nums">
                       {favoritesCount}
                     </span>
                   )}
