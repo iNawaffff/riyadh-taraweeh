@@ -401,6 +401,14 @@ git push origin main
    - Singular/dual/plural forms for nights, favorites, contributions, points
    - RTL-safe username display (`dir="ltr"` for @handles)
 
+7. **Authentication UX**
+   - Redesigned login dialog with elegant branded header
+   - Smart Saudi phone number parsing (accepts 05..., 5..., +966..., 00966...)
+   - Auto-formatting phone display (5XX XXX XXXX)
+   - Beautiful OTP input with 3—3 split layout
+   - Smooth mode transitions with fade animations
+   - Firebase Phone + Google sign-in
+
 ---
 
 ## Data Statistics
