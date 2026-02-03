@@ -22,10 +22,46 @@ export function Header() {
         {/* Islamic pattern overlay */}
         <div className="islamic-pattern absolute inset-0" />
 
-        <div className="container relative py-4">
-          <div className="flex items-center">
-            {/* Action buttons */}
-            <div className="absolute end-0 top-1/2 -translate-y-1/2 z-50 flex items-center gap-1.5">
+        <div className="container relative py-3 md:py-4">
+          {/* CSS Grid: 3-column layout for proper spacing in RTL */}
+          <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2">
+            {/* Hamburger Menu (right side in RTL) */}
+            <button
+              onClick={toggleMenu}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm transition-all hover:bg-white/20 active:scale-95"
+              aria-label="فتح القائمة"
+              aria-expanded={isMenuOpen}
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+
+            {/* Logo (centered) */}
+            <Link
+              to="/"
+              className="flex items-center justify-center gap-3"
+              onClick={closeMenu}
+            >
+              <div className="flex items-center justify-center">
+                <img
+                  src="/static/images/animated-moon.gif"
+                  alt="هلال رمضان"
+                  width={40}
+                  height={40}
+                  className="object-contain"
+                />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold tracking-wide md:text-xl">
+                  أئمة التراويح
+                </h1>
+                <p className="text-xs text-accent-light">
+                  رمضان ١٤٤٧ هـ - الرياض
+                </p>
+              </div>
+            </Link>
+
+            {/* Action buttons (left side in RTL) */}
+            <div className="flex items-center justify-end gap-1.5">
               {/* Auth button / User menu */}
               {!isLoading && (
                 isAuthenticated ? (
@@ -33,7 +69,7 @@ export function Header() {
                 ) : (
                   <button
                     onClick={() => setIsLoginOpen(true)}
-                    className="flex h-9 items-center gap-1.5 rounded-full bg-white/15 px-3.5 text-sm font-medium backdrop-blur-sm transition-all hover:bg-white/25 active:scale-95"
+                    className="flex h-9 items-center gap-1.5 rounded-full bg-white/15 px-3 text-sm font-medium backdrop-blur-sm transition-all hover:bg-white/25 active:scale-95"
                   >
                     <span>تسجيل</span>
                   </button>
@@ -50,7 +86,7 @@ export function Header() {
                   }
                 }}
                 className={cn(
-                  'relative flex h-9 items-center gap-1.5 rounded-full px-3 transition-all active:scale-95',
+                  'relative flex h-9 items-center gap-1.5 rounded-full px-2.5 transition-all active:scale-95',
                   'bg-white/10 backdrop-blur-sm hover:bg-white/20',
                   favoritesCount > 0 && 'bg-white/15'
                 )}
@@ -66,48 +102,10 @@ export function Header() {
                 {favoritesCount > 0 ? (
                   <span className="text-sm font-medium">{favoritesCount}</span>
                 ) : (
-                  <span className="text-sm text-white/80">المفضلة</span>
+                  <span className="hidden text-sm text-white/80 sm:inline">المفضلة</span>
                 )}
               </Link>
-
-              {/* Hamburger Menu Button */}
-              <button
-                onClick={toggleMenu}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm transition-all hover:bg-white/20 active:scale-95"
-                aria-label="فتح القائمة"
-                aria-expanded={isMenuOpen}
-              >
-                <Menu className="h-5 w-5" />
-              </button>
             </div>
-
-            {/* Logo */}
-            <Link
-              to="/"
-              className="mx-auto flex items-center gap-4 pe-8"
-              onClick={closeMenu}
-            >
-              {/* Animated Moon */}
-              <div className="flex items-center justify-center">
-                <img
-                  src="/static/images/animated-moon.gif"
-                  alt="هلال رمضان"
-                  width={40}
-                  height={40}
-                  className="object-contain"
-                />
-              </div>
-
-              {/* Site Title */}
-              <div>
-                <h1 className="text-lg font-bold tracking-wide md:text-xl">
-                  أئمة التراويح
-                </h1>
-                <p className="text-xs text-accent-light">
-                  رمضان ١٤٤٧ هـ - الرياض
-                </p>
-              </div>
-            </Link>
           </div>
         </div>
       </header>

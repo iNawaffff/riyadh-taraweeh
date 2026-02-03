@@ -16,7 +16,7 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex h-9 items-center gap-1.5 rounded-full bg-white/15 pe-2.5 ps-1 backdrop-blur-sm transition-all hover:bg-white/25 active:scale-95">
+        <button className="flex h-9 items-center gap-1 rounded-full bg-white/15 pe-2 ps-1 backdrop-blur-sm transition-all hover:bg-white/25 active:scale-95 sm:gap-1.5 sm:pe-2.5">
           <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-white/20">
             {user.avatar_url ? (
               <img
@@ -29,7 +29,8 @@ export function UserMenu() {
               <User className="h-4 w-4 text-white" />
             )}
           </div>
-          <span className="max-w-[80px] truncate text-sm font-medium">
+          {/* Hide name on mobile, show only avatar */}
+          <span className="hidden max-w-[72px] truncate text-sm font-medium sm:inline">
             {user.display_name || user.username}
           </span>
           <ChevronDown className="h-3.5 w-3.5 text-white/60" />
