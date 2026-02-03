@@ -188,8 +188,9 @@ export function showSuccessToast({
     ),
     {
       duration,
-      // Remove default styling
+      // Remove default Sonner wrapper styling
       unstyled: true,
+      className: '!bg-transparent !border-0 !shadow-none !p-0',
     }
   )
 }

@@ -50,6 +50,14 @@
 }
 
 @layer components {
+  /* Custom toast - remove Sonner's default wrapper styling */
+  [data-sonner-toast][data-styled="false"] {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
   /* Skip link for accessibility */
   .skip-link {
     @apply absolute -top-10 start-0 bg-primary text-primary-foreground p-2 z-50 transition-all duration-300;
