@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useMosque, useAudioPlayer } from '@/hooks'
+import { useMosque, useAudioPlayer, useAuth } from '@/hooks'
 import { ErrorReportModal } from '@/components/mosque/ErrorReportModal'
+
+const TransferDialog = lazy(() => import('@/components/mosque/TransferDialog').then(m => ({ default: m.TransferDialog })))
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -23,6 +25,7 @@ import {
   Loader2,
   Home,
   Music,
+  RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -34,6 +37,8 @@ export function MosqueDetailPage() {
   const { currentTrack, isPlaying, isLoading: isAudioLoading, play } = useAudioPlayer()
 
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
+  const [isTransferOpen, setIsTransferOpen] = useState(false)
+  const { isAuthenticated } = useAuth()
 
   const isCurrentPlaying = currentTrack?.mosqueId === mosqueId && isPlaying
   const isCurrentLoading = currentTrack?.mosqueId === mosqueId && isAudioLoading
@@ -160,7 +165,18 @@ export function MosqueDetailPage() {
                       <User className="h-4 w-4" />
                       إمام التراويح:
                     </span>
-                    <span>{imam}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span>{imam}</span>
+                      {isAuthenticated && (
+                        <button
+                          onClick={() => setIsTransferOpen(true)}
+                          className="flex items-center gap-1 rounded-full border border-primary/20 px-2.5 py-1 text-xs text-primary transition-colors hover:bg-primary hover:text-white"
+                        >
+                          <RefreshCw className="h-3 w-3" />
+                          تغيّر؟
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -286,6 +302,18 @@ export function MosqueDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Transfer Dialog */}
+      {isAuthenticated && isTransferOpen && (
+        <Suspense fallback={null}>
+          <TransferDialog
+            open={isTransferOpen}
+            onOpenChange={setIsTransferOpen}
+            mosqueId={mosqueId}
+            mosqueName={name}
+          />
+        </Suspense>
+      )}
 
       {/* Error Report Modal */}
       <ErrorReportModal

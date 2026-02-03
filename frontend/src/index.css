@@ -222,4 +222,76 @@
     background-color: hsl(var(--accent) / 0.25);
     color: hsl(var(--primary));
   }
+
+  /* Leaderboard animations */
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(30px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .slide-in-right {
+    animation: slideInRight 0.4s ease-out both;
+  }
+
+  @keyframes countUp {
+    from { opacity: 0; transform: scale(0.5); }
+    60% { transform: scale(1.2); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .count-up {
+    animation: countUp 0.5s ease-out both;
+  }
+
+  @keyframes crownBounce {
+    0% { transform: translateY(0) rotate(0deg); }
+    30% { transform: translateY(-6px) rotate(-5deg); }
+    60% { transform: translateY(-2px) rotate(3deg); }
+    100% { transform: translateY(0) rotate(0deg); }
+  }
+
+  .crown-bounce {
+    animation: crownBounce 0.6s ease-out 0.8s both;
+  }
+
+  /* Confetti celebration */
+  @keyframes confettiFall {
+    0% { transform: translateY(-100%) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+
+  .confetti-piece {
+    position: fixed;
+    top: -10px;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    animation: confettiFall 2.5s ease-in forwards;
+    z-index: 100;
+    pointer-events: none;
+  }
+
+  @keyframes celebrationPop {
+    0% { opacity: 0; transform: scale(0.3); }
+    50% { transform: scale(1.1); }
+    70% { transform: scale(0.95); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  .celebration-pop {
+    animation: celebrationPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  }
+
+  @keyframes shimmerGold {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+
+  .shimmer-gold {
+    background: linear-gradient(90deg, #c4a052 0%, #f2ecd7 40%, #c4a052 60%, #f2ecd7 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmerGold 3s linear infinite;
+  }
 }

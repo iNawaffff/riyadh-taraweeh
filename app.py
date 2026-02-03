@@ -44,7 +44,7 @@ from markupsafe import Markup
 from werkzeug.security import check_password_hash, generate_password_hash
 from wtforms_sqlalchemy.fields import QuerySelectField
 
-from models import Imam, Mosque, PublicUser, TaraweehAttendance, UserFavorite, db
+from models import Imam, ImamTransferRequest, Mosque, PublicUser, TaraweehAttendance, UserFavorite, db
 from utils import normalize_arabic
 
 load_dotenv()
@@ -329,6 +329,7 @@ class MosqueModelView(BaseModelView):
 
     def after_model_change(self, form, model, is_created):
         """Create or update the imam record after saving the mosque."""
+        global _imam_index_cache
         imam_name = form.imam_name.data.strip() if form.imam_name.data else ""
         imam_audio = form.imam_audio.data.strip() if form.imam_audio.data else None
         imam_youtube = form.imam_youtube.data.strip() if form.imam_youtube.data else None
@@ -349,6 +350,7 @@ class MosqueModelView(BaseModelView):
                 )
                 db.session.add(imam)
             db.session.commit()
+            _imam_index_cache = None
         elif imam and not imam_name:
             # Clear imam name = unassign imam from this mosque
             imam.mosque_id = None
@@ -497,6 +499,74 @@ def swap_imam_view(mosque_id):
     )
 
 
+class TransferRequestModelView(BaseModelView):
+    column_list = ["id", "submitter", "mosque", "current_imam", "new_imam", "new_imam_name", "notes", "status", "reject_reason", "created_at", "reviewed_at"]
+    column_labels = {
+        "id": "#",
+        "submitter": "المُبلّغ",
+        "mosque": "المسجد",
+        "current_imam": "الإمام الحالي",
+        "new_imam": "الإمام الجديد",
+        "new_imam_name": "اسم إمام جديد",
+        "notes": "ملاحظات",
+        "status": "الحالة",
+        "reject_reason": "سبب الرفض",
+        "created_at": "تاريخ الإنشاء",
+        "reviewed_at": "تاريخ المراجعة",
+    }
+    column_filters = ["status"]
+    column_default_sort = ("created_at", True)
+    column_editable_list = ["reject_reason"]  # Inline edit rejection reason before rejecting
+    page_size = 50
+    can_create = False
+    can_edit = True
+    can_delete = True
+
+    @action("approve", "قبول البلاغات المحددة", "هل تريد قبول البلاغات المحددة؟")
+    def action_approve(self, ids):
+        for transfer_id in ids:
+            tr = ImamTransferRequest.query.get(transfer_id)
+            if not tr or tr.status != "pending":
+                continue
+            mosque = Mosque.query.get(tr.mosque_id)
+            if not mosque:
+                continue
+            # Unassign old imam
+            old_imam = Imam.query.filter_by(mosque_id=mosque.id).first()
+            if old_imam:
+                old_imam.mosque_id = None
+            # Assign or create new imam
+            if tr.new_imam_id:
+                new_imam = Imam.query.get(tr.new_imam_id)
+                if new_imam:
+                    new_imam.mosque_id = mosque.id
+            elif tr.new_imam_name:
+                new_imam = Imam(name=tr.new_imam_name, mosque_id=mosque.id)
+                db.session.add(new_imam)
+            # Award point
+            submitter = PublicUser.query.get(tr.submitter_id)
+            if submitter:
+                submitter.contribution_points = PublicUser.contribution_points + 1
+            tr.status = "approved"
+            tr.reviewed_at = datetime.datetime.utcnow()
+            tr.reviewed_by = current_user.id if current_user.is_authenticated else None
+        db.session.commit()
+        global _imam_index_cache
+        _imam_index_cache = None
+
+    @action("reject", "رفض البلاغات المحددة", "هل تريد رفض البلاغات المحددة؟")
+    def action_reject(self, ids):
+        for transfer_id in ids:
+            tr = ImamTransferRequest.query.get(transfer_id)
+            if not tr or tr.status != "pending":
+                continue
+            tr.status = "rejected"
+            tr.reviewed_at = datetime.datetime.utcnow()
+            tr.reviewed_by = current_user.id if current_user.is_authenticated else None
+            # reject_reason is preserved if already filled via inline edit
+        db.session.commit()
+
+
 # initialize admin
 admin = Admin(
     app,
@@ -506,6 +576,7 @@ admin = Admin(
 )
 admin.add_view(MosqueModelView(Mosque, db.session, name="المساجد"))
 admin.add_view(ImamModelView(Imam, db.session, name="الأئمة"))
+admin.add_view(TransferRequestModelView(ImamTransferRequest, db.session, name="بلاغات النقل"))
 
 
 # --- authentication routes ---
@@ -1139,6 +1210,15 @@ def public_tracker(username):
     })
 
 
+@app.route("/leaderboard")
+def leaderboard_page():
+    return serve_react_app(meta_tags={
+        "title": "المتصدرون - أئمة التراويح",
+        "description": "قائمة أكثر المساهمين في تحديث بيانات أئمة التراويح في الرياض",
+        "url": "https://taraweeh.org/leaderboard",
+    })
+
+
 @app.route("/tracker")
 def tracker_page():
     return serve_react_app(meta_tags={
@@ -1146,6 +1226,302 @@ def tracker_page():
         "description": "تابع حضورك لصلاة التراويح خلال شهر رمضان",
         "url": "https://taraweeh.org/tracker",
     })
+
+
+# --- imam search + transfer routes ---
+def _strip_prefixes(text):
+    """Strip common Arabic prefixes for flexible matching."""
+    text = text.strip()
+    for prefix in ['الشيخ ', 'شيخ ', 'الامام ', 'امام ']:
+        if text.startswith(prefix):
+            text = text[len(prefix):].strip()
+            break
+    # Strip "ال" article from each word
+    words = text.split()
+    stripped = []
+    for w in words:
+        stripped.append(w[2:] if w.startswith('ال') and len(w) > 2 else w)
+    return ' '.join(stripped)
+
+
+def _bigrams(s):
+    """Generate character bigrams for a string."""
+    return {s[i:i+2] for i in range(len(s) - 1)} if len(s) >= 2 else {s}
+
+
+def _bigram_similarity(a, b):
+    """Bigram (Dice coefficient) similarity between two strings. 0-1."""
+    if not a or not b:
+        return 0.0
+    bg_a = _bigrams(a)
+    bg_b = _bigrams(b)
+    if not bg_a or not bg_b:
+        return 0.0
+    return 2.0 * len(bg_a & bg_b) / (len(bg_a) + len(bg_b))
+
+
+# Pre-compute imam index on first request
+_imam_index_cache = None
+_imam_index_count = None
+
+
+def _get_imam_index():
+    """Build and cache normalized imam data for search. Invalidated if imam count changes."""
+    global _imam_index_cache, _imam_index_count
+    current_count = db.session.query(db.func.count(Imam.id)).scalar()
+    if _imam_index_cache is not None and _imam_index_count == current_count:
+        return _imam_index_cache
+
+    pairs = db.session.query(Imam, Mosque).outerjoin(Mosque, Imam.mosque_id == Mosque.id).all()
+    index = []
+    for imam, mosque in pairs:
+        name_norm = normalize_arabic(imam.name)
+        name_stripped = _strip_prefixes(name_norm)
+        words = name_norm.split()
+        stripped_words = name_stripped.split()
+        index.append({
+            'imam': imam,
+            'mosque': mosque,
+            'norm': name_norm,
+            'stripped': name_stripped,
+            'words': words,
+            'stripped_words': stripped_words,
+        })
+    _imam_index_cache = index
+    _imam_index_count = current_count
+    return index
+
+
+def _score_imam(q_norm, q_stripped, q_words, q_stripped_words, entry):
+    """Score an imam match. Higher = better. 0 = no match."""
+    name = entry['norm']
+    stripped = entry['stripped']
+    words = entry['words']
+    s_words = entry['stripped_words']
+
+    # Tier 1: Exact or prefix match on full normalized name
+    if q_norm == name:
+        return 100
+    if name.startswith(q_norm):
+        return 95
+
+    # Tier 2: Stripped prefix match
+    if stripped.startswith(q_stripped):
+        return 90
+
+    # Tier 3: Substring containment
+    if q_norm in name:
+        return 80
+    if q_stripped in stripped:
+        return 75
+
+    # Tier 4: Any word starts with query (single-word query)
+    if len(q_words) == 1:
+        for w in words + s_words:
+            if w.startswith(q_norm) or w.startswith(q_stripped):
+                return 70
+        # Also check if any stripped word starts with stripped query
+        for w in s_words:
+            if w.startswith(q_stripped_words[0]) if q_stripped_words else False:
+                return 65
+
+    # Tier 5: Multi-word — all query words match some name word
+    if len(q_words) > 1:
+        all_name_words = words + s_words
+        matched = 0
+        for qw in q_words + q_stripped_words:
+            for nw in all_name_words:
+                if nw.startswith(qw) or qw in nw:
+                    matched += 1
+                    break
+        unique_q = len(set(q_words + q_stripped_words))
+        if unique_q > 0:
+            ratio = matched / unique_q
+            if ratio >= 0.8:
+                return 75
+            if ratio >= 0.5:
+                return 55
+
+    # Tier 6: Bigram fuzzy similarity (catches typos, reordering)
+    sim = _bigram_similarity(q_stripped, stripped)
+    if sim >= 0.6:
+        return int(40 + sim * 20)  # 52-60
+
+    # Per-word bigram match (for partial name matches)
+    for w in s_words:
+        wsim = _bigram_similarity(q_stripped, w)
+        if wsim >= 0.5:
+            return int(30 + wsim * 20)  # 40-50
+
+    return 0
+
+
+@app.route("/api/imams/search")
+def search_imams():
+    q = request.args.get("q", "").strip()
+    if not q:
+        return jsonify([])
+    q_norm = normalize_arabic(q)
+    q_stripped = _strip_prefixes(q_norm)
+    if not q_stripped:
+        return jsonify([])
+    q_words = q_norm.split()
+    q_stripped_words = q_stripped.split()
+
+    index = _get_imam_index()
+    scored = []
+    for entry in index:
+        score = _score_imam(q_norm, q_stripped, q_words, q_stripped_words, entry)
+        if score > 0:
+            scored.append((score, entry))
+
+    scored.sort(key=lambda x: -x[0])
+    return jsonify([{
+        "id": e['imam'].id,
+        "name": e['imam'].name,
+        "mosque_name": e['mosque'].name if e['mosque'] else None,
+        "mosque_id": e['imam'].mosque_id,
+    } for _, e in scored[:15]])
+
+
+@app.route("/api/transfers", methods=["POST"])
+@firebase_auth_required
+def submit_transfer():
+    user = g.current_public_user
+    if not user:
+        return jsonify({"error": "Not registered"}), 401
+    data = request.get_json() or {}
+    mosque_id = data.get("mosque_id")
+    if not mosque_id or not Mosque.query.get(mosque_id):
+        return jsonify({"error": "مسجد غير صالح"}), 400
+    # Check duplicate pending
+    existing = ImamTransferRequest.query.filter_by(
+        submitter_id=user.id, mosque_id=mosque_id, status="pending"
+    ).first()
+    if existing:
+        return jsonify({"error": "لديك بلاغ معلق لهذا المسجد"}), 409
+    current_imam = Imam.query.filter_by(mosque_id=mosque_id).first()
+    new_imam_id = data.get("new_imam_id")
+    new_imam_name = data.get("new_imam_name", "").strip() if data.get("new_imam_name") else None
+    if not new_imam_id and not new_imam_name:
+        return jsonify({"error": "يجب تحديد الإمام الجديد"}), 400
+    tr = ImamTransferRequest(
+        submitter_id=user.id,
+        mosque_id=mosque_id,
+        current_imam_id=current_imam.id if current_imam else None,
+        new_imam_id=new_imam_id if new_imam_id else None,
+        new_imam_name=new_imam_name,
+        notes=data.get("notes", "").strip() or None,
+    )
+    db.session.add(tr)
+    db.session.commit()
+    return jsonify({"id": tr.id, "status": tr.status}), 201
+
+
+@app.route("/api/transfers/<int:transfer_id>", methods=["DELETE"])
+@firebase_auth_required
+def cancel_transfer(transfer_id):
+    user = g.current_public_user
+    if not user:
+        return jsonify({"error": "Not registered"}), 401
+    tr = ImamTransferRequest.query.get(transfer_id)
+    if not tr or tr.submitter_id != user.id:
+        return jsonify({"error": "غير موجود"}), 404
+    if tr.status != "pending":
+        return jsonify({"error": "لا يمكن إلغاء بلاغ تمت مراجعته"}), 400
+    db.session.delete(tr)
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+@app.route("/api/user/transfers")
+@firebase_auth_required
+def user_transfers():
+    user = g.current_public_user
+    if not user:
+        return jsonify({"error": "Not registered"}), 401
+    transfers = ImamTransferRequest.query.filter_by(submitter_id=user.id).order_by(ImamTransferRequest.created_at.desc()).all()
+    result = []
+    for tr in transfers:
+        mosque = Mosque.query.get(tr.mosque_id)
+        result.append({
+            "id": tr.id,
+            "mosque_id": tr.mosque_id,
+            "mosque_name": mosque.name if mosque else None,
+            "current_imam_name": tr.current_imam.name if tr.current_imam else None,
+            "new_imam_name": tr.new_imam.name if tr.new_imam else (tr.new_imam_name or None),
+            "notes": tr.notes,
+            "status": tr.status,
+            "reject_reason": tr.reject_reason,
+            "created_at": tr.created_at.isoformat(),
+            "reviewed_at": tr.reviewed_at.isoformat() if tr.reviewed_at else None,
+        })
+    return jsonify(result)
+
+
+@app.route("/api/leaderboard")
+def leaderboard():
+    users = PublicUser.query.filter(
+        PublicUser.contribution_points > 0
+    ).order_by(
+        PublicUser.contribution_points.desc()
+    ).limit(20).all()
+    # Pioneer = first ever user to get an approved transfer
+    pioneer = db.session.query(ImamTransferRequest.submitter_id).filter(
+        ImamTransferRequest.status == "approved"
+    ).order_by(ImamTransferRequest.reviewed_at.asc()).first()
+    pioneer_id = pioneer[0] if pioneer else None
+    return jsonify([{
+        "username": u.username,
+        "display_name": u.display_name,
+        "avatar_url": u.avatar_url,
+        "points": u.contribution_points,
+        "is_pioneer": u.id == pioneer_id,
+    } for u in users])
+
+
+@app.route("/api/transfers/<int:transfer_id>/approve", methods=["POST"])
+@login_required
+def approve_transfer(transfer_id):
+    tr = ImamTransferRequest.query.get_or_404(transfer_id)
+    if tr.status != "pending":
+        return jsonify({"error": "Already reviewed"}), 400
+    mosque = Mosque.query.get(tr.mosque_id)
+    old_imam = Imam.query.filter_by(mosque_id=mosque.id).first()
+    if old_imam:
+        old_imam.mosque_id = None
+    if tr.new_imam_id:
+        new_imam = Imam.query.get(tr.new_imam_id)
+        if new_imam:
+            new_imam.mosque_id = mosque.id
+    elif tr.new_imam_name:
+        new_imam = Imam(name=tr.new_imam_name, mosque_id=mosque.id)
+        db.session.add(new_imam)
+    submitter = PublicUser.query.get(tr.submitter_id)
+    if submitter:
+        submitter.contribution_points = PublicUser.contribution_points + 1
+    tr.status = "approved"
+    tr.reviewed_at = datetime.datetime.utcnow()
+    tr.reviewed_by = current_user.id
+    db.session.commit()
+    global _imam_index_cache
+    _imam_index_cache = None  # invalidate search cache
+    return jsonify({"success": True})
+
+
+@app.route("/api/transfers/<int:transfer_id>/reject", methods=["POST"])
+@login_required
+def reject_transfer(transfer_id):
+    tr = ImamTransferRequest.query.get_or_404(transfer_id)
+    if tr.status != "pending":
+        return jsonify({"error": "Already reviewed"}), 400
+    data = request.get_json() or {}
+    tr.status = "rejected"
+    tr.reject_reason = data.get("reason", "").strip() or None
+    tr.reviewed_at = datetime.datetime.utcnow()
+    tr.reviewed_by = current_user.id
+    db.session.commit()
+    return jsonify({"success": True})
 
 
 # --- error reporting route ---

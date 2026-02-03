@@ -138,6 +138,14 @@ export default defineConfig({
         target: 'http://localhost:5002',
         changeOrigin: true,
       },
+      '/admin': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+      },
+      '/login': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+      },
     },
   },
   build: {

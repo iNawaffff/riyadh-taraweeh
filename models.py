@@ -29,6 +29,8 @@ class PublicUser(db.Model):
     phone = db.Column(db.String(20))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    contribution_points = db.Column(db.Integer, default=0, nullable=False)
+
     favorites = db.relationship('UserFavorite', backref='user', lazy=True, cascade='all, delete-orphan')
 
     def __repr__(self):
@@ -60,6 +62,32 @@ class TaraweehAttendance(db.Model):
 
     user = db.relationship('PublicUser', backref=db.backref('attendance', lazy=True, cascade='all, delete-orphan'))
     mosque = db.relationship('Mosque', lazy=True)
+
+
+class ImamTransferRequest(db.Model):
+    __tablename__ = 'imam_transfer_request'
+    id = db.Column(db.Integer, primary_key=True)
+    submitter_id = db.Column(db.Integer, db.ForeignKey('public_user.id'), nullable=False)
+    mosque_id = db.Column(db.Integer, db.ForeignKey('mosque.id'), nullable=False)
+    current_imam_id = db.Column(db.Integer, db.ForeignKey('imam.id', use_alter=True), nullable=True)
+    new_imam_id = db.Column(db.Integer, db.ForeignKey('imam.id', use_alter=True), nullable=True)
+    new_imam_name = db.Column(db.String(100), nullable=True)
+    notes = db.Column(db.String(500), nullable=True)
+    status = db.Column(db.String(20), default='pending')
+    reject_reason = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+    reviewed_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    __table_args__ = (
+        db.Index('ix_transfer_submitter_mosque_status', 'submitter_id', 'mosque_id', 'status'),
+    )
+
+    submitter = db.relationship('PublicUser', backref=db.backref('transfer_requests', lazy=True))
+    mosque = db.relationship('Mosque', backref=db.backref('transfer_requests', lazy=True))
+    current_imam = db.relationship('Imam', foreign_keys=[current_imam_id])
+    new_imam = db.relationship('Imam', foreign_keys=[new_imam_id])
+    reviewer = db.relationship('User', foreign_keys=[reviewed_by])
 
 
 class Imam(db.Model):

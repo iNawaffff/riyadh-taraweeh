@@ -97,6 +97,35 @@ export interface PublicTrackerData extends TrackerData {
   display_name: string | null
 }
 
+// Transfer types
+export interface ImamSearchResult {
+  id: number
+  name: string
+  mosque_name: string | null
+  mosque_id: number | null
+}
+
+export interface TransferRequest {
+  id: number
+  mosque_id: number
+  mosque_name: string | null
+  current_imam_name: string | null
+  new_imam_name: string | null
+  notes: string | null
+  status: 'pending' | 'approved' | 'rejected'
+  reject_reason: string | null
+  created_at: string
+  reviewed_at: string | null
+}
+
+export interface LeaderboardEntry {
+  username: string
+  display_name: string | null
+  avatar_url: string | null
+  points: number
+  is_pioneer?: boolean
+}
+
 // Audio player state
 export interface AudioState {
   isPlaying: boolean
