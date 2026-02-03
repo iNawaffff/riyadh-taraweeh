@@ -23,9 +23,10 @@ const FIREBASE_ERROR_MAP: Record<string, string> = {
 }
 
 function getFirebaseError(e: unknown): string {
+  console.error('Firebase auth error:', e)
   if (e && typeof e === 'object' && 'code' in e) {
     const code = (e as { code: string }).code
-    return FIREBASE_ERROR_MAP[code] || 'حدث خطأ، حاول مرة أخرى'
+    return FIREBASE_ERROR_MAP[code] || `حدث خطأ: ${code}`
   }
   return 'حدث خطأ، حاول مرة أخرى'
 }
