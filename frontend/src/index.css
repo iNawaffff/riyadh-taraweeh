@@ -305,4 +305,13 @@
     -webkit-text-fill-color: transparent;
     animation: shimmerGold 3s linear infinite;
   }
+
+  /* Safe area utilities for mobile bottom bars */
+  .pb-safe {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  .mb-bottom-bar {
+    margin-bottom: 5rem;
+  }
 }

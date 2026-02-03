@@ -2,6 +2,8 @@ import { useState, lazy, Suspense } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useMosque, useAudioPlayer, useAuth } from '@/hooks'
 import { ErrorReportModal } from '@/components/mosque/ErrorReportModal'
+import { FavoriteButton } from '@/components/mosque/FavoriteButton'
+import { LoginDialog } from '@/components/auth'
 
 const TransferDialog = lazy(() => import('@/components/mosque/TransferDialog').then(m => ({ default: m.TransferDialog })))
 import { Card, CardContent } from '@/components/ui/card'
@@ -26,6 +28,8 @@ import {
   Home,
   Music,
   RefreshCw,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -38,6 +42,8 @@ export function MosqueDetailPage() {
 
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
   const [isTransferOpen, setIsTransferOpen] = useState(false)
+  const [isDescExpanded, setIsDescExpanded] = useState(false)
+  const [showLoginDialog, setShowLoginDialog] = useState(false)
   const { isAuthenticated } = useAuth()
 
   const isCurrentPlaying = currentTrack?.mosqueId === mosqueId && isPlaying
@@ -89,27 +95,39 @@ export function MosqueDetailPage() {
 
   return (
     <>
-      {/* Page Header */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-primary to-primary-dark py-10 text-white">
-        <div className="islamic-pattern-large absolute inset-0" />
-        <div className="container relative">
-          <h1 className="flex items-center gap-3 text-2xl font-bold md:text-3xl">
-            <Home className="h-7 w-7 text-accent-light" aria-hidden="true" />
-            {name}
-          </h1>
-          {imam && (
-            <p className="mt-2 text-lg text-white/80">
-              <User className="me-1.5 inline h-4 w-4" />
-              {imam}
-            </p>
-          )}
-          <span className="mt-3 inline-block rounded-full bg-white/15 px-3 py-1 text-sm backdrop-blur-sm">
-            {area}
-          </span>
-        </div>
-      </div>
+      {/* Page Header - Compact sticky on mobile */}
+      <header className="sticky top-[52px] z-30 md:static">
+        <div className="relative overflow-hidden bg-gradient-to-br from-primary to-primary-dark py-4 text-white md:py-10">
+          <div className="islamic-pattern-large absolute inset-0" />
+          <div className="container relative">
+            <div className="flex items-center justify-between gap-3 md:block">
+              <div className="min-w-0 flex-1">
+                <h1 className="flex items-center gap-2 text-lg font-bold md:gap-3 md:text-2xl lg:text-3xl">
+                  <Home className="hidden h-7 w-7 shrink-0 text-accent-light md:block" aria-hidden="true" />
+                  <span className="truncate">{name}</span>
+                </h1>
+                {imam && (
+                  <p className="mt-1 truncate text-sm text-white/80 md:mt-2 md:text-lg">
+                    <User className="me-1.5 inline h-3.5 w-3.5 md:h-4 md:w-4" />
+                    {imam}
+                  </p>
+                )}
+              </div>
 
-      <div className="container py-6">
+              {/* Quick actions - mobile only */}
+              <div className="flex shrink-0 gap-2 md:hidden">
+                <FavoriteButton mosqueId={mosqueId} mosqueName={name} size="sm" />
+              </div>
+            </div>
+
+            <span className="mt-2 inline-block rounded-full bg-white/15 px-2.5 py-0.5 text-xs backdrop-blur-sm md:mt-3 md:px-3 md:py-1 md:text-sm">
+              {area}
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <div className="container py-4 md:py-6">
         {/* Breadcrumb */}
         <nav className="mb-4" aria-label="مسار التنقل">
           <ol className="flex flex-wrap items-center gap-2 text-sm">
@@ -128,9 +146,30 @@ export function MosqueDetailPage() {
 
         <Card className="border-0 shadow-card">
           <CardContent className="p-6">
-            {/* Description */}
-            <div className="mb-6 rounded-lg border-e-[3px] border-accent bg-primary-light p-5 leading-relaxed">
-              <p className="text-justify text-foreground">{description}</p>
+            {/* Description - Collapsible on mobile */}
+            <div className="mb-6 rounded-lg border-e-[3px] border-accent bg-primary-light p-4 leading-relaxed md:p-5">
+              <p className={cn(
+                'text-justify text-sm text-foreground md:text-base',
+                !isDescExpanded && 'line-clamp-2 md:line-clamp-none'
+              )}>
+                {description}
+              </p>
+              <button
+                onClick={() => setIsDescExpanded(!isDescExpanded)}
+                className="mt-2 flex items-center gap-1 text-xs text-primary md:hidden"
+              >
+                {isDescExpanded ? (
+                  <>
+                    <ChevronUp className="h-3 w-3" />
+                    عرض أقل
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-3 w-3" />
+                    عرض المزيد...
+                  </>
+                )}
+              </button>
             </div>
 
             {/* Mosque Information Section */}
@@ -139,66 +178,88 @@ export function MosqueDetailPage() {
                 معلومات المسجد
               </h2>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                {/* Location */}
-                <div className="flex flex-col rounded-lg border border-primary/10 bg-primary-light/50 p-4">
-                  <span className="mb-1 flex items-center gap-2 font-bold text-primary">
-                    <MapPin className="h-4 w-4" />
-                    الموقع:
-                  </span>
-                  <span className="break-words">حي {location}</span>
-                </div>
-
-                {/* Area */}
-                <div className="flex flex-col rounded-lg border border-primary/10 bg-primary-light/50 p-4">
-                  <span className="mb-1 flex items-center gap-2 font-bold text-primary">
-                    <Compass className="h-4 w-4" />
-                    المنطقة:
-                  </span>
-                  <span>{area}</span>
-                </div>
-
-                {/* Imam */}
-                {imam && (
-                  <div className="flex flex-col rounded-lg border border-primary/10 bg-primary-light/50 p-4 md:col-span-2">
-                    <span className="mb-1 flex items-center gap-2 font-bold text-primary">
-                      <User className="h-4 w-4" />
-                      إمام التراويح:
+              <div className="flex flex-col gap-3 md:grid md:grid-cols-2 md:gap-4">
+                {/* Location - Horizontal on mobile */}
+                <div className="flex items-center gap-3 rounded-lg border border-primary/10 bg-primary-light/50 p-3 md:flex-col md:items-start md:p-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 md:hidden">
+                    <MapPin className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <span className="mb-1 hidden items-center gap-2 font-bold text-primary md:flex">
+                      <MapPin className="h-4 w-4" />
+                      الحي:
                     </span>
-                    <div className="flex items-center justify-between gap-2">
-                      <span>{imam}</span>
-                      {isAuthenticated && (
+                    <span className="text-xs font-medium text-muted-foreground md:hidden">الحي</span>
+                    <span className="block break-words text-sm md:text-base">حي {location}</span>
+                  </div>
+                </div>
+
+                {/* Area - Horizontal on mobile */}
+                <div className="flex items-center gap-3 rounded-lg border border-primary/10 bg-primary-light/50 p-3 md:flex-col md:items-start md:p-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 md:hidden">
+                    <Compass className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <span className="mb-1 hidden items-center gap-2 font-bold text-primary md:flex">
+                      <Compass className="h-4 w-4" />
+                      المنطقة:
+                    </span>
+                    <span className="text-xs font-medium text-muted-foreground md:hidden">المنطقة</span>
+                    <span className="block text-sm md:text-base">{area}</span>
+                  </div>
+                </div>
+
+                {/* Imam - Horizontal on mobile */}
+                {imam && (
+                  <div className="flex items-center gap-3 rounded-lg border border-primary/10 bg-primary-light/50 p-3 md:col-span-2 md:flex-col md:items-start md:p-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 md:hidden">
+                      <User className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1 md:w-full">
+                      <span className="mb-1 hidden items-center gap-2 font-bold text-primary md:flex">
+                        <User className="h-4 w-4" />
+                        إمام التراويح:
+                      </span>
+                      <span className="text-xs font-medium text-muted-foreground md:hidden">إمام التراويح</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-sm md:text-base">{imam}</span>
                         <button
-                          onClick={() => setIsTransferOpen(true)}
-                          className="flex items-center gap-1 rounded-full border border-primary/20 px-2.5 py-1 text-xs text-primary transition-colors hover:bg-primary hover:text-white"
+                          onClick={() => {
+                            if (isAuthenticated) {
+                              setIsTransferOpen(true)
+                            } else {
+                              setShowLoginDialog(true)
+                            }
+                          }}
+                          className="flex h-8 shrink-0 items-center gap-1 rounded-full border border-primary/20 px-2.5 text-xs text-primary transition-colors hover:bg-primary hover:text-white md:h-auto md:py-1"
                         >
                           <RefreshCw className="h-3 w-3" />
                           تغيّر؟
                         </button>
-                      )}
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Audio Section - dedicated card */}
+              {/* Audio Section - Full-width stacked on mobile */}
               {audio_sample && (
-                <div className="mt-4 overflow-hidden rounded-lg border border-accent/20 bg-gradient-to-l from-accent/5 to-primary-light/50 p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="mt-4 overflow-hidden rounded-lg border border-accent/20 bg-gradient-to-l from-accent/5 to-primary-light/50">
+                  <div className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between md:p-5">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/15">
                         <Music className="h-5 w-5 text-accent" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="font-bold text-primary">استمع للتلاوة</p>
-                        {imam && <p className="text-sm text-muted-foreground">{imam}</p>}
+                        {imam && <p className="truncate text-sm text-muted-foreground">{imam}</p>}
                       </div>
                     </div>
                     <Button
                       onClick={handleAudioClick}
                       disabled={isCurrentLoading}
                       className={cn(
-                        'gap-2 rounded-full px-6',
+                        'w-full gap-2 rounded-xl py-6 text-base md:w-auto md:rounded-full md:py-2',
                         isCurrentPlaying
                           ? 'bg-primary-dark text-white'
                           : 'bg-primary text-white hover:bg-primary-dark'
@@ -217,8 +278,8 @@ export function MosqueDetailPage() {
                 </div>
               )}
 
-              {/* Action Buttons */}
-              <div className="mt-5 flex flex-wrap justify-center gap-3 md:justify-start">
+              {/* Desktop: Action Buttons inline */}
+              <div className="mt-5 hidden flex-wrap justify-start gap-3 md:flex">
                 {map_link && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -281,8 +342,8 @@ export function MosqueDetailPage() {
               </section>
             )}
 
-            {/* Back Link */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+            {/* Back Link & Report - Desktop only here */}
+            <div className="mt-8 hidden flex-wrap items-center justify-center gap-4 md:flex">
               <Link
                 to="/"
                 className="inline-flex items-center gap-2 rounded-full bg-primary-light px-5 py-2.5 font-medium text-primary transition-all hover:bg-primary hover:text-white"
@@ -299,9 +360,47 @@ export function MosqueDetailPage() {
                 ابلاغ عن خطأ
               </button>
             </div>
+
+            {/* Mobile: Report error link */}
+            <div className="mt-6 flex justify-center md:hidden">
+              <button
+                onClick={() => setIsReportModalOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-destructive/5 hover:text-destructive"
+              >
+                <AlertCircle className="h-3.5 w-3.5" />
+                ابلاغ عن خطأ
+              </button>
+            </div>
           </CardContent>
         </Card>
+
+        {/* Mobile bottom spacer for sticky action bar */}
+        <div className="h-20 md:hidden" />
       </div>
+
+      {/* Mobile: Fixed bottom action bar */}
+      {(map_link || youtube_link) && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 p-3 pb-safe backdrop-blur-md md:hidden">
+          <div className="container flex gap-3">
+            {map_link && (
+              <Button variant="outline" asChild className="h-12 flex-1 gap-2 rounded-xl border-primary text-primary">
+                <a href={map_link} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4" />
+                  الاتجاهات
+                </a>
+              </Button>
+            )}
+            {youtube_link && (
+              <Button asChild className="h-12 flex-1 gap-2 rounded-xl bg-youtube text-white hover:bg-youtube-dark">
+                <a href={youtube_link} target="_blank" rel="noopener noreferrer">
+                  <Youtube className="h-4 w-4" />
+                  يوتيوب
+                </a>
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Transfer Dialog */}
       {isAuthenticated && isTransferOpen && (
@@ -322,6 +421,9 @@ export function MosqueDetailPage() {
         mosqueId={mosqueId}
         mosqueName={name}
       />
+
+      {/* Login Dialog for transfer button */}
+      <LoginDialog open={showLoginDialog} onOpenChange={setShowLoginDialog} />
     </>
   )
 }

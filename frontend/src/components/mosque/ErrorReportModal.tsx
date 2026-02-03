@@ -6,11 +6,19 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { submitErrorReport } from '@/lib/api'
+import { useMediaQuery } from '@/hooks/use-media-query'
 import { Loader2, CheckCircle } from 'lucide-react'
 
 interface ErrorReportModalProps {
@@ -39,6 +47,8 @@ export function ErrorReportModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const isDesktop = useMediaQuery('(min-width: 640px)')
 
   const handleTypeChange = useCallback((type: string, checked: boolean) => {
     setSelectedTypes((prev) =>
@@ -82,6 +92,128 @@ export function ErrorReportModal({
     onClose()
   }, [onClose])
 
+  // Shared success content
+  const successContent = (
+    <div className="py-8 text-center">
+      <CheckCircle className="mx-auto mb-4 h-12 w-12 text-primary" />
+      <p className="mb-2 text-xl font-semibold text-primary">
+        تم إرسال البلاغ بنجاح
+      </p>
+      <p className="mb-6 text-sm text-muted-foreground">
+        شكراً لمساعدتنا في تحسين الموقع
+      </p>
+      <Button onClick={handleClose} className="bg-primary hover:bg-primary-dark">
+        إغلاق
+      </Button>
+    </div>
+  )
+
+  // Shared form content
+  const formContent = (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Error types checkboxes */}
+      <div className="space-y-3">
+        {ERROR_TYPES.map(({ value, label }) => (
+          <div key={value} className="flex items-center gap-3">
+            <Checkbox
+              id={`error-${value}`}
+              checked={selectedTypes.includes(value)}
+              onCheckedChange={(checked) =>
+                handleTypeChange(value, checked === true)
+              }
+            />
+            <label
+              htmlFor={`error-${value}`}
+              className="cursor-pointer text-sm leading-none"
+            >
+              {label}
+            </label>
+          </div>
+        ))}
+      </div>
+
+      {/* Details textarea */}
+      <div className="space-y-2">
+        <label htmlFor="error_details" className="text-sm font-medium">
+          تفاصيل إضافية:
+        </label>
+        <Textarea
+          id="error_details"
+          value={details}
+          onChange={(e) => setDetails(e.target.value)}
+          rows={3}
+          placeholder="أضف أي تفاصيل إضافية هنا..."
+        />
+      </div>
+
+      {/* Email input */}
+      <div className="space-y-2">
+        <label htmlFor="reporter_email" className="text-sm font-medium">
+          البريد الإلكتروني (اختياري):
+        </label>
+        <Input
+          id="reporter_email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="example@email.com"
+          dir="ltr"
+        />
+      </div>
+
+      {/* Error message */}
+      {error && (
+        <p className="text-sm text-destructive">{error}</p>
+      )}
+
+      {/* Submit button */}
+      <div className="pt-2">
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full bg-destructive hover:bg-destructive/90"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="me-2 h-4 w-4 animate-spin" />
+              جاري الإرسال...
+            </>
+          ) : (
+            'إرسال البلاغ'
+          )}
+        </Button>
+      </div>
+    </form>
+  )
+
+  // Mobile: Use Drawer
+  if (!isDesktop) {
+    return (
+      <Drawer open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+        <DrawerContent dir="rtl" className="px-4 pb-8">
+          {isSuccess ? (
+            successContent
+          ) : (
+            <>
+              <DrawerHeader className="text-right">
+                <DrawerTitle className="text-destructive">
+                  ابلاغ عن خطأ في معلومات المسجد
+                </DrawerTitle>
+                <DrawerDescription>
+                  يرجى تحديد نوع الخطأ وإضافة أي معلومات إضافية عن "{mosqueName}"
+                </DrawerDescription>
+              </DrawerHeader>
+              <div className="px-4">
+                {formContent}
+              </div>
+            </>
+          )}
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
+  // Desktop: Use Dialog
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-w-md">
@@ -110,81 +242,7 @@ export function ErrorReportModal({
                 يرجى تحديد نوع الخطأ وإضافة أي معلومات إضافية عن "{mosqueName}"
               </DialogDescription>
             </DialogHeader>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Error types checkboxes */}
-              <div className="space-y-3">
-                {ERROR_TYPES.map(({ value, label }) => (
-                  <div key={value} className="flex items-center gap-3">
-                    <Checkbox
-                      id={value}
-                      checked={selectedTypes.includes(value)}
-                      onCheckedChange={(checked) =>
-                        handleTypeChange(value, checked === true)
-                      }
-                    />
-                    <label
-                      htmlFor={value}
-                      className="cursor-pointer text-sm leading-none"
-                    >
-                      {label}
-                    </label>
-                  </div>
-                ))}
-              </div>
-
-              {/* Details textarea */}
-              <div className="space-y-2">
-                <label htmlFor="error_details" className="text-sm font-medium">
-                  تفاصيل إضافية:
-                </label>
-                <Textarea
-                  id="error_details"
-                  value={details}
-                  onChange={(e) => setDetails(e.target.value)}
-                  rows={3}
-                  placeholder="أضف أي تفاصيل إضافية هنا..."
-                />
-              </div>
-
-              {/* Email input */}
-              <div className="space-y-2">
-                <label htmlFor="reporter_email" className="text-sm font-medium">
-                  البريد الإلكتروني (اختياري):
-                </label>
-                <Input
-                  id="reporter_email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="example@email.com"
-                  dir="ltr"
-                />
-              </div>
-
-              {/* Error message */}
-              {error && (
-                <p className="text-sm text-destructive">{error}</p>
-              )}
-
-              {/* Submit button */}
-              <div className="pt-2">
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-destructive hover:bg-destructive/90"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="me-2 h-4 w-4 animate-spin" />
-                      جاري الإرسال...
-                    </>
-                  ) : (
-                    'إرسال البلاغ'
-                  )}
-                </Button>
-              </div>
-            </form>
+            {formContent}
           </>
         )}
       </DialogContent>
