@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
 import { useAuth } from '@/hooks/use-auth'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { resetRecaptcha } from '@/lib/firebase'
-import { Phone, ArrowRight, Moon, Loader2, AlertCircle, Sparkles } from 'lucide-react'
+import { Phone, ArrowRight, Moon, Loader2, AlertCircle, X, Sparkles } from 'lucide-react'
 import type { ConfirmationResult } from 'firebase/auth'
+import { cn } from '@/lib/utils'
 
 interface LoginDialogProps {
   open: boolean
@@ -37,22 +38,10 @@ function getFirebaseError(e: unknown): string {
  * Handles: 05XXXXXXXX, 5XXXXXXXX, 00966..., +966..., spaces, dashes
  */
 function normalizeSaudiPhone(input: string): string {
-  // Remove all non-digits
   let digits = input.replace(/\D/g, '')
-
-  // Remove country code prefixes
-  if (digits.startsWith('00966')) {
-    digits = digits.slice(5)
-  } else if (digits.startsWith('966')) {
-    digits = digits.slice(3)
-  }
-
-  // Remove leading 0 (e.g., 05... → 5...)
-  if (digits.startsWith('0')) {
-    digits = digits.slice(1)
-  }
-
-  // Limit to 9 digits
+  if (digits.startsWith('00966')) digits = digits.slice(5)
+  else if (digits.startsWith('966')) digits = digits.slice(3)
+  if (digits.startsWith('0')) digits = digits.slice(1)
   return digits.slice(0, 9)
 }
 
@@ -79,6 +68,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
   const [countdown, setCountdown] = useState(0)
   const phoneInputRef = useRef<HTMLInputElement>(null)
   const [animatingOut, setAnimatingOut] = useState(false)
+  const [shakeError, setShakeError] = useState(false)
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -90,9 +80,18 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
   // Focus phone input when entering phone mode
   useEffect(() => {
     if (mode === 'phone' && phoneInputRef.current) {
-      setTimeout(() => phoneInputRef.current?.focus(), 100)
+      setTimeout(() => phoneInputRef.current?.focus(), 150)
     }
   }, [mode])
+
+  // Trigger shake animation on error
+  useEffect(() => {
+    if (error) {
+      setShakeError(true)
+      const timer = setTimeout(() => setShakeError(false), 500)
+      return () => clearTimeout(timer)
+    }
+  }, [error])
 
   const resetState = useCallback(() => {
     setMode('main')
@@ -103,6 +102,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
     setLoading(false)
     setCountdown(0)
     setAnimatingOut(false)
+    setShakeError(false)
     resetRecaptcha()
   }, [])
 
@@ -112,7 +112,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
     setTimeout(() => {
       setMode(newMode)
       setAnimatingOut(false)
-    }, 150)
+    }, 200)
   }
 
   const handleGoogleSignIn = async () => {
@@ -187,54 +187,74 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
 
   const isPhoneValid = phoneDigits.length === 9 && phoneDigits.startsWith('5')
 
+  // Shared content component
   const content = (
     <div
-      className={`relative overflow-hidden transition-opacity duration-150 ${animatingOut ? 'opacity-0' : 'opacity-100'}`}
+      className={cn(
+        'relative overflow-hidden transition-all duration-200',
+        animatingOut ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'
+      )}
       dir="rtl"
     >
-      {/* Decorative background pattern */}
-      <div className="pointer-events-none absolute inset-0 opacity-[0.03]">
-        <div className="absolute -start-8 -top-8 h-32 w-32 rounded-full border-[16px] border-primary" />
-        <div className="absolute -bottom-4 -end-4 h-24 w-24 rounded-full border-[12px] border-accent" />
+      {/* Decorative Islamic geometric background */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-[0.04]">
+        <div className="absolute -start-12 -top-12 h-40 w-40 rounded-full border-[20px] border-primary" />
+        <div className="absolute -bottom-8 -end-8 h-32 w-32 rounded-full border-[16px] border-accent" />
+        <div className="absolute end-1/4 top-1/3 h-20 w-20 rotate-45 border-[8px] border-primary/50" />
       </div>
 
-      <div className="relative space-y-6 px-1 pb-2">
-        {/* Branded header */}
-        <div className="flex flex-col items-center gap-3 pt-2">
+      <div className="relative flex flex-col">
+        {/* Branded header - Moon with glow effect */}
+        <div className="flex flex-col items-center gap-4 pb-6 pt-2">
           <div className="relative">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-dark shadow-lg shadow-primary/20">
-              <Moon className="h-8 w-8 text-white" strokeWidth={1.5} />
+            {/* Animated glow ring */}
+            <div className="absolute inset-0 animate-pulse rounded-2xl bg-primary/20 blur-xl" />
+            <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-primary to-primary-dark shadow-2xl shadow-primary/30 md:h-16 md:w-16">
+              <Moon className="h-10 w-10 text-white md:h-8 md:w-8" strokeWidth={1.5} />
             </div>
-            <Sparkles className="absolute -end-1 -top-1 h-5 w-5 text-accent" />
+            <Sparkles className="absolute -end-2 -top-2 h-6 w-6 animate-pulse text-accent" />
           </div>
           <div className="text-center">
-            <h2 className="text-xl font-bold text-foreground">أهلاً بك</h2>
-            <p className="mt-0.5 text-sm text-muted-foreground">في أئمة التراويح</p>
+            <h2 className="text-2xl font-bold text-foreground md:text-xl">أهلاً بك</h2>
+            <p className="mt-1 text-base text-muted-foreground md:text-sm">في أئمة التراويح</p>
           </div>
         </div>
 
-        {/* Error state */}
+        {/* Error state with shake animation */}
         {error && (
-          <div className="flex items-center gap-2.5 rounded-xl bg-destructive/10 p-3 text-destructive animate-in fade-in slide-in-from-top-2 duration-200">
-            <AlertCircle className="h-5 w-5 shrink-0" />
-            <p className="text-sm font-medium">{error}</p>
+          <div
+            className={cn(
+              'mx-1 mb-5 flex items-center gap-3 rounded-2xl bg-destructive/10 p-4 text-destructive',
+              'animate-in fade-in slide-in-from-top-2 duration-300',
+              shakeError && 'animate-shake'
+            )}
+          >
+            <AlertCircle className="h-6 w-6 shrink-0" />
+            <p className="text-sm font-semibold">{error}</p>
           </div>
         )}
 
-        {/* Main mode */}
+        {/* Main mode - Auth options */}
         {mode === 'main' && (
-          <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-3 duration-300">
+            {/* Google Sign-in - Large touch target */}
             <Button
               variant="outline"
-              className="group h-14 w-full justify-start gap-3 rounded-xl border-2 px-4 text-base font-medium transition-all hover:border-primary/30 hover:bg-primary/5"
+              className={cn(
+                'group h-16 w-full justify-start gap-4 rounded-2xl border-2 px-5',
+                'text-lg font-semibold transition-all duration-200',
+                'hover:border-primary/40 hover:bg-primary/5 hover:shadow-lg',
+                'active:scale-[0.98]',
+                'md:h-14 md:text-base'
+              )}
               onClick={handleGoogleSignIn}
               disabled={loading}
             >
               {loading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="h-6 w-6 animate-spin" />
               ) : (
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-border/50">
-                  <svg className="h-5 w-5" viewBox="0 0 24 24">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-md ring-1 ring-border/30 md:h-9 md:w-9">
+                  <svg className="h-6 w-6 md:h-5 md:w-5" viewBox="0 0 24 24">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
                     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
                     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
@@ -245,101 +265,138 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
               <span>المتابعة بحساب Google</span>
             </Button>
 
-            <div className="relative py-2">
+            {/* Divider */}
+            <div className="relative py-3">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-dashed" />
+                <span className="w-full border-t-2 border-dashed border-border/60" />
               </div>
               <div className="relative flex justify-center">
-                <span className="bg-background px-3 text-xs text-muted-foreground">أو</span>
+                <span className="bg-background px-4 text-sm font-medium text-muted-foreground">أو</span>
               </div>
             </div>
 
+            {/* Phone Sign-in */}
             <Button
               variant="outline"
-              className="group h-14 w-full justify-start gap-3 rounded-xl border-2 px-4 text-base font-medium transition-all hover:border-primary/30 hover:bg-primary/5"
+              className={cn(
+                'group h-16 w-full justify-start gap-4 rounded-2xl border-2 px-5',
+                'text-lg font-semibold transition-all duration-200',
+                'hover:border-primary/40 hover:bg-primary/5 hover:shadow-lg',
+                'active:scale-[0.98]',
+                'md:h-14 md:text-base'
+              )}
               onClick={() => transitionTo('phone')}
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
-                <Phone className="h-5 w-5" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all duration-200 group-hover:bg-primary group-hover:text-white group-hover:shadow-lg md:h-9 md:w-9">
+                <Phone className="h-6 w-6 md:h-5 md:w-5" />
               </div>
               <span>المتابعة برقم الجوال</span>
             </Button>
           </div>
         )}
 
-        {/* Phone mode */}
+        {/* Phone mode - Phone input */}
         {mode === 'phone' && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">رقم الجوال</label>
-              <div className="flex items-stretch gap-2" dir="ltr">
-                <div className="flex items-center justify-center rounded-xl border-2 border-primary/20 bg-primary/5 px-3 text-sm font-bold text-primary">
-                  <span className="text-base">966+</span>
+          <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-3 duration-300">
+            <div className="space-y-3">
+              <label className="block text-base font-semibold text-foreground md:text-sm">رقم الجوال</label>
+              <div className="flex items-stretch gap-3" dir="ltr">
+                {/* Country code badge - Large touch target */}
+                <div className="flex items-center justify-center rounded-2xl border-2 border-primary/30 bg-gradient-to-b from-primary/10 to-primary/5 px-4 text-lg font-bold text-primary shadow-sm md:px-3 md:text-base">
+                  <span>966+</span>
                 </div>
+                {/* Phone input - Large */}
                 <div className="relative flex-1">
                   <Input
                     ref={phoneInputRef}
                     dir="ltr"
                     type="tel"
                     inputMode="numeric"
+                    autoComplete="tel"
                     value={formatPhoneDisplay(phoneDigits)}
                     onChange={(e) => handlePhoneChange(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && isPhoneValid && handleSendOtp()}
                     placeholder="5XX XXX XXXX"
-                    className="h-14 rounded-xl border-2 pe-12 text-center text-lg font-medium tracking-wider transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    className={cn(
+                      'h-16 rounded-2xl border-2 pe-14 text-center text-xl font-semibold tracking-widest',
+                      'transition-all duration-200',
+                      'focus:border-primary focus:ring-4 focus:ring-primary/20',
+                      'md:h-14 md:text-lg'
+                    )}
                   />
+                  {/* Character counter */}
                   {phoneDigits.length > 0 && (
-                    <div className="absolute end-3 top-1/2 -translate-y-1/2">
-                      <span className={`text-xs font-medium ${isPhoneValid ? 'text-primary' : 'text-muted-foreground'}`}>
+                    <div className="absolute end-4 top-1/2 -translate-y-1/2">
+                      <span className={cn(
+                        'rounded-lg px-2 py-1 text-sm font-bold transition-colors',
+                        isPhoneValid
+                          ? 'bg-primary/10 text-primary'
+                          : 'bg-muted text-muted-foreground'
+                      )}>
                         {toArabicNum(phoneDigits.length)}/٩
                       </span>
                     </div>
                   )}
                 </div>
               </div>
-              <p className="text-center text-xs text-muted-foreground">
-                يمكنك كتابة الرقم بأي صيغة (05... أو 5...)
+              <p className="text-center text-sm text-muted-foreground">
+                يمكنك كتابة الرقم بأي صيغة (05... أو 5... أو +966...)
               </p>
             </div>
 
+            {/* Submit button - Thumb zone friendly, at bottom */}
             <Button
-              className="h-14 w-full rounded-xl text-base font-bold shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30 disabled:shadow-none"
+              className={cn(
+                'h-16 w-full rounded-2xl text-lg font-bold',
+                'shadow-xl shadow-primary/25 transition-all duration-200',
+                'hover:shadow-2xl hover:shadow-primary/30',
+                'active:scale-[0.98]',
+                'disabled:shadow-none',
+                'md:h-14 md:text-base'
+              )}
               onClick={handleSendOtp}
               disabled={loading || !isPhoneValid}
             >
               {loading ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  <span className="me-2">جارٍ الإرسال...</span>
-                </>
+                <span className="flex items-center gap-3">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <span>جارٍ الإرسال...</span>
+                </span>
               ) : (
                 'إرسال رمز التحقق'
               )}
             </Button>
 
+            {/* Back button - RTL aware with flipped arrow */}
             <button
               type="button"
-              className="flex w-full items-center justify-center gap-1.5 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className={cn(
+                'flex w-full items-center justify-center gap-2 py-3',
+                'text-base font-medium text-muted-foreground',
+                'transition-colors duration-200 hover:text-foreground',
+                'active:scale-[0.98]'
+              )}
               onClick={() => transitionTo('main')}
             >
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-5 w-5 rtl:rotate-180" />
               <span>رجوع</span>
             </button>
           </div>
         )}
 
-        {/* OTP mode */}
+        {/* OTP mode - Verification code */}
         {mode === 'otp' && (
-          <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-3 duration-300">
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-base text-muted-foreground md:text-sm">
                 أدخل رمز التحقق المرسل إلى
               </p>
-              <p dir="ltr" className="mt-1 text-base font-bold text-foreground tracking-wide">
+              <p dir="ltr" className="mt-2 text-xl font-bold tracking-wider text-foreground md:text-lg">
                 +966 {formatPhoneDisplay(phoneDigits)}
               </p>
             </div>
 
+            {/* OTP Input - Large slots for mobile */}
             <div className="flex justify-center py-2" dir="ltr">
               <InputOTP
                 maxLength={6}
@@ -351,57 +408,105 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                 disabled={loading}
                 className="gap-2"
               >
-                <InputOTPGroup className="gap-2">
+                <InputOTPGroup className="gap-2 md:gap-1.5">
                   {[0, 1, 2].map(i => (
                     <InputOTPSlot
                       key={i}
                       index={i}
-                      className="h-14 w-12 rounded-xl border-2 text-xl font-bold transition-all data-[active=true]:border-primary data-[active=true]:ring-2 data-[active=true]:ring-primary/20"
+                      className={cn(
+                        'h-16 w-14 rounded-2xl border-2 text-2xl font-bold',
+                        'transition-all duration-200',
+                        'data-[active=true]:border-primary data-[active=true]:ring-4 data-[active=true]:ring-primary/20',
+                        'data-[active=true]:scale-105',
+                        'md:h-14 md:w-12 md:text-xl md:rounded-xl'
+                      )}
                     />
                   ))}
                 </InputOTPGroup>
-                <div className="flex items-center text-muted-foreground/30">
-                  <span className="text-2xl">—</span>
+                {/* Separator - Decorative */}
+                <div className="flex items-center px-1 text-muted-foreground/40">
+                  <div className="h-1 w-4 rounded-full bg-current" />
                 </div>
-                <InputOTPGroup className="gap-2">
+                <InputOTPGroup className="gap-2 md:gap-1.5">
                   {[3, 4, 5].map(i => (
                     <InputOTPSlot
                       key={i}
                       index={i}
-                      className="h-14 w-12 rounded-xl border-2 text-xl font-bold transition-all data-[active=true]:border-primary data-[active=true]:ring-2 data-[active=true]:ring-primary/20"
+                      className={cn(
+                        'h-16 w-14 rounded-2xl border-2 text-2xl font-bold',
+                        'transition-all duration-200',
+                        'data-[active=true]:border-primary data-[active=true]:ring-4 data-[active=true]:ring-primary/20',
+                        'data-[active=true]:scale-105',
+                        'md:h-14 md:w-12 md:text-xl md:rounded-xl'
+                      )}
                     />
                   ))}
                 </InputOTPGroup>
               </InputOTP>
             </div>
 
+            {/* Confirm button */}
             <Button
-              className="h-14 w-full rounded-xl text-base font-bold shadow-lg shadow-primary/20 transition-all hover:shadow-xl hover:shadow-primary/30 disabled:shadow-none"
+              className={cn(
+                'h-16 w-full rounded-2xl text-lg font-bold',
+                'shadow-xl shadow-primary/25 transition-all duration-200',
+                'hover:shadow-2xl hover:shadow-primary/30',
+                'active:scale-[0.98]',
+                'disabled:shadow-none',
+                'md:h-14 md:text-base'
+              )}
               onClick={() => handleConfirmOtp(otpCode)}
               disabled={loading || otpCode.length !== 6}
             >
               {loading ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                  <span className="me-2">جارٍ التحقق...</span>
-                </>
+                <span className="flex items-center gap-3">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <span>جارٍ التحقق...</span>
+                </span>
               ) : (
                 'تأكيد'
               )}
             </Button>
 
+            {/* Resend OTP with countdown */}
             <div className="text-center">
               {countdown > 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  إعادة الإرسال خلال{' '}
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-muted font-bold text-foreground">
-                    {toArabicNum(countdown)}
-                  </span>
-                </p>
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-base text-muted-foreground">إعادة الإرسال خلال</span>
+                  {/* Circular countdown badge */}
+                  <div className="relative flex h-10 w-10 items-center justify-center">
+                    <svg className="absolute inset-0 -rotate-90" viewBox="0 0 40 40">
+                      <circle
+                        cx="20" cy="20" r="18"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className="text-muted/30"
+                      />
+                      <circle
+                        cx="20" cy="20" r="18"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        className="text-primary transition-all duration-1000"
+                        strokeDasharray={`${(countdown / 30) * 113} 113`}
+                      />
+                    </svg>
+                    <span className="text-sm font-bold text-foreground">
+                      {toArabicNum(countdown)}
+                    </span>
+                  </div>
+                </div>
               ) : (
                 <button
                   type="button"
-                  className="text-sm font-medium text-primary transition-colors hover:text-primary-dark disabled:opacity-50"
+                  className={cn(
+                    'rounded-xl px-4 py-2 text-base font-semibold text-primary',
+                    'transition-all duration-200',
+                    'hover:bg-primary/10 active:scale-[0.98]',
+                    'disabled:opacity-50'
+                  )}
                   onClick={handleResendOtp}
                   disabled={loading}
                 >
@@ -410,12 +515,18 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
               )}
             </div>
 
+            {/* Change number */}
             <button
               type="button"
-              className="flex w-full items-center justify-center gap-1.5 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              className={cn(
+                'flex w-full items-center justify-center gap-2 py-3',
+                'text-base font-medium text-muted-foreground',
+                'transition-colors duration-200 hover:text-foreground',
+                'active:scale-[0.98]'
+              )}
               onClick={() => { setOtpCode(''); transitionTo('phone') }}
             >
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-5 w-5 rtl:rotate-180" />
               <span>تغيير الرقم</span>
             </button>
           </div>
@@ -424,11 +535,12 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
     </div>
   )
 
+  // Desktop: Dialog
   if (isDesktop) {
     return (
       <>
         <Dialog open={open} onOpenChange={(o) => { if (!o) resetState(); onOpenChange(o) }}>
-          <DialogContent className="max-w-[420px] gap-0 overflow-hidden rounded-2xl p-6" dir="rtl">
+          <DialogContent className="max-w-[440px] gap-0 overflow-hidden rounded-3xl p-8" dir="rtl">
             <DialogHeader>
               <DialogTitle className="sr-only">تسجيل الدخول</DialogTitle>
             </DialogHeader>
@@ -440,14 +552,23 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
     )
   }
 
+  // Mobile: Drawer (bottom sheet)
   return (
     <>
       <Drawer open={open} onOpenChange={(o) => { if (!o) resetState(); onOpenChange(o) }}>
-        <DrawerContent className="rounded-t-3xl">
-          <DrawerHeader className="pb-0">
+        <DrawerContent className="rounded-t-[2rem] focus:outline-none" dir="rtl">
+          {/* Explicit close button for accessibility (per NN/G) */}
+          <DrawerClose className="absolute end-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-muted/80 text-muted-foreground backdrop-blur-sm transition-colors hover:bg-muted hover:text-foreground">
+            <X className="h-5 w-5" />
+            <span className="sr-only">إغلاق</span>
+          </DrawerClose>
+
+          <DrawerHeader className="pb-0 pt-2">
             <DrawerTitle className="sr-only">تسجيل الدخول</DrawerTitle>
           </DrawerHeader>
-          <div className="mx-auto w-full max-w-[420px] px-5 pb-8 pt-2">
+
+          {/* Content with safe area padding for iPhone */}
+          <div className="mx-auto w-full max-w-[440px] px-6 pb-10 pt-4" style={{ paddingBottom: 'max(2.5rem, env(safe-area-inset-bottom))' }}>
             {content}
           </div>
         </DrawerContent>
