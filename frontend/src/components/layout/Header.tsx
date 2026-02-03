@@ -87,11 +87,14 @@ export function Header() {
                   }
                 }}
                 className={cn(
-                  'relative flex h-9 items-center gap-1.5 rounded-full px-2.5 transition-all active:scale-95',
+                  'relative flex h-9 items-center justify-center gap-1 rounded-full px-2.5 transition-all active:scale-95',
                   'bg-white/10 backdrop-blur-sm hover:bg-white/20',
                   favoritesCount > 0 && 'bg-white/15'
                 )}
               >
+                {favoritesCount > 0 && (
+                  <span className="text-sm font-medium leading-none">{favoritesCount}</span>
+                )}
                 <Heart
                   className={cn(
                     'h-4 w-4 transition-all',
@@ -100,9 +103,7 @@ export function Header() {
                       : 'text-white/80'
                   )}
                 />
-                {favoritesCount > 0 ? (
-                  <span className="text-sm font-medium">{favoritesCount}</span>
-                ) : (
+                {favoritesCount === 0 && (
                   <span className="hidden text-sm text-white/80 sm:inline">المفضلة</span>
                 )}
               </Link>
