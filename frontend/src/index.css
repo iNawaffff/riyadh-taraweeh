@@ -306,6 +306,34 @@
     animation: shimmerGold 3s linear infinite;
   }
 
+  /* Success toast shimmer */
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+  }
+
+  /* Success toast particle animations */
+  @keyframes particle-float-0 {
+    0% { transform: translate(0, 0) scale(0); opacity: 0; }
+    20% { opacity: 1; transform: scale(1); }
+    100% { transform: translate(-30px, -60px) scale(0); opacity: 0; }
+  }
+  @keyframes particle-float-1 {
+    0% { transform: translate(0, 0) scale(0); opacity: 0; }
+    20% { opacity: 1; transform: scale(1); }
+    100% { transform: translate(20px, -70px) scale(0); opacity: 0; }
+  }
+  @keyframes particle-float-2 {
+    0% { transform: translate(0, 0) scale(0); opacity: 0; }
+    20% { opacity: 1; transform: scale(1); }
+    100% { transform: translate(-15px, -50px) scale(0); opacity: 0; }
+  }
+  @keyframes particle-float-3 {
+    0% { transform: translate(0, 0) scale(0); opacity: 0; }
+    20% { opacity: 1; transform: scale(1); }
+    100% { transform: translate(25px, -55px) scale(0); opacity: 0; }
+  }
+
   /* Safe area utilities for mobile bottom bars */
   .pb-safe {
     padding-bottom: max(0.75rem, env(safe-area-inset-bottom));

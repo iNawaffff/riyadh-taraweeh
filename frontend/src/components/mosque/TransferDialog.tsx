@@ -19,7 +19,8 @@ import { Button } from '@/components/ui/button'
 import { useDebounce, useMediaQuery } from '@/hooks'
 import { useImamSearch, useSubmitTransfer } from '@/hooks/use-transfers'
 import { toast } from 'sonner'
-import { Loader2, Search, UserPlus, Check, X, ChevronLeft, Heart } from 'lucide-react'
+import { showSuccessToast } from '@/components/ui/success-toast'
+import { Loader2, Search, UserPlus, Check, X, ChevronLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ImamSearchResult } from '@/types'
 
@@ -73,25 +74,12 @@ export function TransferDialog({ open, onOpenChange, mosqueId, mosqueName }: Tra
 
     try {
       await submitMutation.mutateAsync(data)
-      toast.custom((id) => (
-        <div
-          className="celebration-pop w-[356px] rounded-2xl border border-primary/10 bg-white p-5 shadow-lg"
-          onClick={() => toast.dismiss(id)}
-        >
-          <div className="mb-3 flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
-              <Heart className="h-5 w-5 fill-primary text-primary" />
-            </div>
-            <p className="text-base font-bold text-primary">جزاك الله خيراً</p>
-          </div>
-          <p className="mb-1 text-sm leading-relaxed text-foreground">
-            وكتبه في ميزان حسناتك
-          </p>
-          <p className="text-xs text-muted-foreground">
-            تم إرسال البلاغ للمراجعة — شكراً لمساهمتك في إثراء المنصة
-          </p>
-        </div>
-      ), { duration: 5000 })
+      showSuccessToast({
+        title: 'جزاك الله خيراً',
+        subtitle: 'وكتبه في ميزان حسناتك',
+        description: 'تم إرسال البلاغ للمراجعة — شكراً لمساهمتك في إثراء المنصة',
+        duration: 5000,
+      })
       resetForm()
       onOpenChange(false)
     } catch (err) {
