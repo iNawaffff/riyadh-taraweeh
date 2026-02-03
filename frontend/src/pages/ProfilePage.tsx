@@ -10,6 +10,7 @@ import { useUserTransfers, useCancelTransfer, useLeaderboard } from '@/hooks/use
 import { useAuth } from '@/hooks/use-auth'
 import { toArabicNum, formatArabicDate, pluralizeArabic, arabicNouns } from '@/lib/arabic-utils'
 import { toast } from 'sonner'
+import { showSuccessToast } from '@/components/ui/success-toast'
 import { useEffect, useRef } from 'react'
 import type { PublicProfile, PublicTrackerData } from '@/types'
 
@@ -60,7 +61,9 @@ export function ProfilePage() {
       localStorage.setItem('celebrated_first_contribution', '1')
       setTimeout(() => {
         spawnConfetti()
-        toast('مبارك! أول مساهمة لك تمت الموافقة عليها', {
+        showSuccessToast({
+          title: 'مبارك!',
+          subtitle: 'أول مساهمة لك تمت الموافقة عليها',
           description: 'شكراً لمساهمتك في تحديث بيانات الأئمة',
           duration: 6000,
         })
