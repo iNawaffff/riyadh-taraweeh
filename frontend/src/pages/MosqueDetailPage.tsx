@@ -146,7 +146,7 @@ export function MosqueDetailPage() {
                     <MapPin className="h-4 w-4" />
                     الموقع:
                   </span>
-                  <span className="break-words">{location}</span>
+                  <span className="break-words">حي {location}</span>
                 </div>
 
                 {/* Area */}

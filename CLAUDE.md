@@ -183,6 +183,74 @@ MAIL_PASSWORD=...
 MAIL_DEFAULT_SENDER=info@taraweeh.org
 ```
 
+## Data Naming Conventions
+
+**IMPORTANT:** Follow these standards when adding or modifying data in the database.
+
+### Areas (`mosque.area`)
+
+Exactly 4 canonical values. No variations allowed.
+
+| Allowed Values |
+|----------------|
+| `شمال` |
+| `جنوب` |
+| `شرق` |
+| `غرب` |
+
+### Locations/Neighborhoods (`mosque.location`)
+
+| Rule | Example | Notes |
+|------|---------|-------|
+| **No حي prefix** | `الملقا` ✓ | NOT `حي الملقا` |
+| **Use ة (taa marbuta)** | `قرطبة` ✓ | NOT `قرطبه` |
+| **Keep الـ article** | `الملقا` ✓ | NOT `ملقا` |
+| **No trailing spaces** | `الملقا` ✓ | NOT `الملقا ` |
+| **Single spaces only** | Normalize multiple spaces |
+
+**UI Display:** The frontend adds "حي " prefix when displaying (e.g., "حي الملقا").
+
+### Mosque Names (`mosque.name`)
+
+| Rule | Example | Notes |
+|------|---------|-------|
+| **Keep type prefix** | `جامع الراجحي` ✓ | Keep جامع/مسجد/مجمع |
+| **Use ة (taa marbuta)** | `مسجد السلامة` ✓ | NOT `مسجد السلامه` |
+| **Single spaces only** | `جامع حمد البابطين` ✓ | NOT `جامع حمد  البابطين` |
+| **No trailing spaces** | Trim all values |
+
+### Imam Names (`imam.name`)
+
+| Rule | Example | Notes |
+|------|---------|-------|
+| **Always use الشيخ prefix** | `الشيخ خالد الجليل` ✓ | All imams get this prefix |
+| **Use ة (taa marbuta)** | Check feminine endings |
+| **Full name required** | First + Last minimum |
+| **No trailing spaces** | Trim all values |
+| **Single spaces only** | Normalize multiple spaces |
+
+### Data Validation Queries
+
+Run these to audit data quality:
+
+```sql
+-- Check areas (should be exactly 4)
+SELECT area, COUNT(*) FROM mosque GROUP BY area ORDER BY area;
+
+-- Find locations with حي prefix (should be 0)
+SELECT location FROM mosque WHERE location LIKE 'حي %';
+
+-- Find spacing issues
+SELECT name FROM mosque WHERE name LIKE '% ' OR name LIKE '%  %';
+SELECT name FROM imam WHERE name LIKE '% ' OR name LIKE '%  %';
+
+-- Find imams without الشيخ prefix (should be 0)
+SELECT name FROM imam WHERE name NOT LIKE 'الشيخ %';
+
+-- Find ه endings that should be ة (review manually)
+SELECT location FROM mosque WHERE location LIKE '%ه' AND location NOT LIKE '%الله';
+```
+
 ## Development Notes
 
 - **RTL:** All UI is right-to-left Arabic using Tajawal font
@@ -191,4 +259,4 @@ MAIL_DEFAULT_SENDER=info@taraweeh.org
 - **Old templates:** Kept in `/templates/` for admin only; public pages use React
 - **Heroku:** Root `package.json` has `heroku-postbuild` to build React
 - **Local DB:** Use `heroku pg:pull` to clone production (requires PostgreSQL 16 client tools)
-- **Data:** 118 mosques, 4 areas, ~66 distinct locations (neighborhoods), 119 imams
+- **Data:** 118 mosques, 4 areas, 59 distinct locations (neighborhoods), 119 imams

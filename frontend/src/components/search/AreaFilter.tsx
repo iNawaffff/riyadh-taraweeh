@@ -1,3 +1,4 @@
+import { Compass } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -20,27 +21,19 @@ export function AreaFilter({
   isLoading = false,
 }: AreaFilterProps) {
   return (
-    <div className="relative">
-      <label htmlFor="areaFilter" className="sr-only">
-        تصفية حسب المنطقة
-      </label>
-
-      <Select value={value} onValueChange={onChange} disabled={isLoading}>
-        <SelectTrigger
-          id="areaFilter"
-          className="h-14 rounded-xl border-border/60 bg-white text-base shadow-sm transition-all duration-300 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/15"
-        >
-          <SelectValue placeholder="كل المناطق" />
-        </SelectTrigger>
-        <SelectContent className="max-h-60">
-          <SelectItem value="الكل">كل المناطق</SelectItem>
-          {areas.map((area) => (
-            <SelectItem key={area} value={area}>
-              {area}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+    <Select value={value} onValueChange={onChange} disabled={isLoading}>
+      <SelectTrigger className="h-11 w-full gap-1.5 bg-white text-sm">
+        <Compass className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <SelectValue placeholder="المنطقة" />
+      </SelectTrigger>
+      <SelectContent className="max-h-60">
+        <SelectItem value="الكل">كل المناطق</SelectItem>
+        {areas.map((area) => (
+          <SelectItem key={area} value={area}>
+            {area}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }

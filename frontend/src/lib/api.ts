@@ -92,17 +92,14 @@ export async function fetchMosqueById(id: number): Promise<Mosque> {
 }
 
 /**
- * Get unique areas for filtering
+ * Get unique areas for filtering (شمال/شرق/غرب/جنوب)
  */
 export async function fetchAreas(): Promise<string[]> {
-  const response = await fetch(`${API_BASE}/locations?areas_only=1`)
-  if (response.ok) {
-    return response.json()
+  const response = await fetch(`${API_BASE}/areas`)
+  if (!response.ok) {
+    throw new Error('Failed to fetch areas')
   }
-  // Fallback: extract from mosques
-  const mosques = await fetchMosques()
-  const areas = new Set(mosques.map(m => m.area))
-  return Array.from(areas).sort()
+  return response.json()
 }
 
 /**

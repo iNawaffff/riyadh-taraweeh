@@ -152,7 +152,7 @@ export function MosqueCard({ mosque, className }: MosqueCardProps) {
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/10 bg-primary-light/50 p-2.5 md:p-3">
           <div className="flex items-center gap-2 text-foreground">
             <MapPin className="h-5 w-5 text-primary" aria-hidden="true" />
-            <p className="break-words">{location}</p>
+            <p className="break-words">حي {location}</p>
           </div>
 
           {map_link && (

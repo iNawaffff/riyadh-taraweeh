@@ -190,12 +190,12 @@ export function HomePage() {
               <Select value={selectedLocation} onValueChange={handleLocationChange}>
                 <SelectTrigger className="h-11 w-full gap-1.5 bg-white text-sm">
                   <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <SelectValue placeholder="الأحياء" />
+                  <SelectValue placeholder="الحي" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="الكل">الأحياء</SelectItem>
+                  <SelectItem value="الكل">كل الأحياء</SelectItem>
                   {locations.map(loc => (
-                    <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                    <SelectItem key={loc} value={loc}>حي {loc}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

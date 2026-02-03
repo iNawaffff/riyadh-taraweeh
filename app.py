@@ -809,11 +809,30 @@ def search_mosques():
 def get_locations():
     try:
         area = request.args.get("area", "")
+        areas_only = request.args.get("areas_only", "")
+
+        # Support areas_only parameter for backwards compatibility
+        if areas_only == "1":
+            query = db.session.query(Mosque.area).distinct()
+            areas = sorted([row[0] for row in query.all() if row[0]])
+            return jsonify(areas)
+
         query = db.session.query(Mosque.location).distinct()
         if area and area != "الكل":
             query = query.filter(Mosque.area == area)
         locations = sorted([row[0] for row in query.all() if row[0]])
         return jsonify(locations)
+    except Exception as e:
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
+
+
+@app.route("/api/areas")
+def get_areas():
+    """Return unique areas (شمال/شرق/غرب/جنوب)"""
+    try:
+        query = db.session.query(Mosque.area).distinct()
+        areas = sorted([row[0] for row in query.all() if row[0]])
+        return jsonify(areas)
     except Exception as e:
         return jsonify({"error": f"Database error: {str(e)}"}), 500
 
