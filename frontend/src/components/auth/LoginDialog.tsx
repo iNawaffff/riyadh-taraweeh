@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
@@ -67,6 +67,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
   const [loading, setLoading] = useState(false)
   const [countdown, setCountdown] = useState(0)
   const phoneInputRef = useRef<HTMLInputElement>(null)
+  const submitButtonRef = useRef<HTMLButtonElement>(null)
   const [animatingOut, setAnimatingOut] = useState(false)
   const [shakeError, setShakeError] = useState(false)
 
@@ -83,6 +84,14 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
       setTimeout(() => phoneInputRef.current?.focus(), 150)
     }
   }, [mode])
+
+  // Scroll submit button into view when keyboard opens (mobile)
+  const handlePhoneFocus = useCallback(() => {
+    // Small delay to let keyboard open
+    setTimeout(() => {
+      submitButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 300)
+  }, [])
 
   // Trigger shake animation on error
   useEffect(() => {
@@ -316,6 +325,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                     value={formatPhoneDisplay(phoneDigits)}
                     onChange={(e) => handlePhoneChange(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && isPhoneValid && handleSendOtp()}
+                    onFocus={handlePhoneFocus}
                     placeholder="5XX XXX XXXX"
                     className={cn(
                       'h-16 rounded-2xl border-2 pe-14 text-center text-xl font-semibold tracking-widest',
@@ -346,6 +356,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
 
             {/* Submit button - Thumb zone friendly, at bottom */}
             <Button
+              ref={submitButtonRef}
               className={cn(
                 'h-16 w-full rounded-2xl text-lg font-bold',
                 'shadow-xl shadow-primary/25 transition-all duration-200',
@@ -396,7 +407,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
               </p>
             </div>
 
-            {/* OTP Input - Large slots for mobile */}
+            {/* OTP Input - Single row of 6 digits for clarity */}
             <div className="flex justify-center py-2" dir="ltr">
               <InputOTP
                 maxLength={6}
@@ -406,38 +417,18 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                   if (val.length === 6) handleConfirmOtp(val)
                 }}
                 disabled={loading}
-                className="gap-2"
               >
-                <InputOTPGroup className="gap-2 md:gap-1.5">
-                  {[0, 1, 2].map(i => (
+                <InputOTPGroup className="gap-2">
+                  {[0, 1, 2, 3, 4, 5].map(i => (
                     <InputOTPSlot
                       key={i}
                       index={i}
                       className={cn(
-                        'h-16 w-14 rounded-2xl border-2 text-2xl font-bold',
+                        'h-14 w-11 rounded-xl border-2 text-xl font-bold',
                         'transition-all duration-200',
                         'data-[active=true]:border-primary data-[active=true]:ring-4 data-[active=true]:ring-primary/20',
                         'data-[active=true]:scale-105',
-                        'md:h-14 md:w-12 md:text-xl md:rounded-xl'
-                      )}
-                    />
-                  ))}
-                </InputOTPGroup>
-                {/* Separator - Decorative */}
-                <div className="flex items-center px-1 text-muted-foreground/40">
-                  <div className="h-1 w-4 rounded-full bg-current" />
-                </div>
-                <InputOTPGroup className="gap-2 md:gap-1.5">
-                  {[3, 4, 5].map(i => (
-                    <InputOTPSlot
-                      key={i}
-                      index={i}
-                      className={cn(
-                        'h-16 w-14 rounded-2xl border-2 text-2xl font-bold',
-                        'transition-all duration-200',
-                        'data-[active=true]:border-primary data-[active=true]:ring-4 data-[active=true]:ring-primary/20',
-                        'data-[active=true]:scale-105',
-                        'md:h-14 md:w-12 md:text-xl md:rounded-xl'
+                        'md:h-12 md:w-10 md:text-lg'
                       )}
                     />
                   ))}
@@ -553,22 +544,47 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
   }
 
   // Mobile: Drawer (bottom sheet)
+  // Prevent accidental closure during phone/otp input
+  const isInputMode = mode === 'phone' || mode === 'otp'
+
+  const handleDrawerClose = useCallback(() => {
+    resetState()
+    onOpenChange(false)
+  }, [resetState, onOpenChange])
+
   return (
     <>
-      <Drawer open={open} onOpenChange={(o) => { if (!o) resetState(); onOpenChange(o) }}>
-        <DrawerContent className="rounded-t-[2rem] focus:outline-none" dir="rtl">
-          {/* Explicit close button for accessibility (per NN/G) */}
-          <DrawerClose className="absolute end-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-muted/80 text-muted-foreground backdrop-blur-sm transition-colors hover:bg-muted hover:text-foreground">
+      <Drawer
+        open={open}
+        onOpenChange={(o) => {
+          // Only allow closing via X button when in input mode
+          if (!o && isInputMode) return
+          if (!o) resetState()
+          onOpenChange(o)
+        }}
+        // Disable swipe-to-dismiss during input
+        dismissible={!isInputMode}
+      >
+        <DrawerContent className="max-h-[92vh] rounded-t-[2rem] focus:outline-none" dir="rtl">
+          {/* Explicit close button - always works */}
+          <button
+            type="button"
+            onClick={handleDrawerClose}
+            className="absolute end-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-muted/80 text-muted-foreground backdrop-blur-sm transition-colors hover:bg-muted hover:text-foreground active:scale-95"
+          >
             <X className="h-5 w-5" />
             <span className="sr-only">إغلاق</span>
-          </DrawerClose>
+          </button>
 
           <DrawerHeader className="pb-0 pt-2">
             <DrawerTitle className="sr-only">تسجيل الدخول</DrawerTitle>
           </DrawerHeader>
 
-          {/* Content with safe area padding for iPhone */}
-          <div className="mx-auto w-full max-w-[440px] px-6 pb-10 pt-4" style={{ paddingBottom: 'max(2.5rem, env(safe-area-inset-bottom))' }}>
+          {/* Scrollable content with safe area padding for iPhone */}
+          <div
+            className="mx-auto w-full max-w-[440px] overflow-y-auto px-6 pb-10 pt-4"
+            style={{ paddingBottom: 'max(2.5rem, env(safe-area-inset-bottom))' }}
+          >
             {content}
           </div>
         </DrawerContent>

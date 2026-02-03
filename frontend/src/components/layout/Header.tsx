@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Menu, Heart } from 'lucide-react'
+import { Menu, Heart, LogIn } from 'lucide-react'
 import { MobileMenu } from './MobileMenu'
 import { useFavorites } from '@/hooks'
 import { useAuth } from '@/hooks/use-auth'
@@ -69,8 +69,9 @@ export function Header() {
                 ) : (
                   <button
                     onClick={() => setIsLoginOpen(true)}
-                    className="flex h-9 items-center gap-1.5 rounded-full bg-white/15 px-3 text-sm font-medium backdrop-blur-sm transition-all hover:bg-white/25 active:scale-95"
+                    className="group relative flex h-9 items-center gap-1.5 overflow-hidden rounded-full border border-white/20 bg-gradient-to-l from-white/20 to-white/10 px-3.5 text-sm font-medium backdrop-blur-sm transition-all duration-300 hover:border-white/30 hover:from-white/25 hover:to-white/15 hover:shadow-[0_0_20px_rgba(255,255,255,0.15)] active:scale-95"
                   >
+                    <LogIn className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-0.5" />
                     <span>تسجيل</span>
                   </button>
                 )
