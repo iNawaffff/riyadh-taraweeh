@@ -375,8 +375,11 @@ git push origin main
    - Admin approval workflow
    - Contribution points gamification
 
-2. **Leaderboard**
-   - Top 20 contributors
+2. **Leaderboard (المساهمون)**
+   - Renamed from "المتصدرون" to "المساهمون" for humble, spiritual tone
+   - Uses "مساهمات" (contributions) instead of "نقاط" (points)
+   - HandHeart icon instead of Trophy/Crown
+   - Spiritual CTA for non-signed-in users ("كل تحديث صحيح صدقة جارية")
    - Pioneer badge for first contributor
    - Staggered animations, podium design
 
@@ -408,6 +411,12 @@ git push origin main
    - Beautiful OTP input with 3—3 split layout
    - Smooth mode transitions with fade animations
    - Firebase Phone + Google sign-in
+
+8. **Navigation UX**
+   - Pill-shaped header buttons with text labels (better discoverability)
+   - Favorites button shows "المفضلة" label or count when items exist
+   - UserMenu shows user name + chevron (more clickable affordance)
+   - Favorites acts as CTA when logged out (opens login dialog)
 
 ---
 
