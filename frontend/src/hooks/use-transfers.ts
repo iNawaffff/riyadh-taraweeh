@@ -35,11 +35,12 @@ export function useCancelTransfer() {
 }
 
 export function useUserTransfers() {
-  const { token, isAuthenticated } = useAuth()
+  const { token, isAuthenticated, user } = useAuth()
   return useQuery({
-    queryKey: ['user', 'transfers'],
+    // Include user ID in query key so cache is per-user
+    queryKey: ['user', 'transfers', user?.id],
     queryFn: () => fetchUserTransfers(token!),
-    enabled: isAuthenticated && !!token,
+    enabled: isAuthenticated && !!token && !!user,
   })
 }
 

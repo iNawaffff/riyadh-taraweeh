@@ -90,7 +90,8 @@ export function ProfilePage() {
     )
   }
 
-  const approvedTransfers = transfers.filter(t => t.status === 'approved').length
+  // Use contribution_points from public profile (works for all users)
+  const contributionCount = profile.contribution_points
   const nightsAttended = tracker?.stats.attended ?? 0
   const progress = Math.round((nightsAttended / 30) * 100)
 
@@ -195,8 +196,8 @@ export function ProfilePage() {
             <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-accent/20">
               <Award className="h-5 w-5 text-accent" />
             </div>
-            <p className="text-2xl font-bold text-primary">{toArabicNum(approvedTransfers)}</p>
-            <p className="text-xs text-muted-foreground">{pluralizeArabic(approvedTransfers, arabicNouns.contribution)}</p>
+            <p className="text-2xl font-bold text-primary">{toArabicNum(contributionCount)}</p>
+            <p className="text-xs text-muted-foreground">{pluralizeArabic(contributionCount, arabicNouns.contribution)}</p>
           </Link>
         </div>
       </div>

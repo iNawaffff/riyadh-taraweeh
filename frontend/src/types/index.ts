@@ -70,6 +70,7 @@ export interface PublicProfile {
   display_name: string | null
   avatar_url: string | null
   created_at: string | null
+  contribution_points: number
   mosques: Mosque[]
 }
 
