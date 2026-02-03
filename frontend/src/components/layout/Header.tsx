@@ -87,24 +87,29 @@ export function Header() {
                   }
                 }}
                 className={cn(
-                  'relative flex h-9 items-center justify-center gap-1 rounded-full px-2.5 transition-all active:scale-95',
+                  'relative flex h-9 items-center rounded-full px-3 transition-all active:scale-95',
                   'bg-white/10 backdrop-blur-sm hover:bg-white/20',
                   favoritesCount > 0 && 'bg-white/15'
                 )}
               >
-                {favoritesCount > 0 && (
-                  <span className="text-sm font-medium leading-none">{favoritesCount}</span>
-                )}
-                <Heart
-                  className={cn(
-                    'h-4 w-4 transition-all',
-                    favoritesCount > 0
-                      ? 'fill-red-400 text-red-400'
-                      : 'text-white/80'
+                {/* Use inline-grid for pixel-perfect vertical centering */}
+                <span className="inline-grid grid-flow-col items-center gap-1.5">
+                  {favoritesCount > 0 && (
+                    <span className="flex h-4 items-center text-sm font-semibold tabular-nums">
+                      {favoritesCount}
+                    </span>
                   )}
-                />
+                  <Heart
+                    className={cn(
+                      'h-4 w-4',
+                      favoritesCount > 0
+                        ? 'fill-red-400 text-red-400'
+                        : 'text-white/80'
+                    )}
+                  />
+                </span>
                 {favoritesCount === 0 && (
-                  <span className="hidden text-sm text-white/80 sm:inline">المفضلة</span>
+                  <span className="hidden text-sm text-white/80 sm:inline ms-1">المفضلة</span>
                 )}
               </Link>
             </div>
