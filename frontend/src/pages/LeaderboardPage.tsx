@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { useLeaderboard } from '@/hooks/use-transfers'
 import { useAuth } from '@/hooks/use-auth'
-import { toArabicNum } from '@/lib/arabic-utils'
+import { toArabicNum, pluralizeArabic, arabicNouns } from '@/lib/arabic-utils'
 
 export function LeaderboardPage() {
   const { data: entries = [], isLoading } = useLeaderboard()
@@ -122,7 +122,9 @@ export function LeaderboardPage() {
                               </Badge>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground">@{entry.username}</p>
+                          <p className="text-xs text-muted-foreground">
+                            <span dir="ltr" className="inline-block">@{entry.username}</span>
+                          </p>
                         </div>
                       </Link>
 
@@ -135,7 +137,7 @@ export function LeaderboardPage() {
                         }`}
                         style={{ animationDelay: `${index * 100 + 300}ms` }}
                       >
-                        {toArabicNum(entry.points)} نقطة
+                        {toArabicNum(entry.points)} {pluralizeArabic(entry.points, arabicNouns.point)}
                       </div>
                     </div>
                   )

@@ -1081,6 +1081,7 @@ def public_profile(username):
         "username": user.username,
         "display_name": user.display_name,
         "avatar_url": user.avatar_url,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
         "mosques": mosques,
     })
 

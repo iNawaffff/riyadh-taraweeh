@@ -1,215 +1,440 @@
-# Riyadh Taraweeh — Project Status & Analysis
+# Riyadh Taraweeh — Project Documentation
 
-## Current State Overview
+A comprehensive directory of Taraweeh prayer imams and mosques in Riyadh, Saudi Arabia. Users can search, filter, listen to imam audio samples, bookmark favorites, track nightly attendance, and contribute imam updates.
 
-### What Non-Authenticated Users Can Do
-- Browse all mosques with search + area filter + district (حي) filter
-- Sort by proximity (geolocation)
-- View individual mosque detail pages
-- Listen to imam audio samples (floating player)
-- View public user profiles (`/u/username`)
-- Report errors on mosque data
-- Visit About/Contact pages
-
-### What Authenticated Users Get (additionally)
-- Favorite mosques (heart button, synced to server)
-- Favorites page (`/favorites`) with area + district filters
-- Taraweeh tracker — 30-night attendance grid (`/tracker`)
-- Share achievements / profile
-- Tracker link in mobile menu
-- User menu with avatar in header
+**Live:** https://taraweeh.org
+**Staging:** https://riyadh-taraweeh-staging-dcfc9cf9ea67.herokuapp.com
 
 ---
 
-## Feature Assessment
+## Architecture Overview
 
-### Working Well
-- Arabic RTL implementation is solid throughout
-- Search with Arabic normalization + debounce
-- Audio player with floating bar, seek, progress
-- Optimistic updates on favorites and tracker
-- Responsive Dialog/Drawer pattern for auth
-- Loading skeletons instead of spinners
-- SEO meta tag injection per route
-- Firebase auth with Google + Phone/OTP
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                           BROWSER                                    │
+│  React SPA (Vite + TypeScript)                                      │
+│  - TanStack Query for data fetching & caching                       │
+│  - Firebase Auth (Google + Phone OTP)                               │
+│  - Tailwind CSS + shadcn/ui                                         │
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         FLASK SERVER                                 │
+│  - Serves React SPA (frontend/dist/)                                │
+│  - REST API (/api/*)                                                │
+│  - Flask-Admin panel (/admin)                                       │
+│  - Firebase token verification                                       │
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+                    ┌───────────┼───────────┐
+                    ▼           ▼           ▼
+              ┌──────────┐ ┌──────────┐ ┌──────────┐
+              │PostgreSQL│ │  AWS S3  │ │ Firebase │
+              │ Database │ │  Audio   │ │   Auth   │
+              └──────────┘ └──────────┘ └──────────┘
+```
 
-### Issues & Gaps
+### Request Flow
 
-#### UI/Design
-- ~~Header says "رمضان ١٤٤٦ هـ" — should be **١٤٤٧**~~ ✅ Fixed
-- ~~Footer also says "رمضان ١٤٤٦ هـ"~~ ✅ Fixed
-- Mosque cards are dense — many interactive elements packed tightly, especially on small phones
-- No dark mode (Ramadan-themed dark mode would be fitting)
-- Tracker tile dates at `text-[9px]` are hard to read on mobile
-- No visual distinction between "browsing as guest" vs "logged in" beyond the header button swap
-
-#### UX Flow
-- ~~`fetchMosqueById()` fetches **all** mosques to find one — no dedicated `/api/mosques/:id` endpoint~~ ✅ `/api/mosques/<id>` exists
-- UsernameSetup modal is non-dismissible — user is trapped if they just want to browse after Google sign-in
-- Clicking favorite as guest shows login dialog, but there's no "after login, auto-favorite" flow — the intent is lost
-- No onboarding or explanation of features for new visitors
-- Proximity success state disappears after 2 seconds — easy to miss
-- No pagination or infinite scroll if mosque list grows
-
-#### Missing Features
-- ~~No district/neighborhood filter~~ ✅ Added — area + district (حي) dropdowns on HomePage and FavoritesPage
-- No "remember favorite intent" after login — user clicks heart, logs in, then has to click again
-- No sorting options — only proximity; could add alphabetical, by area grouping
-- No offline/PWA caching of favorites — PWA is configured but favorites require network
-- No notification or reminder — e.g., "you haven't marked tonight's taraweeh"
-- No social proof — how many people favorited a mosque, how many are tracking
-- Profile page doesn't show tracker — only shows favorites, not attendance progress
-- No imam detail or comparison — can't browse by imam, compare reciters
-- Contact page lacks a form — only shows email/Twitter, no inline submission
-- Tracker doesn't track rakaat count per night
-
-#### Code Quality
-- ~~`toArabicNum` helper is duplicated~~ ✅ Extracted to shared utils
-- ~~`getRamadanInfo` logic in HeroBanner~~ ✅ Extracted to shared utility
-- `useMemo` used for side effects in HomePage (proximity success timer) — should be `useEffect`
-- `authFetch` only wraps tracker calls; favorites in FavoritesContext still use raw `fetch`
+```
+[Browser] → [Flask]
+              │
+              ├─→ /api/*           → JSON API responses
+              ├─→ /static/*        → Audio files, images (Flask static)
+              ├─→ /admin/*         → Flask-Admin (Jinja2 templates)
+              ├─→ /assets/*        → React JS/CSS bundles (from frontend/dist/)
+              └─→ /* (other)       → React SPA (frontend/dist/index.html)
+```
 
 ---
 
-## Priority Recommendations
+## Tech Stack
 
-### Quick Fixes (polish)
-1. ~~Fix "١٤٤٦" → "١٤٤٧" in Header and Footer~~ ✅ Done
-2. ~~Extract `toArabicNum` and `getRamadanInfo` to shared utils~~ ✅ Done
-3. Use `authFetch` in FavoritesContext too
-4. ~~Add `/api/mosques/:id` backend endpoint~~ ✅ Done
+### Backend
+| Component | Technology |
+|-----------|------------|
+| Framework | Flask 3.1.0 |
+| ORM | SQLAlchemy 2.0.38 |
+| Database | PostgreSQL (Heroku) |
+| Migrations | Alembic via Flask-Migrate |
+| Auth | Firebase Admin SDK (public), Flask-Login (admin) |
+| Admin Panel | Flask-Admin with Bootstrap3 |
+| Audio Storage | AWS S3 |
+| Rate Limiting | Flask-Limiter |
+| WSGI Server | Gunicorn |
+| Deployment | Heroku (EU region) |
 
-### UX Improvements
-5. Allow dismissing UsernameSetup (let users browse first)
-6. Remember favorite intent through login flow
-7. Show tracker progress on public profile page
-8. Increase tracker tile date font size slightly
-9. Add rakaat count to tracker (after marking attendance, prompt for number of rak'ahs)
-
-### Bigger Features
-10. Dark mode with Ramadan night theme
-11. Browse/filter by imam
-12. Daily reminder (push notification or in-app)
-13. Inline contact form
-14. Social proof badges on mosque cards
+### Frontend
+| Component | Technology |
+|-----------|------------|
+| Build Tool | Vite 7.x |
+| Framework | React 19 + TypeScript |
+| Styling | Tailwind CSS 3.4 + tailwindcss-rtl |
+| Components | shadcn/ui (Radix primitives) |
+| Routing | react-router-dom v7 |
+| Data Fetching | TanStack Query (React Query) |
+| Auth | Firebase Auth |
+| SEO | react-helmet-async |
+| Icons | lucide-react |
+| Toasts | sonner |
+| PWA | vite-plugin-pwa + Workbox |
+| Error Tracking | Sentry |
 
 ---
 
-## Taraweeh — Domain Knowledge
+## Project Structure
+
+```
+riyadh_taraweeh/
+├── app.py                    # Flask application + all API routes
+├── models.py                 # SQLAlchemy database models
+├── utils.py                  # Arabic text normalization utilities
+├── Procfile                  # Heroku process definition
+├── requirements.txt          # Python dependencies
+├── package.json              # Root package.json for Heroku build
+│
+├── migrations/               # Alembic database migrations
+│   └── versions/
+│
+├── static/                   # Flask static files
+│   ├── audio/               # Imam audio samples
+│   └── images/              # Logos, favicons, icons
+│
+├── templates/                # Jinja2 templates (admin only)
+│
+└── frontend/                 # React SPA
+    ├── vite.config.ts       # Vite + PWA configuration
+    ├── tailwind.config.ts   # Tailwind + custom theme
+    ├── tsconfig.json
+    ├── package.json
+    │
+    ├── public/              # Static assets copied to dist/
+    │
+    └── src/
+        ├── App.tsx          # Root component + providers + routes
+        ├── index.css        # Tailwind + custom CSS animations
+        ├── main.tsx         # Entry point
+        │
+        ├── components/
+        │   ├── ui/          # shadcn/ui primitives (button, card, dialog, etc.)
+        │   ├── layout/      # Header, Footer, MobileMenu
+        │   ├── mosque/      # MosqueCard, MosqueGrid, FavoriteButton, TransferDialog
+        │   ├── search/      # SearchBar, AreaFilter, ProximityButton
+        │   ├── audio/       # AudioButton, FloatingAudioPlayer
+        │   ├── auth/        # LoginDialog, UsernameSetup
+        │   └── seo/         # SEO meta components
+        │
+        ├── pages/
+        │   ├── HomePage.tsx
+        │   ├── MosqueDetailPage.tsx
+        │   ├── FavoritesPage.tsx
+        │   ├── TrackerPage.tsx
+        │   ├── LeaderboardPage.tsx
+        │   ├── ProfilePage.tsx
+        │   ├── AboutPage.tsx
+        │   ├── ContactPage.tsx
+        │   └── NotFoundPage.tsx
+        │
+        ├── hooks/
+        │   ├── use-mosques.ts      # Mosque data queries
+        │   ├── use-transfers.ts    # Imam transfer system hooks
+        │   ├── use-audio-player.ts
+        │   ├── use-auth.ts
+        │   ├── use-favorites.ts
+        │   ├── use-geolocation.ts
+        │   └── use-debounce.ts
+        │
+        ├── context/
+        │   ├── AudioContext.tsx
+        │   ├── AuthContext.tsx
+        │   └── FavoritesContext.tsx
+        │
+        ├── lib/
+        │   ├── api.ts           # API client functions
+        │   ├── firebase.ts      # Firebase config
+        │   ├── arabic-utils.ts  # Arabic numerals, dates, pluralization (التمييز العددي)
+        │   └── utils.ts         # cn() utility
+        │
+        └── types/
+            └── index.ts         # TypeScript interfaces
+```
+
+---
+
+## Database Schema
+
+```
+┌─────────────────┐       ┌─────────────────┐
+│     mosque      │       │      imam       │
+├─────────────────┤       ├─────────────────┤
+│ id (PK)         │◄──────│ id (PK)         │
+│ name            │       │ name            │
+│ location        │       │ audio_sample    │
+│ area            │       │ youtube_link    │
+│ map_link        │       │ mosque_id (FK)  │
+│ latitude        │       └─────────────────┘
+│ longitude       │
+└─────────────────┘
+         │
+         │
+┌────────┴────────┐       ┌─────────────────────────┐
+│                 │       │    imam_transfer_request │
+│                 │       ├─────────────────────────┤
+│   user_favorite │       │ id (PK)                 │
+├─────────────────┤       │ submitter_id (FK)       │
+│ id (PK)         │       │ mosque_id (FK)          │
+│ user_id (FK)    │       │ current_imam_id (FK)    │
+│ mosque_id (FK)  │       │ new_imam_id (FK)        │
+│ created_at      │       │ new_imam_name           │
+└─────────────────┘       │ notes                   │
+         │                │ status                  │
+         │                │ reject_reason           │
+         ▼                │ created_at              │
+┌─────────────────┐       │ reviewed_at             │
+│   public_user   │       │ reviewed_by (FK)        │
+├─────────────────┤       └─────────────────────────┘
+│ id (PK)         │
+│ firebase_uid    │       ┌─────────────────────────┐
+│ username        │       │   taraweeh_attendance   │
+│ display_name    │       ├─────────────────────────┤
+│ avatar_url      │       │ id (PK)                 │
+│ email           │       │ user_id (FK)            │
+│ phone           │       │ night (1-30)            │
+│ contribution_   │       │ mosque_id (FK, nullable)│
+│   points        │       │ created_at              │
+│ created_at      │       └─────────────────────────┘
+└─────────────────┘
+
+┌─────────────────┐
+│      user       │  (Admin users only)
+├─────────────────┤
+│ id (PK)         │
+│ username        │
+│ password_hash   │
+└─────────────────┘
+```
+
+---
+
+## API Endpoints
+
+### Public Endpoints
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/mosques` | List all mosques with imam data |
+| GET | `/api/mosques/<id>` | Single mosque details |
+| GET | `/api/mosques/search?q=` | Search mosques by name (Arabic normalized) |
+| GET | `/api/mosques/nearby?lat=&lng=` | Mosques sorted by distance |
+| GET | `/api/locations` | Distinct area/location values for filters |
+| GET | `/api/imams/search?q=` | Search imams (fuzzy Arabic matching) |
+| GET | `/api/leaderboard` | Top 20 contributors by points |
+| GET | `/api/u/<username>` | Public user profile |
+| GET | `/api/u/<username>/tracker` | Public tracker data |
+
+### Authenticated Endpoints (Firebase token required)
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/auth/register` | Register/update user after Firebase auth |
+| GET | `/api/auth/me` | Current user data |
+| GET | `/api/user/favorites` | User's favorited mosques |
+| POST | `/api/user/favorites` | Add favorite |
+| DELETE | `/api/user/favorites/<mosque_id>` | Remove favorite |
+| GET | `/api/user/tracker` | User's attendance data |
+| POST | `/api/user/tracker` | Mark night attended |
+| DELETE | `/api/user/tracker/<night>` | Unmark attendance |
+| POST | `/api/transfers` | Submit imam transfer request |
+| DELETE | `/api/transfers/<id>` | Cancel pending request |
+| GET | `/api/user/transfers` | User's transfer history |
+
+### Admin Endpoints (Flask-Login required)
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/transfers/<id>/approve` | Approve transfer + award point |
+| POST | `/api/transfers/<id>/reject` | Reject with reason |
+| GET | `/admin/` | Flask-Admin panel |
+
+---
+
+## Key Features
+
+### 1. Mosque Discovery
+- **Search**: Arabic text normalization (diacritics removal, letter variants)
+- **Filtering**: Area dropdown (شمال/شرق/غرب/جنوب) + district/neighborhood
+- **Proximity**: Geolocation-based sorting with distance badges
+- **Audio Preview**: Listen to imam recitation samples before visiting
+
+### 2. User Features
+- **Favorites**: Heart icon, synced to server, dedicated page with filters
+- **Tracker**: 30-night Ramadan attendance grid with streaks
+- **Profile**: Public profiles at `/u/<username>`
+
+### 3. Crowdsourced Imam Updates (New in 2026)
+- **Transfer Reports**: Users report when imams change mosques
+- **Admin Review**: Approve/reject with inline editing
+- **Contribution Points**: Gamification system
+- **Leaderboard**: Top contributors with pioneer badge
+- **Pioneer Badge**: First-ever approved user gets permanent "رائد" badge
+
+### 4. Audio Player
+- Floating player with progress bar
+- Seek functionality
+- Persists across page navigation
+- Play/pause from mosque cards or detail page
+
+### 5. PWA Support
+- Installable on mobile devices
+- Service worker with Workbox
+- Runtime caching for fonts, API, images, audio
+
+---
+
+## Performance Optimizations
+
+### Backend
+| Optimization | Implementation |
+|--------------|----------------|
+| Imam Search | In-memory cached index with normalized Arabic, invalidated on DB changes |
+| Search Scoring | Multi-tier: exact → prefix → substring → word-starts → bigram similarity |
+| Leaderboard | Denormalized `contribution_points` — single indexed query, no JOINs |
+| Transfer Duplicates | Composite index on `(submitter_id, mosque_id, status)` |
+| Atomic Updates | SQL-level `contribution_points + 1` to avoid race conditions |
+
+### Frontend
+| Optimization | Implementation |
+|--------------|----------------|
+| Code Splitting | Lazy-loaded pages via `React.lazy()` |
+| Bundle Chunking | Manual chunks for router, UI vendor, Firebase, Sentry |
+| Query Caching | TanStack Query with staleTime (imam search: 30s, leaderboard: 5min) |
+| Debouncing | 300ms debounce on search inputs |
+| Conditional Fetching | `enabled` flag on queries (e.g., imam search only when query.length >= 1) |
+| Image Optimization | Proper sizing, lazy loading |
+| CSS | Tailwind purge, minimal custom CSS |
+
+### PWA Caching Strategy
+| Resource | Strategy | TTL |
+|----------|----------|-----|
+| Google Fonts | CacheFirst | 1 year |
+| API responses | NetworkFirst | 24 hours |
+| Images | CacheFirst | 30 days |
+| Audio files | CacheFirst | 7 days |
+
+---
+
+## Deployment
+
+### Environments
+
+| | Production | Staging |
+|---|---|---|
+| **Heroku app** | `riyadh-taraweeh-eu` | `riyadh-taraweeh-staging` |
+| **URL** | https://taraweeh.org | https://riyadh-taraweeh-staging-dcfc9cf9ea67.herokuapp.com |
+| **Git remote** | `heroku` | `staging` |
+| **Database** | Production PostgreSQL | Cloned from production |
+
+### Deploy Commands
+
+```bash
+# Deploy to STAGING first
+git push staging main
+heroku run flask db upgrade -a riyadh-taraweeh-staging
+
+# After verifying, deploy to PRODUCTION
+git push heroku main
+heroku run flask db upgrade -a riyadh-taraweeh-eu
+
+# Push to GitHub
+git push origin main
+```
+
+### Heroku Buildpacks (order matters)
+1. **Node.js** — Runs `heroku-postbuild` to build React (`npm ci && npm run build`)
+2. **Python** — Installs requirements, runs gunicorn
+
+### Environment Variables
+
+**Backend (runtime):**
+- `SECRET_KEY`, `DATABASE_URL`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`
+- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET`
+- `FIREBASE_SERVICE_ACCOUNT` (JSON string)
+- `MAIL_SERVER`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`
+
+**Frontend (build-time):**
+- `VITE_FIREBASE_*` — Firebase config
+- `VITE_GOOGLE_MAPS_API_KEY`
+- `NPM_CONFIG_PRODUCTION=false` — Install devDependencies
+
+---
+
+## Ramadan 1447 (2026) Feature Summary
+
+### What's New This Year
+
+1. **Imam Transfer System**
+   - Crowdsourced imam change reporting
+   - Admin approval workflow
+   - Contribution points gamification
+
+2. **Leaderboard**
+   - Top 20 contributors
+   - Pioneer badge for first contributor
+   - Staggered animations, podium design
+
+3. **Enhanced Search**
+   - Advanced Arabic fuzzy matching
+   - Prefix stripping (الشيخ، شيخ، الامام)
+   - Bigram similarity for typo tolerance
+
+4. **UI/UX Polish**
+   - First-contribution celebration (confetti)
+   - Duaa thank-you messages
+   - Smooth animations throughout
+
+5. **Profile Enhancements**
+   - Contribution history with status badges
+   - Pioneer badge display
+   - Transfer request management
+   - Member-since date display
+
+6. **Arabic Language Quality**
+   - Proper noun pluralization (التمييز العددي rules)
+   - Singular/dual/plural forms for nights, favorites, contributions, points
+   - RTL-safe username display (`dir="ltr"` for @handles)
+
+---
+
+## Data Statistics
+
+- **Mosques:** 118
+- **Imams:** 119
+- **Areas:** 4 (شمال، شرق، غرب، جنوب)
+- **Districts:** ~66 distinct neighborhoods
+
+---
+
+## Domain Knowledge
 
 ### What is Taraweeh?
 
-صلاة التراويح (Taraweeh) is a **sunnah mu'akkadah** (strongly recommended) prayer performed every night during Ramadan, after Isha prayer until Fajr. It is not obligatory (fard) but carries immense reward.
+صلاة التراويح is a sunnah mu'akkadah prayer performed every night during Ramadan after Isha. The name comes from "الترويحة" (rest) because worshippers rest between every four rak'ahs.
 
-**The Prophet ﷺ said:** "من قام رمضان إيمانًا واحتسابًا غُفر له ما تقدم من ذنبه"
-("Whoever stands in prayer during Ramadan out of faith and seeking reward, his previous sins will be forgiven.")
-
-The name "التراويح" comes from "الترويحة" (rest), because worshippers would rest between every four rak'ahs due to the length of the prayer.
-
-### Number of Rak'ahs
-
-- **Most authentic practice:** 11 or 13 rak'ahs (as reported by Aisha رضي الله عنها about the Prophet's practice)
-- **Permissible range:** Sheikh Ibn Baz stated there is no fixed limit — 11, 13, 20, or 23 are all valid
-- **In the Haramain (Makkah & Madinah):** 20 rak'ahs of Taraweeh plus 3 Witr = 23 total
-
-### Taraweeh vs Tahajjud (التهجد) — The Last 10 Nights
-
-During the **last 10 nights** of Ramadan (العشر الأواخر), mosques in Saudi Arabia split the night prayer into two sessions:
-
-| Session | Time | Name | Character |
-|---------|------|------|-----------|
-| First | After Isha | التراويح (Taraweeh) | ~10 rak'ahs, moderate pace |
-| Second | Last third of night | التهجد / القيام (Tahajjud/Qiyam) | ~10 rak'ahs + Witr, longer recitation |
-
-This split is done to maximize worship in the blessed final nights and to seek **Laylat al-Qadr** (ليلة القدر) — the Night of Decree, which is better than a thousand months.
-
-**The Prophet ﷺ in the last 10 nights:** "أحيا ليله، وأيقظ أهله، وشدّ مئزره" — He would stay up all night, wake his family, and strive hard in worship.
-
-### Ramadan 1447 / 2026 in Saudi Arabia
-
-- **Expected start:** Thursday, February 19, 2026 (pending moon sighting on Wed Feb 18)
-- **Duration:** 29 or 30 nights
-- **Expected end:** Around March 19-20, 2026
-- **Eid al-Fitr:** Around March 20-21, 2026
-- The Haramain schedule for 1447 has not been announced yet
+**Number of Rak'ahs:** 11, 13, 20, or 23 are all valid (Sheikh Ibn Baz).
 
 ### The Riyadh Taraweeh Scene
 
-Riyadh has a vibrant Taraweeh culture with famous mosques known for their imams' recitation styles. People travel across the city to pray behind specific imams. Key mosques include:
-
-| Mosque | Area | Known Imam |
-|--------|------|------------|
-| جامع الملك خالد | غرب الرياض | الشيخ خالد الجليل |
-| جامع الراجحي | شرق الرياض | الشيخ ناصر العصفور |
-| جامع الشيخ ناصر الناصر | شرق الرياض | الشيخ محمد اللحيدان |
-| جامع الحكمة | شمال الرياض | الشيخ سلطان العمري |
-| جامع السلمان | شمال الرياض | الشيخ خالد العبودي |
-| جامع عثمان الرشيد | غرب الرياض | الشيخ سعود آل الجمعة |
-
-This is exactly the problem our app solves — helping people **discover imams**, **listen to samples**, and **find the nearest mosque** for a meaningful Taraweeh experience.
-
-### Competitive Landscape — Existing Apps
-
-| App | Focus | Relevant Features |
-|-----|-------|-------------------|
-| **Khatmah (ختمة)** | Quran completion | Daily wird tracker, Quran reading schedule, history log |
-| **Muslim Pro** | All-in-one Islamic | Prayer times, Quran, Ramadan journal, fasting tracker, mosque finder |
-| **Athan (IslamicFinder)** | Prayer times | Prayer logging, Ramadan calendar, fasting badge system |
-| **Pillars** | Privacy-first prayer | Ad-free, fasting tracker, local-only data |
-| **Masjidbox** | Mosque management | Prayer/Taraweeh times, events, donations, announcements |
-| **Islamic Habit Tracker** | Daily habits | Prayer tracking, Quran progress, custom Islamic habits |
-
-**What none of them do well:**
-- None focus specifically on **Taraweeh imam discovery** with audio samples
-- None offer a **city-specific mosque directory** for Taraweeh
-- None combine **imam audio preview + proximity sorting + attendance tracking**
-
-### Our Unique Value Proposition
-
-**"Listen before you go"** — We're the only platform where users can:
-1. Preview an imam's recitation style before choosing a mosque
-2. Find the nearest mosque with a specific reciter
-3. Track their Taraweeh attendance across the 30 nights
-4. Share their Ramadan prayer journey with others
+Riyadh has a vibrant Taraweeh culture. People travel across the city to pray behind specific imams known for their recitation styles. This app helps users:
+1. Preview imam recitation before visiting
+2. Find nearest mosque with a specific reciter
+3. Track attendance across 30 nights
+4. Contribute to keeping data accurate
 
 ---
 
-## Feature Ideas Inspired by Domain Knowledge
+## Future Ideas
 
-### High Impact (aligned with how Saudis use Taraweeh)
-
-1. **Last 10 Nights Mode** — Special UI/data for العشر الأواخر:
-   - Show which mosques offer Tahajjud (second session)
-   - Tahajjud imam may differ from Taraweeh imam — show both
-   - Highlight odd nights (21, 23, 25, 27, 29) for Laylat al-Qadr
-   - Tracker could distinguish Taraweeh vs Tahajjud attendance
-
-
-
-### Medium Impact
-
-
-2. **Offline Mode** — Cache mosque list and favorited audio:
-    - Critical for low-connectivity areas or inside mosques
-
-### Lower Priority (nice to have)
-
-3. **Yearly Archive** — Keep previous Ramadan data:
-    - "In Ramadan 1446, you attended 22 nights"
-    - Compare year over year
-
-
-4. **Multi-City Expansion** — Jeddah, Makkah, Madinah, Dammam
-
----
-
-## Sources
-
-- [إمساكية رمضان 2026 الرياض](https://sa.prayertimes.news/ramadan/riyadh.html)
-- [موعد رمضان 2026 السعودية — المصري اليوم](https://www.almasryalyoum.com/news/details/4172302)
-- [عدد ركعات التراويح — الشيخ ابن باز](https://binbaz.org.sa/fatwas/4335/)
-- [صلاة التراويح مشروعيتها — إسلام ويب](https://www.islamweb.net/ar/fatwa/11872/)
-- [الفرق بين التراويح والقيام — الشيخ ابن باز](https://binbaz.org.sa/fatwas/4354/)
-- [التراويح والتهجد العشر الأواخر — وكالة الأنباء السعودية](https://spa.gov.sa/N2076331)
-- [جدول أئمة الحرم المكي 1446 — رئاسة شؤون الحرمين](https://prh.gov.sa/)
-- [Best Ramadan Apps 2026 — Greentech Apps](https://gtaf.org/blog/best-apps-for-ramadan-for-android-and-ios/)
+- **Last 10 Nights Mode** — Tahajjud sessions, Laylat al-Qadr highlighting
+- **Rakaat Tracking** — Record number of rak'ahs per night
+- **Dark Mode** — Ramadan night theme
+- **Browse by Imam** — Filter/compare reciters
+- **Push Notifications** — Daily reminders
+- **Multi-City** — Jeddah, Makkah, Madinah, Dammam

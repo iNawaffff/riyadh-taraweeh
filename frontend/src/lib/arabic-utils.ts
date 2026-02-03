@@ -79,6 +79,52 @@ export function getDistanceCategory(distanceKm: number): 'walking' | 'bicycle' |
 export const toArabicNum = (n: number) => n.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[+d])
 
 /**
+ * Arabic noun pluralization based on التمييز العددي rules
+ *
+ * Arabic grammar rules:
+ * - 0: plural (صفر ليالٍ)
+ * - 1: singular (ليلة واحدة)
+ * - 2: dual (ليلتان)
+ * - 3-10: plural genitive (ليالٍ)
+ * - 11+: singular accusative (ليلة)
+ */
+interface ArabicNounForms {
+  singular: string   // 1, 11+
+  dual: string       // 2
+  plural: string     // 0, 3-10
+}
+
+export function pluralizeArabic(count: number, forms: ArabicNounForms): string {
+  if (count === 0) return forms.plural
+  if (count === 1) return forms.singular
+  if (count === 2) return forms.dual
+  if (count >= 3 && count <= 10) return forms.plural
+  return forms.singular // 11+
+}
+
+// Pre-defined noun forms for common words
+export const arabicNouns = {
+  night: { singular: 'ليلة', dual: 'ليلتان', plural: 'ليالٍ' },
+  favorite: { singular: 'مفضلة', dual: 'مفضلتان', plural: 'مفضلات' },
+  contribution: { singular: 'مساهمة', dual: 'مساهمتان', plural: 'مساهمات' },
+  mosque: { singular: 'مسجد', dual: 'مسجدان', plural: 'مساجد' },
+  point: { singular: 'نقطة', dual: 'نقطتان', plural: 'نقاط' },
+}
+
+/**
+ * Format a count with proper Arabic noun form
+ * Returns: "٣ ليالٍ" or "ليلة واحدة" etc.
+ */
+export function formatArabicCount(count: number, forms: ArabicNounForms, options?: { showOne?: boolean }): string {
+  const noun = pluralizeArabic(count, forms)
+
+  if (count === 0) return `لا ${forms.plural}`
+  if (count === 1) return options?.showOne ? `${forms.singular} واحدة` : forms.singular
+  if (count === 2) return forms.dual
+  return `${toArabicNum(count)} ${noun}`
+}
+
+/**
  * Ramadan 1447 info (approx Feb 18 – Mar 19, 2026)
  */
 export interface RamadanInfo {
