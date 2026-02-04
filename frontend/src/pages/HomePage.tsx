@@ -285,6 +285,17 @@ export function HomePage() {
 
       {/* Mosques Grid */}
       <div className="container mb-12">
+        {/* Disclaimer — shown above the grid */}
+        {!isLoading && mosques.length > 0 && (
+          <div className="mb-5 flex items-center justify-center gap-2 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+            <span>
+              هذا الموقع جهد شخصي غير رسمي، وفي حال وجود أي تحديثات أو ملاحظات نسعد بتواصلكم معنا{' '}
+              <Link to="/contact" className="font-medium underline hover:no-underline">تواصل معنا</Link>
+            </span>
+          </div>
+        )}
+
         <MosqueGrid
           mosques={mosques}
           isLoading={isLoading}
@@ -300,17 +311,6 @@ export function HomePage() {
             <p className="text-sm text-muted-foreground">
               آخر تحديث: <span id="mainPageLastUpdate">{formatArabicDate()}</span>
             </p>
-          </div>
-        )}
-
-        {/* Disclaimer */}
-        {!isLoading && mosques.length > 0 && (
-          <div className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
-            <span>
-              هذا الموقع جهد شخصي غير رسمي، وفي حال وجود أي تحديثات أو ملاحظات نسعد بتواصلكم معنا{' '}
-              <Link to="/contact" className="font-medium underline hover:no-underline">تواصل معنا</Link>
-            </span>
           </div>
         )}
       </div>

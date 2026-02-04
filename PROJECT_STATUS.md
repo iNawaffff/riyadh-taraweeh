@@ -264,6 +264,7 @@ riyadh_taraweeh/
 - **Filtering**: Area dropdown (شمال/شرق/غرب/جنوب) + district/neighborhood
 - **Proximity**: Geolocation-based sorting with distance badges
 - **Audio Preview**: Listen to imam recitation samples before visiting
+- **Progressive Reveal**: Shows 8 mosques initially with "عرض المزيد" / "عرض الكل" buttons, animated card entrance, auto-resets on filter changes
 
 ### 2. User Features
 - **Favorites**: Heart icon, synced to server, dedicated page with filters
