@@ -25,6 +25,7 @@ const ProfilePage = lazy(() => import('@/pages/ProfilePage').then(m => ({ defaul
 const LeaderboardPage = lazy(() => import('@/pages/LeaderboardPage').then(m => ({ default: m.LeaderboardPage })))
 const MapPage = lazy(() => import('@/pages/MapPage').then(m => ({ default: m.MapPage })))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })))
+const MakkahSchedulePage = lazy(() => import('@/pages/MakkahSchedulePage').then(m => ({ default: m.MakkahSchedulePage })))
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -63,6 +64,7 @@ function App() {
                     <Route path="tracker" element={<TrackerPage />} />
                     <Route path="about" element={<AboutPage />} />
                     <Route path="contact" element={<ContactPage />} />
+                    <Route path="makkah" element={<MakkahSchedulePage />} />
                     <Route path="u/:username" element={<ProfilePage />} />
                     <Route path="*" element={<NotFoundPage />} />
                   </Route>

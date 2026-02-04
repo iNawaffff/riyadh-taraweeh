@@ -1249,6 +1249,15 @@ def tracker_page():
     })
 
 
+@app.route("/makkah")
+def makkah_schedule_page():
+    return serve_react_app(meta_tags={
+        "title": "جدول صلاة التراويح والتهجد بالمسجد الحرام - رمضان ١٤٤٧",
+        "description": "جدول الأئمة في صلاة التراويح والتهجد بالمسجد الحرام لشهر رمضان ١٤٤٧ هـ / ٢٠٢٦ م",
+        "url": "https://taraweeh.org/makkah",
+    })
+
+
 # --- imam search + transfer routes ---
 def _strip_prefixes(text):
     """Strip common Arabic prefixes for flexible matching."""

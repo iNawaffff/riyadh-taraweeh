@@ -128,6 +128,7 @@ riyadh_taraweeh/
         ├── pages/
         │   ├── HomePage.tsx
         │   ├── MosqueDetailPage.tsx
+        │   ├── MakkahSchedulePage.tsx
         │   ├── FavoritesPage.tsx
         │   ├── TrackerPage.tsx
         │   ├── LeaderboardPage.tsx
@@ -418,6 +419,28 @@ git push origin main
    - UserMenu shows user name + chevron (more clickable affordance)
    - Favorites acts as CTA when logged out (opens login dialog)
 
+9. **Makkah Haram Schedule Page (`/makkah`)**
+   - Complete imam schedule for Taraweeh (30 nights) and Tahajjud (last 10 nights)
+   - 7 Haram imams with full titles and S3-hosted audio samples
+   - Tab navigation between التراويح and التهجد
+   - Night cards with expandable imam assignments per tesleemat
+   - Proper Arabic ordinal numbering (الليلة الأولى، الثانية، etc.)
+   - Color-coded imam badges for visual distinction
+   - Audio playback integrated with global AudioContext (IDs 9001–9007)
+   - ImamCard component with tappable play, soundbars, golden accents
+   - Mobile-first responsive design with premium spiritual luxury aesthetic
+
+10. **Audio UX Overhaul**
+    - Redesigned imam row as full-width tappable play area (MosqueCard + MosqueDetailPage)
+    - Solid green play circle with breathing pulse animation for idle affordance
+    - GPU-composited soundbar animations (`transform: scaleY`) — no layout reflow
+    - Gold shimmer hover effect on desktop
+    - Stretched link pattern — entire MosqueCard is tappable to navigate to detail page
+    - RTL chevron indicator (ChevronLeft) with hover animation for navigation cue
+    - Nested interactive elements (audio, favorite, share, YouTube, map) elevated with `z-10`
+    - "اضغط للاستماع" (press to listen) explicit CTA text
+    - Dimmed no-audio fallback to create clear visual hierarchy
+
 ---
 
 ## Data Statistics
@@ -449,7 +472,7 @@ Riyadh has a vibrant Taraweeh culture. People travel across the city to pray beh
 
 ## Future Ideas
 
-- **Last 10 Nights Mode** — Tahajjud sessions, Laylat al-Qadr highlighting
+- **Last 10 Nights Mode** — Laylat al-Qadr highlighting
 - **Rakaat Tracking** — Record number of rak'ahs per night
 - **Dark Mode** — Ramadan night theme
 - **Browse by Imam** — Filter/compare reciters

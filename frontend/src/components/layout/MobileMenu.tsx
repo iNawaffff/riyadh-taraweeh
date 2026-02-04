@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
-import { Home, Info, Mail, Calendar, HandHeart } from 'lucide-react'
+import { Home, Info, Mail, Calendar, HandHeart, Landmark } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -11,6 +11,7 @@ interface MobileMenuProps {
 
 const baseNavItems = [
   { to: '/', label: 'المساجد', icon: Home },
+  { to: '/makkah', label: 'جدول الحرم', icon: Landmark },
   { to: '/about', label: 'عن الموقع', icon: Info },
   { to: '/contact', label: 'تواصل معنا', icon: Mail },
 ]

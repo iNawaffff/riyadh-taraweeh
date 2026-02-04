@@ -26,7 +26,6 @@ import {
   ArrowRight,
   Loader2,
   Home,
-  Music,
   RefreshCw,
   ChevronDown,
   ChevronUp,
@@ -242,40 +241,81 @@ export function MosqueDetailPage() {
                 )}
               </div>
 
-              {/* Audio Section - Full-width stacked on mobile */}
+              {/* Audio Section - Tappable play area */}
               {audio_sample && (
-                <div className="mt-4 overflow-hidden rounded-lg border border-accent/20 bg-gradient-to-l from-accent/5 to-primary-light/50">
-                  <div className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between md:p-5">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/15">
-                        <Music className="h-5 w-5 text-accent" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-bold text-primary">استمع للتلاوة</p>
-                        {imam && <p className="truncate text-sm text-muted-foreground">{imam}</p>}
-                      </div>
+                <button
+                  onClick={handleAudioClick}
+                  disabled={isCurrentLoading}
+                  className={cn(
+                    'group/play relative mt-4 flex w-full items-center gap-4 overflow-hidden rounded-xl p-4 md:p-5 text-start',
+                    'transition-all duration-300',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2',
+                    'active:scale-[0.98]',
+                    isCurrentPlaying
+                      ? 'border border-accent/30 bg-gradient-to-l from-accent/[0.08] via-accent/[0.03] to-primary/[0.04] shadow-[0_2px_16px_rgba(196,160,82,0.14)]'
+                      : 'border border-primary/15 bg-gradient-to-l from-primary/[0.04] to-primary/[0.02] shadow-sm hover:border-accent/25 hover:shadow-md hover:from-primary/[0.06] hover:to-accent/[0.02]'
+                  )}
+                >
+                  {/* Idle shimmer overlay */}
+                  {!isCurrentPlaying && (
+                    <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-0 transition-opacity duration-500 group-hover/play:opacity-100" aria-hidden>
+                      <div
+                        className="absolute inset-0 w-1/2"
+                        style={{
+                          background: 'linear-gradient(90deg, transparent, rgba(196,160,82,0.06), transparent)',
+                          animation: 'audioRowShimmer 2.5s ease-in-out infinite',
+                        }}
+                      />
                     </div>
-                    <Button
-                      onClick={handleAudioClick}
-                      disabled={isCurrentLoading}
-                      className={cn(
-                        'w-full gap-2 rounded-xl py-6 text-base md:w-auto md:rounded-full md:py-2',
-                        isCurrentPlaying
-                          ? 'bg-primary-dark text-white'
-                          : 'bg-primary text-white hover:bg-primary-dark'
-                      )}
-                    >
-                      {isCurrentLoading ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : isCurrentPlaying ? (
-                        <Pause className="h-5 w-5" />
-                      ) : (
-                        <Play className="h-5 w-5" />
-                      )}
-                      {isCurrentPlaying ? 'إيقاف' : 'تشغيل'}
-                    </Button>
+                  )}
+
+                  {/* Play/Pause circle */}
+                  <div
+                    className={cn(
+                      'flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-all duration-300',
+                      isCurrentPlaying
+                        ? 'bg-accent text-white shadow-[0_2px_16px_rgba(196,160,82,0.35)]'
+                        : 'bg-primary text-white shadow-[0_2px_8px_rgba(13,75,51,0.2)] play-breath group-hover/play:shadow-[0_2px_14px_rgba(13,75,51,0.3)]'
+                    )}
+                  >
+                    {isCurrentLoading ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : isCurrentPlaying ? (
+                      <Pause className="h-5 w-5" />
+                    ) : (
+                      <Play className="h-5 w-5 translate-x-[1px]" />
+                    )}
                   </div>
-                </div>
+
+                  {/* Info */}
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-primary">استمع للتلاوة</p>
+                    <p className={cn(
+                      'mt-0.5 truncate text-sm transition-colors duration-200',
+                      isCurrentPlaying ? 'text-accent font-semibold' : 'text-muted-foreground'
+                    )}>
+                      {isCurrentPlaying ? 'جارٍ التشغيل...' : (imam ?? 'غير محدد') + ' · اضغط للاستماع'}
+                    </p>
+                  </div>
+
+                  {/* Soundbars — GPU-composited with transform, no layout reflow */}
+                  <div className={cn(
+                    'flex items-end gap-[3px] h-6 w-5 shrink-0 transition-opacity duration-300',
+                    isCurrentPlaying ? 'opacity-100' : 'opacity-0'
+                  )} aria-hidden>
+                    {[1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="h-[4px] w-[3px] origin-bottom rounded-full bg-accent will-change-transform"
+                        style={{
+                          animation: isCurrentPlaying
+                            ? `soundbar 0.8s ease-in-out ${i * 0.15}s infinite alternate`
+                            : 'none',
+                        }}
+                      />
+                    ))}
+                  </div>
+                </button>
               )}
 
               {/* Desktop: Action Buttons inline */}

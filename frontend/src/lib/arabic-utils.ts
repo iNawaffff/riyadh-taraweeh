@@ -79,6 +79,50 @@ export function getDistanceCategory(distanceKm: number): 'walking' | 'bicycle' |
 export const toArabicNum = (n: number) => n.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[+d])
 
 /**
+ * Convert a number to Arabic ordinal (feminine form for ليلة)
+ * Uses proper Arabic grammar: ordinal adjectives for 1-10, compound ordinals for 11+
+ *
+ * Examples:
+ * 1 → الأولى, 2 → الثانية, 10 → العاشرة
+ * 11 → الحادية عشرة, 21 → الحادية والعشرين, 27 → السابعة والعشرين
+ */
+export function toArabicOrdinalFeminine(n: number): string {
+  // Ordinals 1-10 (feminine form, with ال prefix)
+  const ordinals1to10 = [
+    '', 'الأولى', 'الثانية', 'الثالثة', 'الرابعة',
+    'الخامسة', 'السادسة', 'السابعة', 'الثامنة', 'التاسعة', 'العاشرة'
+  ]
+
+  // Units ordinals without ال (for compound numbers like 21st, 27th)
+  const unitsOrdinal = [
+    '', 'الحادية', 'الثانية', 'الثالثة', 'الرابعة',
+    'الخامسة', 'السادسة', 'السابعة', 'الثامنة', 'التاسعة'
+  ]
+
+  if (n >= 1 && n <= 10) {
+    return ordinals1to10[n]
+  }
+
+  if (n >= 11 && n <= 19) {
+    // 11-19: الحادية عشرة, الثانية عشرة, etc.
+    const unit = unitsOrdinal[n - 10]
+    return `${unit} عشرة`
+  }
+
+  if (n >= 20 && n <= 30) {
+    if (n === 20) {
+      return 'العشرين'
+    }
+    // 21-29: الحادية والعشرين, الثانية والعشرين, etc.
+    const unit = unitsOrdinal[n - 20]
+    return `${unit} والعشرين`
+  }
+
+  // Fallback for numbers outside 1-30 range
+  return `${toArabicNum(n)}`
+}
+
+/**
  * Arabic noun pluralization based on التمييز العددي rules
  *
  * Arabic grammar rules:
