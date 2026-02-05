@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Link } from 'react-router-dom'
 import { ExternalLink, Youtube, MapPin, Play, Pause, Loader2, ChevronLeft } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
@@ -19,7 +20,7 @@ interface MosqueCardProps {
   className?: string
 }
 
-export function MosqueCard({ mosque, className }: MosqueCardProps) {
+export const MosqueCard = memo(function MosqueCard({ mosque, className }: MosqueCardProps) {
   const {
     id,
     name,
@@ -290,4 +291,4 @@ export function MosqueCard({ mosque, className }: MosqueCardProps) {
       </CardContent>
     </Card>
   )
-}
+})

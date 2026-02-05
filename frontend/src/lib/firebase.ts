@@ -59,6 +59,16 @@ export async function signInWithGoogle() {
   return authModule.signInWithPopup(authInstance, provider)
 }
 
+// Timeout helper for operations that may hang (e.g., reCAPTCHA behind ad blockers)
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(message)), ms)
+    ),
+  ])
+}
+
 // Phone sign-in
 let recaptchaVerifier: import('firebase/auth').RecaptchaVerifier | null = null
 
@@ -79,7 +89,11 @@ export async function sendPhoneOtp(
 
   recaptchaVerifier = new authModule.RecaptchaVerifier(authInstance, elementId, { size: 'invisible' })
   try {
-    return await authModule.signInWithPhoneNumber(authInstance, phoneNumber, recaptchaVerifier)
+    return await withTimeout(
+      authModule.signInWithPhoneNumber(authInstance, phoneNumber, recaptchaVerifier),
+      15000,
+      'تعذر التحقق، تأكد من اتصالك بالإنترنت'
+    )
   } catch (error) {
     resetRecaptcha()
     throw error

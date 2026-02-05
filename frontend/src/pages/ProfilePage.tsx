@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async'
 import { Share2, ArrowRight, X, Sparkles, Calendar, Heart, Moon, Award, ChevronLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { PageLoader } from '@/components/PageLoader'
+import { Skeleton } from '@/components/ui/skeleton'
 import { fetchPublicProfile, fetchPublicTracker } from '@/lib/api'
 import { useUserTransfers, useCancelTransfer, useLeaderboard } from '@/hooks/use-transfers'
 import { useAuth } from '@/hooks/use-auth'
@@ -77,7 +77,38 @@ export function ProfilePage() {
     toast.success('تم نسخ رابط الملف الشخصي')
   }
 
-  if (isLoading) return <PageLoader />
+  if (isLoading) return (
+    <>
+      {/* Hero skeleton */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-primary-dark pb-20 pt-10">
+        <div className="container flex flex-col items-center">
+          <Skeleton className="h-24 w-24 rounded-full bg-white/10" />
+          <Skeleton className="mt-4 h-7 w-40 rounded-lg bg-white/10" />
+          <Skeleton className="mt-2 h-4 w-24 rounded bg-white/10" />
+          <Skeleton className="mt-4 h-9 w-28 rounded-full bg-white/10" />
+        </div>
+      </div>
+      {/* Stats cards skeleton */}
+      <div className="container -mt-12">
+        <div className="grid grid-cols-3 gap-3">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="rounded-2xl bg-white p-4 shadow-card">
+              <Skeleton className="mx-auto mb-2 h-10 w-10 rounded-full" />
+              <Skeleton className="mx-auto h-7 w-10 rounded" />
+              <Skeleton className="mx-auto mt-1 h-4 w-16 rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Content area skeleton */}
+      <div className="container py-6">
+        <div className="rounded-2xl bg-white p-5 shadow-card">
+          <Skeleton className="mb-3 h-5 w-32 rounded" />
+          <Skeleton className="h-3 w-full rounded-full" />
+        </div>
+      </div>
+    </>
+  )
   if (error || !profile) {
     return (
       <div className="container py-12 text-center">
@@ -91,7 +122,7 @@ export function ProfilePage() {
   }
 
   // Use contribution_points from public profile (works for all users)
-  const contributionCount = profile.contribution_points
+  const contributionCount = profile.contribution_points ?? 0
   const nightsAttended = tracker?.stats.attended ?? 0
   const progress = Math.round((nightsAttended / 30) * 100)
 

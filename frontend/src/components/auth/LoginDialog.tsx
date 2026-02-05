@@ -22,13 +22,24 @@ const FIREBASE_ERROR_MAP: Record<string, string> = {
   'auth/invalid-verification-code': 'رمز التحقق غير صحيح',
   'auth/code-expired': 'انتهت صلاحية الرمز، أعد الإرسال',
   'auth/billing-not-enabled': 'خدمة الرسائل غير مفعّلة',
+  'auth/popup-blocked': 'المتصفح منع النافذة المنبثقة، اسمح بالنوافذ المنبثقة وحاول مرة أخرى',
+  'auth/popup-closed-by-user': 'تم إغلاق نافذة تسجيل الدخول',
+  'auth/network-request-failed': 'تعذر الاتصال بالإنترنت، حاول مرة أخرى',
 }
 
-function getFirebaseError(e: unknown): string {
+// Errors that should be silently ignored (not shown to user)
+const FIREBASE_SILENT_ERRORS = new Set(['auth/cancelled-popup-request'])
+
+function getFirebaseError(e: unknown): string | null {
   console.error('Firebase auth error:', e)
   if (e && typeof e === 'object' && 'code' in e) {
     const code = (e as { code: string }).code
+    if (FIREBASE_SILENT_ERRORS.has(code)) return null
     return FIREBASE_ERROR_MAP[code] || `حدث خطأ: ${code}`
+  }
+  // Handle timeout errors from withTimeout wrapper
+  if (e instanceof Error && e.message.startsWith('تعذر')) {
+    return e.message
   }
   return 'حدث خطأ، حاول مرة أخرى'
 }
@@ -131,7 +142,8 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
       await signInWithGoogle()
       onOpenChange(false)
     } catch (e) {
-      setError(getFirebaseError(e))
+      const msg = getFirebaseError(e)
+      if (msg) setError(msg)
     } finally {
       setLoading(false)
     }
@@ -158,7 +170,8 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
       transitionTo('otp')
       setCountdown(30)
     } catch (e) {
-      setError(getFirebaseError(e))
+      const msg = getFirebaseError(e)
+      if (msg) setError(msg)
     } finally {
       setLoading(false)
     }
@@ -173,7 +186,8 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
       setConfirmResult(result)
       setCountdown(30)
     } catch (e) {
-      setError(getFirebaseError(e))
+      const msg = getFirebaseError(e)
+      if (msg) setError(msg)
     } finally {
       setLoading(false)
     }
@@ -187,7 +201,8 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
       await confirmOtp(confirmResult, code)
       onOpenChange(false)
     } catch (e) {
-      setError(getFirebaseError(e))
+      const msg = getFirebaseError(e)
+      if (msg) setError(msg)
       setOtpCode('')
     } finally {
       setLoading(false)

@@ -11,6 +11,7 @@ import uuid
 import boto3
 import firebase_admin
 from firebase_admin import auth as firebase_auth, credentials as firebase_credentials
+from firebase_admin.auth import RevokedIdTokenError, CertificateFetchError
 from dotenv import load_dotenv
 from flask import (
     Flask,
@@ -24,6 +25,7 @@ from flask import (
     url_for,
 )
 from flask_admin import Admin, AdminIndexView, expose
+from flask_compress import Compress
 from flask_admin.actions import action
 from flask_admin.contrib.sqla import ModelView
 from flask_limiter import Limiter
@@ -41,6 +43,7 @@ from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from geopy.distance import geodesic
 from markupsafe import Markup
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
 from wtforms_sqlalchemy.fields import QuerySelectField
 
@@ -50,6 +53,7 @@ from utils import normalize_arabic
 load_dotenv()
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 # database configuration
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
@@ -67,6 +71,13 @@ if app.config["SQLALCHEMY_DATABASE_URI"] and app.config[
     print(f"database url converted to: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "your_local_secret_key")
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("FLASK_ENV") != "development"
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
+# --- response compression ---
+app.config['COMPRESS_MIN_SIZE'] = 500
+Compress(app)
 
 # --- database setup ---
 db.init_app(app)
@@ -131,7 +142,11 @@ def firebase_auth_required(f):
             return jsonify({"error": "Missing or invalid token"}), 401
         token = auth_header[7:]
         try:
-            decoded = firebase_auth.verify_id_token(token)
+            decoded = firebase_auth.verify_id_token(token, check_revoked=True)
+        except RevokedIdTokenError:
+            return jsonify({"error": "Token revoked, please re-authenticate"}), 401
+        except CertificateFetchError:
+            return jsonify({"error": "Auth service temporarily unavailable"}), 503
         except Exception:
             return jsonify({"error": "Invalid or expired token"}), 401
         user = PublicUser.query.filter_by(firebase_uid=decoded["uid"]).first()
@@ -150,7 +165,7 @@ def firebase_auth_optional(f):
         auth_header = request.headers.get("Authorization", "")
         if auth_header.startswith("Bearer ") and firebase_app:
             try:
-                decoded = firebase_auth.verify_id_token(auth_header[7:])
+                decoded = firebase_auth.verify_id_token(auth_header[7:], check_revoked=True)
                 g.firebase_decoded = decoded
                 g.current_public_user = PublicUser.query.filter_by(firebase_uid=decoded["uid"]).first()
             except Exception:
@@ -351,6 +366,7 @@ class MosqueModelView(BaseModelView):
                 db.session.add(imam)
             db.session.commit()
             _imam_index_cache = None
+            _api_response_cache.clear()
         elif imam and not imam_name:
             # Clear imam name = unassign imam from this mosque
             imam.mosque_id = None
@@ -553,6 +569,7 @@ class TransferRequestModelView(BaseModelView):
         db.session.commit()
         global _imam_index_cache
         _imam_index_cache = None
+        _api_response_cache.clear()
 
     @action("reject", "رفض البلاغات المحددة", "هل تريد رفض البلاغات المحددة؟")
     def action_reject(self, ids):
@@ -699,28 +716,17 @@ def contact():
 @app.route("/api/mosques")
 def get_mosques():
     try:
-        # get all mosques ordered by name
-        mosques = Mosque.query.order_by(Mosque.name).all()
-        result = []
-
-        for mosque in mosques:
-            # get the imam for this mosque
-            imam = Imam.query.filter_by(mosque_id=mosque.id).first()
-
-            result.append(
-                {
-                    "id": mosque.id,
-                    "name": mosque.name,
-                    "location": mosque.location,
-                    "area": mosque.area,
-                    "map_link": mosque.map_link,
-                    "latitude": mosque.latitude,
-                    "longitude": mosque.longitude,
-                    "imam": imam.name if imam else None,
-                    "audio_sample": imam.audio_sample if imam else None,
-                    "youtube_link": imam.youtube_link if imam else None,
-                }
-            )
+        cached = _api_response_cache.get("mosques")
+        if cached is not None:
+            return jsonify(cached)
+        pairs = (
+            db.session.query(Mosque, Imam)
+            .outerjoin(Imam, Imam.mosque_id == Mosque.id)
+            .order_by(Mosque.name)
+            .all()
+        )
+        result = [serialize_mosque(m, imam=i) for m, i in pairs]
+        _api_response_cache["mosques"] = result
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": f"Database error: {str(e)}"}), 500
@@ -738,6 +744,7 @@ def get_mosque(mosque_id):
 
 
 @app.route("/api/mosques/search")
+@limiter.limit("30 per minute")
 def search_mosques():
     try:
         query = request.args.get("q", "")
@@ -745,7 +752,10 @@ def search_mosques():
         location = request.args.get("location", "")
 
         # build base query with imam join
-        mosque_query = db.session.query(Mosque).outerjoin(Imam)
+        mosque_query = (
+            db.session.query(Mosque, Imam)
+            .outerjoin(Imam, Imam.mosque_id == Mosque.id)
+        )
 
         # filter by area if provided
         if area and area != "الكل":
@@ -756,49 +766,30 @@ def search_mosques():
             mosque_query = mosque_query.filter(Mosque.location == location)
 
         mosque_query = mosque_query.order_by(Mosque.name)
-        mosques = mosque_query.all()
+        pairs = mosque_query.all()
 
         # if there's a search query, apply the fuzzy matching in python
         if query:
             normalized_query = normalize_arabic(query)
 
             # filter mosques with fuzzy matching in python
-            filtered_mosques = []
-            for mosque in mosques:
-                # check if the query matches any of these fields (original or normalized)
+            filtered_pairs = []
+            for mosque, imam in pairs:
+                imam_name = imam.name if imam else ""
                 if (
                     query.lower() in mosque.name.lower()
                     or query.lower() in mosque.location.lower()
-                    or any(query.lower() in imam.name.lower() for imam in mosque.imams)
+                    or query.lower() in imam_name.lower()
                     or normalized_query in normalize_arabic(mosque.name)
                     or normalized_query in normalize_arabic(mosque.location)
-                    or any(
-                        normalized_query in normalize_arabic(imam.name)
-                        for imam in mosque.imams
-                    )
+                    or (imam_name and normalized_query in normalize_arabic(imam_name))
                 ):
-                    filtered_mosques.append(mosque)
+                    filtered_pairs.append((mosque, imam))
 
-            mosques = filtered_mosques
+            pairs = filtered_pairs
 
         # format results for api response
-        result = []
-        for mosque in mosques:
-            imam = Imam.query.filter_by(mosque_id=mosque.id).first()
-            result.append(
-                {
-                    "id": mosque.id,
-                    "name": mosque.name,
-                    "location": mosque.location,
-                    "area": mosque.area,
-                    "map_link": mosque.map_link,
-                    "latitude": mosque.latitude,
-                    "longitude": mosque.longitude,
-                    "imam": imam.name if imam else None,
-                    "audio_sample": imam.audio_sample if imam else None,
-                    "youtube_link": imam.youtube_link if imam else None,
-                }
-            )
+        result = [serialize_mosque(m, imam=i) for m, i in pairs]
 
         return jsonify(result)
     except Exception as e:
@@ -813,14 +804,23 @@ def get_locations():
 
         # Support areas_only parameter for backwards compatibility
         if areas_only == "1":
+            cached = _api_response_cache.get("areas")
+            if cached is not None:
+                return jsonify(cached)
             query = db.session.query(Mosque.area).distinct()
             areas = sorted([row[0] for row in query.all() if row[0]])
+            _api_response_cache["areas"] = areas
             return jsonify(areas)
 
+        cache_key = f"locations:{area}" if area and area != "الكل" else "locations:"
+        cached = _api_response_cache.get(cache_key)
+        if cached is not None:
+            return jsonify(cached)
         query = db.session.query(Mosque.location).distinct()
         if area and area != "الكل":
             query = query.filter(Mosque.area == area)
         locations = sorted([row[0] for row in query.all() if row[0]])
+        _api_response_cache[cache_key] = locations
         return jsonify(locations)
     except Exception as e:
         return jsonify({"error": f"Database error: {str(e)}"}), 500
@@ -916,6 +916,7 @@ Sitemap: https://taraweeh.org/sitemap.xml
 
 
 @app.route("/api/mosques/nearby")
+@limiter.limit("20 per minute")
 def nearby_mosques():
     start = time.time()
 
@@ -926,38 +927,20 @@ def nearby_mosques():
         if not lat or not lng:
             return jsonify({"error": "Latitude and longitude are required"}), 400
 
-        mosques = Mosque.query.filter(
-            Mosque.latitude.isnot(None), Mosque.longitude.isnot(None)
-        ).all()
+        pairs = (
+            db.session.query(Mosque, Imam)
+            .outerjoin(Imam, Imam.mosque_id == Mosque.id)
+            .filter(Mosque.latitude.isnot(None), Mosque.longitude.isnot(None))
+            .all()
+        )
 
         user_location = (lat, lng)
 
         result = []
-        for mosque in mosques:
-            # calculate distance using geodesic formula
+        for mosque, imam in pairs:
             mosque_location = (mosque.latitude, mosque.longitude)
             distance = geodesic(user_location, mosque_location).kilometers
-
-            # get the imam for this mosque
-            imam = Imam.query.filter_by(mosque_id=mosque.id).first()
-
-            result.append(
-                {
-                    "id": mosque.id,
-                    "name": mosque.name,
-                    "location": mosque.location,
-                    "area": mosque.area,
-                    "map_link": mosque.map_link,
-                    "latitude": mosque.latitude,
-                    "longitude": mosque.longitude,
-                    "distance": round(
-                        distance, 2
-                    ),  # the distance in km, rounded to 2 decimal places
-                    "imam": imam.name if imam else None,
-                    "audio_sample": imam.audio_sample if imam else None,
-                    "youtube_link": imam.youtube_link if imam else None,
-                }
-            )
+            result.append(serialize_mosque(mosque, imam=imam, distance=round(distance, 2)))
 
         # sort by distance
         result.sort(key=lambda x: x["distance"])
@@ -1091,11 +1074,17 @@ def public_profile(username):
     user = PublicUser.query.filter_by(username=username).first()
     if not user:
         return jsonify({"error": "User not found"}), 404
-    mosques = []
-    for fav in user.favorites:
-        mosque = Mosque.query.get(fav.mosque_id)
-        if mosque:
-            mosques.append(serialize_mosque(mosque))
+    fav_mosque_ids = [fav.mosque_id for fav in user.favorites]
+    if fav_mosque_ids:
+        pairs = (
+            db.session.query(Mosque, Imam)
+            .outerjoin(Imam, Imam.mosque_id == Mosque.id)
+            .filter(Mosque.id.in_(fav_mosque_ids))
+            .all()
+        )
+        mosques = [serialize_mosque(m, imam=i) for m, i in pairs]
+    else:
+        mosques = []
     return jsonify({
         "username": user.username,
         "display_name": user.display_name,
@@ -1294,6 +1283,9 @@ def _bigram_similarity(a, b):
 _imam_index_cache = None
 _imam_index_count = None
 
+# Server-side API response caches (cleared alongside _imam_index_cache)
+_api_response_cache = {}
+
 
 def _get_imam_index():
     """Build and cache normalized imam data for search. Invalidated if imam count changes."""
@@ -1387,6 +1379,7 @@ def _score_imam(q_norm, q_stripped, q_words, q_stripped_words, entry):
 
 
 @app.route("/api/imams/search")
+@limiter.limit("30 per minute")
 def search_imams():
     q = request.args.get("q", "").strip()
     if not q:
@@ -1415,6 +1408,7 @@ def search_imams():
 
 
 @app.route("/api/transfers", methods=["POST"])
+@limiter.limit("10 per minute")
 @firebase_auth_required
 def submit_transfer():
     user = g.current_public_user
@@ -1536,6 +1530,7 @@ def approve_transfer(transfer_id):
     db.session.commit()
     global _imam_index_cache
     _imam_index_cache = None  # invalidate search cache
+    _api_response_cache.clear()
     return jsonify({"success": True})
 
 
@@ -1556,6 +1551,7 @@ def reject_transfer(transfer_id):
 
 # --- error reporting route ---
 @app.route("/report-error", methods=["POST"])
+@limiter.limit("3 per minute")
 def report_error():
     try:
         # get form data
@@ -1609,6 +1605,23 @@ def report_error():
     except Exception as e:
         print(f"Error processing report: {e}")
         return jsonify({"error": "Error processing report"}), 500
+
+
+# --- HTTP cache headers ---
+@app.after_request
+def add_cache_headers(response):
+    path = request.path
+    if path.startswith("/assets/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif path.startswith("/static/images/"):
+        response.headers["Cache-Control"] = "public, max-age=2592000"
+    elif path.startswith("/static/audio/"):
+        response.headers["Cache-Control"] = "public, max-age=604800"
+    elif path in ("/sw.js", "/registerSW.js"):
+        response.headers["Cache-Control"] = "public, max-age=0, must-revalidate"
+    elif path == "/manifest.webmanifest":
+        response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
 
 
 # --- application entry point ---
