@@ -11,6 +11,7 @@ import {
 import { DistanceBadge } from './DistanceBadge'
 import { FavoriteButton } from './FavoriteButton'
 import { ShareButton } from './ShareButton'
+import { MosqueIcon } from '@/components/icons'
 import { useAudioPlayer } from '@/hooks'
 import { cn } from '@/lib/utils'
 import type { Mosque } from '@/types'
@@ -94,13 +95,10 @@ export const MosqueCard = memo(function MosqueCard({ mosque, className }: Mosque
         {/* Header: Mosque name + Distance badge */}
         <div className="mb-3 md:mb-5 flex flex-wrap items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-lg md:text-xl font-bold text-primary">
-            {/* Mosque icon */}
-            <img
-              src="/static/images/mosque-icon.svg"
-              alt=""
-              className="h-6 w-6"
-              aria-hidden="true"
-            />
+            {/* Mosque icon — styled like MakkahSchedulePage Moon icon */}
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+              <MosqueIcon className="h-4.5 w-4.5" />
+            </div>
             {/* Stretched link — ::after covers entire card for full-card tappability */}
             <Link
               to={`/mosque/${id}`}

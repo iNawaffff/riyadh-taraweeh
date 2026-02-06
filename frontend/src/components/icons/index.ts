@@ -1,0 +1,1 @@
+export { MosqueIcon } from './MosqueIcon'
