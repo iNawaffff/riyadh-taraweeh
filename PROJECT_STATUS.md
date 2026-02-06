@@ -62,6 +62,7 @@ A comprehensive directory of Taraweeh prayer imams and mosques in Riyadh, Saudi 
 | Admin Panel | Flask-Admin with Bootstrap3 |
 | Audio Storage | AWS S3 |
 | Rate Limiting | Flask-Limiter |
+| Compression | flask-compress (gzip/brotli) |
 | WSGI Server | Gunicorn |
 | Deployment | Heroku (EU region) |
 
@@ -76,7 +77,7 @@ A comprehensive directory of Taraweeh prayer imams and mosques in Riyadh, Saudi 
 | Data Fetching | TanStack Query (React Query) |
 | Auth | Firebase Auth |
 | SEO | react-helmet-async |
-| Icons | lucide-react |
+| Icons | lucide-react, react-icons (Font Awesome) |
 | Toasts | sonner |
 | PWA | vite-plugin-pwa + Workbox |
 | Error Tracking | Sentry |
@@ -118,12 +119,13 @@ riyadh_taraweeh/
         │
         ├── components/
         │   ├── ui/          # shadcn/ui primitives (button, card, dialog, etc.)
+        │   ├── icons/       # Custom icons (MosqueIcon via Font Awesome)
         │   ├── layout/      # Header, Footer, MobileMenu
         │   ├── mosque/      # MosqueCard, MosqueGrid, FavoriteButton, TransferDialog
         │   ├── search/      # SearchBar, AreaFilter, ProximityButton
         │   ├── audio/       # AudioButton, FloatingAudioPlayer
         │   ├── auth/        # LoginDialog, UsernameSetup
-        │   └── seo/         # SEO meta components
+        │   └── seo/         # MetaTags, StructuredData (JSON-LD)
         │
         ├── pages/
         │   ├── HomePage.tsx
@@ -296,6 +298,10 @@ riyadh_taraweeh/
 ### Backend
 | Optimization | Implementation |
 |--------------|----------------|
+| N+1 Query Fix | Joined queries (Mosque+Imam) in `/api/mosques`, `/api/mosques/search`, `/api/mosques/nearby`, `/api/u/<username>` — ~119 queries → 1 |
+| Response Compression | flask-compress with gzip/brotli (~80KB → ~8KB JSON) |
+| HTTP Cache Headers | `@after_request` hook: immutable for /assets, 30d for images, 7d for audio, must-revalidate for SW |
+| API Response Cache | In-memory cache for `/api/mosques` and `/api/locations`, invalidated on imam/mosque changes |
 | Imam Search | In-memory cached index with normalized Arabic, invalidated on DB changes |
 | Search Scoring | Multi-tier: exact → prefix → substring → word-starts → bigram similarity |
 | Leaderboard | Denormalized `contribution_points` — single indexed query, no JOINs |
@@ -319,7 +325,8 @@ riyadh_taraweeh/
 | Google Fonts | CacheFirst | 1 year |
 | API responses | NetworkFirst | 24 hours |
 | Images | CacheFirst | 30 days |
-| Audio files | CacheFirst | 7 days |
+| Local audio (/static/audio) | CacheFirst | 7 days |
+| S3 audio (imams-riyadh-audio.s3) | CacheFirst | 7 days (with range requests for seeking) |
 
 ---
 
@@ -441,6 +448,33 @@ git push origin main
     - Nested interactive elements (audio, favorite, share, YouTube, map) elevated with `z-10`
     - "اضغط للاستماع" (press to listen) explicit CTA text
     - Dimmed no-audio fallback to create clear visual hierarchy
+
+11. **Performance & Caching**
+    - Fixed N+1 database queries across 4 major API endpoints
+    - Response compression via flask-compress (gzip/brotli)
+    - HTTP cache headers for static assets (immutable for Vite-hashed bundles)
+    - Server-side API response caching with automatic invalidation
+    - PWA runtime caching for S3-hosted audio files (with range request support)
+
+12. **SEO Technical Foundation**
+    - Canonical URL (`https://taraweeh.org/`)
+    - Open Graph meta tags (title, description, image, locale)
+    - Twitter Card meta tags (`summary_large_image`)
+    - OG image (1200×630) with proper dimensions for all platforms
+    - Geo meta tags (ICBM, geo.region, geo.placename)
+    - Enhanced JSON-LD structured data (`@type: Mosque`, breadcrumbs)
+    - Updated sitemap with all pages (map, favorites, tracker, leaderboard, makkah)
+
+13. **Firebase Phone Auth Improvements**
+    - Aggressive reCAPTCHA reset on retry (recreates container element, removes iframes)
+    - Explicit `render()` call before `signInWithPhoneNumber`
+    - Attempt tracking with max 3 retries
+    - "إعادة المحاولة من جديد" reset button when max attempts reached
+
+14. **Icon System**
+    - Added react-icons package for Font Awesome icons
+    - Custom MosqueIcon component using Font Awesome `FaMosque`
+    - Themed icon containers matching MakkahSchedulePage design (bg-primary/10, rounded-xl)
 
 ---
 
