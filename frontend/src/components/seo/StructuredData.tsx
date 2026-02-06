@@ -10,7 +10,7 @@ const organizationSchema = {
   name: 'أئمة التراويح - الرياض',
   url: BASE_URL,
   logo: `${BASE_URL}/static/images/logo.png`,
-  image: `${BASE_URL}/static/images/og-image.png`,
+  image: `${BASE_URL}/static/images/og-image-v2.png`,
   description: 'دليل أئمة التراويح في الرياض - تصفح المساجد واستمع للتلاوات لاختيار المسجد المناسب لك في رمضان',
 }
 

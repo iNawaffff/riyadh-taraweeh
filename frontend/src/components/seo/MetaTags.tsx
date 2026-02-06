@@ -15,7 +15,7 @@ interface MetaTagsProps {
 const DEFAULT_TITLE = 'أئمة التراويح - الرياض'
 const DEFAULT_DESCRIPTION = 'دليل أئمة التراويح في الرياض ٢٠٢٥ - تصفح المساجد واستمع للتلاوات لاختيار المسجد المناسب لك في رمضان'
 const BASE_URL = 'https://taraweeh.org'
-const OG_IMAGE = `${BASE_URL}/static/images/og-image.png?v=2`
+const OG_IMAGE = `${BASE_URL}/static/images/og-image-v2.png`
 
 export function MetaTags({
   title,
