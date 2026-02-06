@@ -11,9 +11,11 @@ Riyadh Taraweeh is a Flask + React web application serving as a directory of Tar
 ### Backend
 - **Framework:** Flask 3.1.0, SQLAlchemy 2.0.38, PostgreSQL
 - **Migrations:** Alembic via Flask-Migrate
-- **Auth:** Firebase Admin SDK (public users), Flask-Login (admin)
-- **Admin:** Flask-Admin with Bootstrap3 (Jinja2 templates)
-- **External Services:** AWS S3 (audio storage), Gmail SMTP (error reports)
+- **Auth:** Firebase Admin SDK (public users), Flask-Login (legacy admin)
+- **RBAC:** `role` column on `public_user` — `user` / `moderator` / `admin`
+- **Admin (new):** Custom React admin panel at `/dashboard/*` with Firebase auth + role check
+- **Admin (legacy):** Flask-Admin at `/admin/` with Flask-Login (still functional)
+- **External Services:** AWS S3 (audio storage), Gmail SMTP (error reports), yt-dlp + ffmpeg (audio pipeline)
 - **Deployment:** Gunicorn on Heroku
 
 ### Frontend (React SPA)
@@ -21,6 +23,9 @@ Riyadh Taraweeh is a Flask + React web application serving as a directory of Tar
 - **Framework:** React 19 + TypeScript
 - **Styling:** Tailwind CSS 3.4 + tailwindcss-rtl
 - **Components:** shadcn/ui (Radix primitives)
+- **Data Tables:** TanStack Table (admin panel)
+- **Forms:** react-hook-form (admin panel)
+- **Audio:** wavesurfer.js + RegionsPlugin (admin audio trimming)
 - **Routing:** react-router-dom v7
 - **Data Fetching:** TanStack Query (React Query)
 - **Auth:** Firebase Auth (Google/phone sign-in)
@@ -63,9 +68,11 @@ python extract_coordinates.py  # Extract GPS from Google Maps links
 ```
 [Browser] → [Flask Server]
               │
-              ├─→ /api/*           → JSON responses (API)
+              ├─→ /api/*           → JSON responses (public API)
+              ├─→ /api/admin/*     → Admin API (Firebase auth + role check)
               ├─→ /static/*        → Audio, images (Flask static)
-              ├─→ /admin/*         → Flask-Admin (Jinja2)
+              ├─→ /admin/*         → Flask-Admin legacy (Jinja2, Flask-Login)
+              ├─→ /dashboard/*     → React admin panel SPA
               ├─→ /assets/*        → React JS/CSS (from frontend/dist/)
               └─→ /* (other)       → React SPA (frontend/dist/index.html)
 ```
@@ -83,33 +90,38 @@ Flask app serving both API and React SPA:
 - Favorites routes: `/api/user/favorites`
 - Tracker routes: `/api/user/tracker`
 - Public profile: `/api/u/<username>`, `/api/u/<username>/tracker`
-- Admin routes: `/admin/`, `/login`, `/admin/upload-audio`, `/admin/mosque/swap-imam/<id>`
+- Legacy admin routes: `/admin/`, `/login`, `/admin/upload-audio`, `/admin/mosque/swap-imam/<id>`
+- New admin API: `/api/admin/stats`, `/api/admin/mosques`, `/api/admin/imams`, `/api/admin/transfers`, `/api/admin/users`, `/api/admin/audio/*`
+- Dashboard catch-all: `/dashboard`, `/dashboard/<path:path>` → React SPA
 
 ### Frontend (`frontend/src/`)
 
 ```
 src/
-├── App.tsx              # Providers (Query, Audio, Favorites, Auth) + Routes
+├── App.tsx              # Providers (Query, Audio, Favorites, Auth) + Routes (public + admin)
 ├── index.css            # Tailwind + CSS variables + animations
 ├── lib/
 │   ├── api.ts           # fetchMosques, searchMosques, fetchLocations, etc.
+│   ├── admin-api.ts     # Admin API client (CRUD mosques/imams/transfers/users, audio pipeline)
 │   ├── arabic-utils.ts  # normalizeArabic, formatDistance, formatArabicDate
 │   ├── firebase.ts      # Firebase Auth config
 │   └── utils.ts         # cn() utility
 ├── hooks/
 │   ├── use-mosques.ts   # TanStack Query hooks (useMosques, useSearchMosques, useLocations, etc.)
+│   ├── use-admin.ts     # Admin TanStack Query hooks (CRUD, audio extract/trim)
 │   ├── use-audio-player.ts
-│   ├── use-auth.ts      # Firebase auth state
+│   ├── use-auth.ts      # Firebase auth state (includes role)
 │   ├── use-favorites.ts
 │   ├── use-geolocation.ts
 │   ├── use-debounce.ts
 │   └── use-media-query.ts
 ├── context/
 │   ├── AudioContext.tsx     # Global audio state, progress, seek
-│   ├── AuthContext.tsx      # Firebase auth provider
+│   ├── AuthContext.tsx      # Firebase auth provider (includes user.role)
 │   └── FavoritesContext.tsx # Server-synced favorites (auth) + localStorage fallback
 ├── components/
-│   ├── ui/              # shadcn/ui (button, card, dialog, select, sheet, etc.)
+│   ├── ui/              # shadcn/ui (button, card, dialog, select, sheet, table, form, etc.)
+│   ├── admin/           # Admin panel components (see below)
 │   ├── layout/          # Header, Footer, MobileMenu, ScrollToTop
 │   ├── mosque/          # MosqueCard, MosqueGrid, FavoriteButton
 │   ├── search/          # SearchBar, AreaFilter, ProximityButton, HeroBanner
@@ -118,15 +130,33 @@ src/
 │   ├── seo/             # SEO components
 │   ├── PageLoader.tsx
 │   └── ErrorFallback.tsx
+├── components/admin/
+│   ├── AdminGuard.tsx       # Role-based route protection (admin/moderator only)
+│   ├── AdminSidebar.tsx     # RTL sidebar navigation with gold/green theme
+│   ├── AdminHeader.tsx      # Top bar with user info, logout, back-to-site
+│   ├── DataTable.tsx        # Reusable TanStack Table wrapper (sort, search, pagination)
+│   ├── AudioPipeline.tsx    # URL → yt-dlp extract → wavesurfer.js waveform → trim → S3
+│   └── MosqueForm.tsx       # Combined mosque+imam+audio create/edit form
 └── pages/
     ├── HomePage.tsx          # Search, area/district filters, proximity, favorites toggle
     ├── MosqueDetailPage.tsx  # Individual mosque page
     ├── FavoritesPage.tsx     # User favorites with area/district filters
     ├── TrackerPage.tsx       # Nightly attendance tracker (30 nights)
     ├── ProfilePage.tsx       # Public user profile
+    ├── LeaderboardPage.tsx   # Contributors leaderboard
+    ├── MapPage.tsx           # Interactive map view
     ├── AboutPage.tsx
     ├── ContactPage.tsx
-    └── NotFoundPage.tsx
+    ├── MakkahSchedulePage.tsx
+    ├── NotFoundPage.tsx
+    └── admin/
+        ├── AdminLayout.tsx      # Sidebar + header + Outlet wrapper
+        ├── DashboardPage.tsx    # Stats overview (4 cards)
+        ├── MosquesPage.tsx      # Mosques data table + CRUD
+        ├── MosqueFormPage.tsx   # Create/edit mosque form
+        ├── ImamsPage.tsx        # Imams data table
+        ├── TransfersPage.tsx    # Transfer requests (approve/reject)
+        └── UsersPage.tsx        # User management + role assignment
 ```
 
 ### Database Models (`models.py`)
@@ -134,7 +164,7 @@ src/
 - **Mosque:** name, location (district/neighborhood), area (شمال/شرق/غرب/جنوب), map_link, latitude, longitude
 - **Imam:** name, audio_sample, youtube_link, foreign key to Mosque
 - **User:** Admin authentication with password hashing (Flask-Login)
-- **PublicUser:** Firebase-authed public users (firebase_uid, username, display_name, avatar_url, email, phone)
+- **PublicUser:** Firebase-authed public users (firebase_uid, username, display_name, avatar_url, email, phone, **role**)
 - **UserFavorite:** User-mosque favorites (user_id, mosque_id, unique constraint)
 - **TaraweehAttendance:** Nightly attendance tracking (user_id, night 1-30, optional mosque_id)
 
@@ -146,7 +176,9 @@ src/
 | Database models | `models.py` |
 | Arabic text normalization | `utils.py` |
 | React app entry | `frontend/src/App.tsx` |
-| API client | `frontend/src/lib/api.ts` |
+| Public API client | `frontend/src/lib/api.ts` |
+| Admin API client | `frontend/src/lib/admin-api.ts` |
+| Admin query hooks | `frontend/src/hooks/use-admin.ts` |
 | Firebase config | `frontend/src/lib/firebase.ts` |
 | TypeScript types | `frontend/src/types/index.ts` |
 | Tailwind config | `frontend/tailwind.config.ts` |
@@ -161,7 +193,8 @@ src/
 - **Favorites:** Heart icon, Firebase-synced (with localStorage fallback), header badge, dedicated page with filters
 - **Tracker:** 30-night Ramadan attendance tracker with streaks
 - **Auth:** Firebase (Google/phone), public profiles at `/u/<username>`
-- **Admin:** Flask-Admin with imam swap, audio upload to S3
+- **Admin (new):** React admin panel at `/dashboard/*` — CRUD mosques/imams, transfer moderation, user roles, audio pipeline (yt-dlp → wavesurfer.js → ffmpeg → S3)
+- **Admin (legacy):** Flask-Admin at `/admin/` with imam swap, audio upload to S3
 - **SEO:** Meta tags, structured data (JSON-LD), sitemap
 
 ## Environment Variables
@@ -259,4 +292,6 @@ SELECT location FROM mosque WHERE location LIKE '%ه' AND location NOT LIKE '%ا
 - **Old templates:** Kept in `/templates/` for admin only; public pages use React
 - **Heroku:** Root `package.json` has `heroku-postbuild` to build React
 - **Local DB:** Use `heroku pg:pull` to clone production (requires PostgreSQL 16 client tools)
-- **Data:** 118 mosques, 4 areas, 59 distinct locations (neighborhoods), 119 imams
+- **Data:** 119 mosques, 4 areas, 59 distinct locations (neighborhoods), 119 imams
+- **RBAC:** `public_user.role` column: `user` (default), `moderator`, `admin`. Admin/moderator access `/dashboard/*`. Set role via `UPDATE public_user SET role='admin' WHERE username='...'`
+- **Heroku buildpacks:** Node.js → Python (ffmpeg buildpack needed for audio pipeline: `heroku buildpacks:add --index 1 https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git`)
