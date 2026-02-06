@@ -151,8 +151,8 @@ Sitemap: https://taraweeh.org/sitemap.xml
 | Document | Last Major Update | Completeness |
 |----------|-------------------|-------------|
 | `CLAUDE.md` | 2026-02-06 (admin panel) | ~90% current — includes admin panel, RBAC, audio pipeline, all pages/components |
-| `docs/06_ADMIN_SYSTEM.md` | 2026-02-06 (admin panel) | ~95% current — documents both new React admin and legacy Flask-Admin |
-| `docs/05_MEDIA_PIPELINE.md` | 2026-02-06 (admin panel) | ~95% current — includes new audio pipeline (yt-dlp + wavesurfer.js) |
+| `docs/06_ADMIN_SYSTEM.md` | 2026-02-06 (admin panel, audio upload-file endpoint) | ~98% current — documents both admin interfaces, audio pipeline with 3 input methods |
+| `docs/05_MEDIA_PIPELINE.md` | 2026-02-06 (file upload, S3 ACL fix) | ~98% current — includes all 3 audio input methods, YouTube limitation |
 | `docs/04_DATABASE_SCHEMA.md` | 2026-02-06 (role column) | ~95% current — includes `role` column on public_user |
 
 ---
@@ -161,7 +161,7 @@ Sitemap: https://taraweeh.org/sitemap.xml
 
 1. ~~**Update CLAUDE.md** to include: transfer system, leaderboard, MapPage, MakkahSchedulePage, all new hooks/components~~ **DONE** (2026-02-06): CLAUDE.md updated with admin panel, RBAC, all pages/hooks/components
 2. **Fix leaderboard meta tag** in `app.py` from "المتصدرون" to "المساهمون"
-3. **Add `rakaat` field** to PROJECT_STATUS.md schema diagram
-4. **Clarify debounce timing** in PROJECT_STATUS.md (300ms is imam search only)
+3. ~~**Add `rakaat` field** to PROJECT_STATUS.md schema diagram~~ PROJECT_STATUS.md deleted (redundant with docs/)
+4. ~~**Clarify debounce timing** in PROJECT_STATUS.md~~ PROJECT_STATUS.md deleted
 5. **Move `User` model** to models.py or document its location explicitly
-6. **Split `app.py`** into Blueprints — now ~2100 lines after admin API addition (critical debt)
+6. **Split `app.py`** into Blueprints — now ~2150 lines after admin API + audio file upload (critical debt)

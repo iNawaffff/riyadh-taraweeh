@@ -50,11 +50,14 @@ All admin API endpoints use the `@admin_or_moderator_required` decorator which:
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| POST | `/api/admin/audio/extract` | Extract audio from YouTube/Twitter URL via yt-dlp |
+| POST | `/api/admin/audio/extract` | Extract audio from Twitter/X URL via yt-dlp |
+| POST | `/api/admin/audio/upload-file` | Upload audio file directly (MP3/M4A/WAV/OGG/WebM/AAC) |
 | GET | `/api/admin/audio/temp/<id>` | Serve temp audio file for waveform preview |
-| POST | `/api/admin/audio/trim-upload` | Trim audio (start/end ms) + upload to S3 |
+| POST | `/api/admin/audio/trim-upload` | Trim audio (start/end ms) + optional filename + upload to S3 |
 
-**Flow:** Paste URL → yt-dlp extracts full audio → wavesurfer.js displays waveform → user drags region → ffmpeg trims → upload to S3 → S3 URL saved to imam.
+**Flow:** Paste URL or upload file → temp audio saved → wavesurfer.js displays waveform → user drags region → optionally names file → ffmpeg trims → upload to S3 → S3 URL saved to imam.
+
+**Note:** YouTube extraction is blocked on Heroku (datacenter IP). Use file upload for YouTube content.
 
 ### Frontend Pages
 
@@ -340,7 +343,7 @@ def upload_audio_to_s3(file):
         aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
         region_name=region)
 
-    s3.upload_fileobj(file, bucket, key, ExtraArgs={"ACL": "public-read"})
+    s3.upload_fileobj(file, bucket, key, ExtraArgs={"ContentType": "audio/mpeg"})
     return f"https://{bucket}.s3.{region}.amazonaws.com/{key}"
 ```
 

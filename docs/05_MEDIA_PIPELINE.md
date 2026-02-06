@@ -52,11 +52,11 @@ static/audio/
 
 **Bucket:** `imams-riyadh-audio`
 **Region:** `eu-north-1` (default)
-**ACL:** `public-read`
+**ACL:** Disabled (Bucket owner enforced). Public access via bucket policy.
 
-**Upload path:** `audio/{uuid}.{extension}`
-- UUID generated at upload time
-- Extension preserved from original file
+**Upload path:** `audio/{filename}.mp3` or `audio/{uuid}.mp3`
+- If admin provides a filename: sanitized (lowercase, hyphens, alphanumeric) → `audio/{filename}.mp3`
+- If no filename: UUID generated → `audio/{uuid}.mp3`
 
 **URL format:** `https://imams-riyadh-audio.s3.us-east-1.amazonaws.com/audio/{uuid}.mp3`
 
@@ -82,28 +82,48 @@ else → prepend "/static/audio/" (local filename only)
 
 ### Via New Admin Panel (React — Recommended)
 
-The new admin panel at `/dashboard/mosques/new` or `/dashboard/mosques/:id/edit` includes an integrated audio pipeline:
+The new admin panel at `/dashboard/mosques/new` or `/dashboard/mosques/:id/edit` includes an integrated audio pipeline with **3 input methods**:
+
+#### Method 1: URL Extraction (Twitter/X)
 
 ```
-1. Admin pastes YouTube/Twitter URL in AudioPipeline component
+1. Admin pastes Twitter/X URL in AudioPipeline component
 2. Clicks "استخراج" (Extract)
 3. Backend: POST /api/admin/audio/extract
    → yt-dlp extracts audio → saves to temp file → returns temp_id + duration_ms
 4. Frontend loads temp audio into wavesurfer.js waveform
 5. Admin drags region handles to select ~40s segment
-6. Admin clicks "معاينة المقطع" to preview selected region
-7. Admin clicks "رفع إلى S3" (Upload to S3)
-8. Backend: POST /api/admin/audio/trim-upload
+6. Admin optionally enters a filename (e.g., "abdulaziz-aldamgh")
+7. Admin clicks "معاينة المقطع" to preview selected region
+8. Admin clicks "رفع إلى S3" (Upload to S3)
+9. Backend: POST /api/admin/audio/trim-upload
    → ffmpeg trims temp file → uploads to S3 → returns s3_url
-9. S3 URL auto-fills the imam's audio_sample field in MosqueForm
+10. S3 URL auto-fills the imam's audio_sample field in MosqueForm
 ```
 
+**Note:** YouTube extraction is blocked on Heroku (datacenter IP detection). Use Method 2 for YouTube content.
+
+#### Method 2: Direct File Upload (for YouTube or local files)
+
+```
+1. Admin downloads audio locally (e.g., via yt-dlp CLI on their machine)
+2. Clicks "اختر ملف صوتي" (Choose audio file) in AudioPipeline
+3. Selects MP3, M4A, WAV, OGG, WebM, or AAC file
+4. Backend: POST /api/admin/audio/upload-file
+   → saves file (converts to MP3 if needed via ffmpeg) → returns temp_id + duration_ms
+5. Same waveform → trim → name → S3 upload flow as Method 1
+```
+
+#### Method 3: Direct URL (manual)
+
+Admin pastes an existing S3 URL directly in the "رابط مباشر للملف الصوتي" field.
+
 **Dependencies:**
-- `yt-dlp` (pip) — audio extraction from YouTube, Twitter/X
-- `ffmpeg` (system/buildpack) — audio trimming
+- `yt-dlp` (pip) — audio extraction from Twitter/X URLs
+- `ffmpeg` (system/buildpack) — audio trimming and format conversion
 - Heroku buildpack: `https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git`
 
-**Fallback:** Admin can also paste a direct S3 URL manually in the "رابط مباشر للملف الصوتي" field.
+**Known limitation:** YouTube blocks Heroku's datacenter IPs. Twitter/X works fine from server. For YouTube, admin must download locally and use file upload.
 
 ### Via Legacy Admin Panel (Flask-Admin)
 
