@@ -72,6 +72,36 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
 // Phone sign-in
 let recaptchaVerifier: import('firebase/auth').RecaptchaVerifier | null = null
 
+/**
+ * Fully reset reCAPTCHA state - clears verifier, widget, and recreates the container element.
+ * This is more aggressive than just calling clear() because Firebase can leave internal state.
+ */
+export function resetRecaptcha() {
+  // Clear the verifier object
+  if (recaptchaVerifier) {
+    try { recaptchaVerifier.clear() } catch { /* ignore */ }
+    recaptchaVerifier = null
+  }
+
+  // Completely recreate the container element to clear any residual reCAPTCHA DOM state
+  const container = document.getElementById('recaptcha-container')
+  if (container) {
+    const parent = container.parentElement
+    if (parent) {
+      const newContainer = document.createElement('div')
+      newContainer.id = 'recaptcha-container'
+      parent.replaceChild(newContainer, container)
+    } else {
+      container.innerHTML = ''
+    }
+  }
+
+  // Also clear any reCAPTCHA iframes that might have been injected elsewhere
+  document.querySelectorAll('iframe[src*="recaptcha"]').forEach(el => {
+    try { el.remove() } catch { /* ignore */ }
+  })
+}
+
 export async function sendPhoneOtp(
   phoneNumber: string,
   elementId: string
@@ -79,34 +109,42 @@ export async function sendPhoneOtp(
   const authModule = await loadAuthModule()
   const authInstance = await getAuth()
 
-  // Clear previous verifier
-  if (recaptchaVerifier) {
-    try { recaptchaVerifier.clear() } catch { /* ignore */ }
-    recaptchaVerifier = null
-  }
-  const container = document.getElementById(elementId)
-  if (container) container.innerHTML = ''
+  // Always do a full reset before creating a new verifier
+  resetRecaptcha()
 
-  recaptchaVerifier = new authModule.RecaptchaVerifier(authInstance, elementId, { size: 'invisible' })
+  // Small delay to ensure DOM is settled after reset
+  await new Promise(resolve => setTimeout(resolve, 100))
+
+  const container = document.getElementById(elementId)
+  if (!container) {
+    throw new Error('reCAPTCHA container not found')
+  }
+
+  recaptchaVerifier = new authModule.RecaptchaVerifier(authInstance, elementId, {
+    size: 'invisible',
+    callback: () => {
+      // reCAPTCHA solved - will proceed with signInWithPhoneNumber
+    },
+    'expired-callback': () => {
+      // reCAPTCHA expired - reset for next attempt
+      resetRecaptcha()
+    },
+  })
+
   try {
+    // Render the reCAPTCHA widget explicitly to catch render errors early
+    await recaptchaVerifier.render()
+
     return await withTimeout(
       authModule.signInWithPhoneNumber(authInstance, phoneNumber, recaptchaVerifier),
       15000,
       'تعذر التحقق، تأكد من اتصالك بالإنترنت'
     )
   } catch (error) {
+    // Always reset on any error to allow clean retry
     resetRecaptcha()
     throw error
   }
-}
-
-export function resetRecaptcha() {
-  if (recaptchaVerifier) {
-    try { recaptchaVerifier.clear() } catch { /* ignore */ }
-    recaptchaVerifier = null
-  }
-  const container = document.getElementById('recaptcha-container')
-  if (container) container.innerHTML = ''
 }
 
 export async function firebaseSignOut() {

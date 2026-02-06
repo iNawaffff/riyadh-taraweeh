@@ -81,6 +81,8 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
   const submitButtonRef = useRef<HTMLButtonElement>(null)
   const [animatingOut, setAnimatingOut] = useState(false)
   const [shakeError, setShakeError] = useState(false)
+  const [phoneAttempts, setPhoneAttempts] = useState(0)
+  const MAX_PHONE_ATTEMPTS = 3
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -123,6 +125,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
     setCountdown(0)
     setAnimatingOut(false)
     setShakeError(false)
+    setPhoneAttempts(0)
     resetRecaptcha()
   }, [])
 
@@ -162,32 +165,67 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
       setError('أدخل رقم جوال صحيح يبدأ بـ ٥')
       return
     }
+
+    // Check if max attempts reached
+    if (phoneAttempts >= MAX_PHONE_ATTEMPTS) {
+      setError('محاولات كثيرة، أغلق النافذة وحاول مرة أخرى')
+      return
+    }
+
     setLoading(true)
     setError('')
+    setPhoneAttempts(prev => prev + 1)
+
     try {
       const result = await signInWithPhone(fullPhone, 'recaptcha-container')
       setConfirmResult(result)
+      setPhoneAttempts(0) // Reset attempts on success
       transitionTo('otp')
       setCountdown(30)
     } catch (e) {
       const msg = getFirebaseError(e)
-      if (msg) setError(msg)
+      if (msg) {
+        // Add attempt info if not at max yet
+        const remaining = MAX_PHONE_ATTEMPTS - phoneAttempts
+        if (remaining > 0 && remaining < MAX_PHONE_ATTEMPTS) {
+          setError(`${msg} (${toArabicNum(remaining)} محاولات متبقية)`)
+        } else if (remaining <= 0) {
+          setError('محاولات كثيرة، أغلق النافذة وحاول مرة أخرى')
+        } else {
+          setError(msg)
+        }
+      }
     } finally {
       setLoading(false)
     }
   }
 
   const handleResendOtp = async () => {
+    // Check if max attempts reached
+    if (phoneAttempts >= MAX_PHONE_ATTEMPTS) {
+      setError('محاولات كثيرة، أغلق النافذة وحاول مرة أخرى')
+      return
+    }
+
     setLoading(true)
     setError('')
     setOtpCode('')
+    setPhoneAttempts(prev => prev + 1)
+
     try {
       const result = await signInWithPhone(fullPhone, 'recaptcha-container')
       setConfirmResult(result)
       setCountdown(30)
     } catch (e) {
       const msg = getFirebaseError(e)
-      if (msg) setError(msg)
+      if (msg) {
+        const remaining = MAX_PHONE_ATTEMPTS - phoneAttempts
+        if (remaining <= 0) {
+          setError('محاولات كثيرة، أغلق النافذة وحاول مرة أخرى')
+        } else {
+          setError(msg)
+        }
+      }
     } finally {
       setLoading(false)
     }
@@ -248,13 +286,29 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
         {error && (
           <div
             className={cn(
-              'mx-1 mb-5 flex items-center gap-3 rounded-2xl bg-destructive/10 p-4 text-destructive',
+              'mx-1 mb-5 rounded-2xl bg-destructive/10 p-4 text-destructive',
               'animate-in fade-in slide-in-from-top-2 duration-300',
               shakeError && 'animate-shake'
             )}
           >
-            <AlertCircle className="h-6 w-6 shrink-0" />
-            <p className="text-sm font-semibold">{error}</p>
+            <div className="flex items-center gap-3">
+              <AlertCircle className="h-6 w-6 shrink-0" />
+              <p className="text-sm font-semibold">{error}</p>
+            </div>
+            {/* Show reset button when max attempts reached */}
+            {phoneAttempts >= MAX_PHONE_ATTEMPTS && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPhoneAttempts(0)
+                  setError('')
+                  resetRecaptcha()
+                }}
+                className="mt-3 w-full rounded-xl bg-destructive/20 py-2 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/30"
+              >
+                إعادة المحاولة من جديد
+              </button>
+            )}
           </div>
         )}
 
