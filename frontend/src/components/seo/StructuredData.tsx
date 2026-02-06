@@ -90,14 +90,17 @@ interface MosqueStructuredDataProps {
 export function MosqueStructuredData({ mosque }: MosqueStructuredDataProps) {
   const mosqueSchema = {
     '@context': 'https://schema.org',
-    '@type': 'PlaceOfWorship',
+    '@type': 'Mosque',  // More specific than PlaceOfWorship
     name: mosque.name,
     address: {
       '@type': 'PostalAddress',
-      addressLocality: 'الرياض',
-      addressRegion: mosque.area,
+      addressLocality: mosque.location || 'الرياض',
+      addressRegion: mosque.area ? `${mosque.area} الرياض` : 'الرياض',
+      addressCountry: 'SA',
     },
-    description: `مسجد ${mosque.name} هو أحد المساجد المميزة في منطقة ${mosque.area} بمدينة الرياض، ويُعرف بموقعه المتميز وسهولة الوصول إليه.`,
+    description: mosque.imam
+      ? `${mosque.name} - إمام التراويح: ${mosque.imam} - حي ${mosque.location}`
+      : `${mosque.name} - حي ${mosque.location}`,
     ...(mosque.map_link && { hasMap: mosque.map_link }),
     ...(mosque.latitude && mosque.longitude && {
       geo: {
@@ -110,16 +113,49 @@ export function MosqueStructuredData({ mosque }: MosqueStructuredDataProps) {
       employee: {
         '@type': 'Person',
         name: mosque.imam,
-        jobTitle: 'إمام',
+        jobTitle: 'إمام التراويح',
       },
     }),
     url: `${BASE_URL}/mosque/${mosque.id}`,
+    isAccessibleForFree: true,
+    publicAccess: true,
   }
 
   return (
     <Helmet>
       <script type="application/ld+json">
         {JSON.stringify(mosqueSchema)}
+      </script>
+    </Helmet>
+  )
+}
+
+// Breadcrumb structured data for navigation
+interface BreadcrumbItem {
+  name: string
+  url: string
+}
+
+interface BreadcrumbStructuredDataProps {
+  items: BreadcrumbItem[]
+}
+
+export function BreadcrumbStructuredData({ items }: BreadcrumbStructuredDataProps) {
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      item: item.url.startsWith('http') ? item.url : `${BASE_URL}${item.url}`,
+    })),
+  }
+
+  return (
+    <Helmet>
+      <script type="application/ld+json">
+        {JSON.stringify(breadcrumbSchema)}
       </script>
     </Helmet>
   )
