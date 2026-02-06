@@ -1,11 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import WaveSurfer from 'wavesurfer.js'
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.js'
-import { Download, Play, Pause, Upload, Loader2, Music } from 'lucide-react'
+import { Download, Play, Pause, Upload, Loader2, Music, FileAudio } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/hooks/use-auth'
-import { useExtractAudio, useTrimAndUpload } from '@/hooks/use-admin'
+import { useExtractAudio, useUploadAudioFile, useTrimAndUpload } from '@/hooks/use-admin'
 import { getTempAudioUrl } from '@/lib/admin-api'
 import { cn } from '@/lib/utils'
 
@@ -37,7 +37,10 @@ export default function AudioPipeline({ value, onChange }: AudioPipelineProps) {
   const regionsRef = useRef<RegionsPlugin | null>(null)
 
   const extractAudio = useExtractAudio()
+  const uploadFile = useUploadAudioFile()
   const trimUpload = useTrimAndUpload()
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Clean up wavesurfer on unmount
   useEffect(() => {
@@ -46,77 +49,92 @@ export default function AudioPipeline({ value, onChange }: AudioPipelineProps) {
     }
   }, [])
 
+  // Shared: initialize waveform after getting a temp_id
+  const initWaveform = useCallback(async (newTempId: string, durationMs: number) => {
+    setTempId(newTempId)
+    setDurationMs(durationMs)
+    setRegionStart(0)
+    setRegionEnd(Math.min(durationMs, 40000))
+
+    if (!waveformRef.current) return
+    wavesurferRef.current?.destroy()
+
+    const regions = RegionsPlugin.create()
+    regionsRef.current = regions
+
+    const ws = WaveSurfer.create({
+      container: waveformRef.current,
+      waveColor: '#0d4b33',
+      progressColor: '#c4a052',
+      cursorColor: '#c4a052',
+      barWidth: 2,
+      barRadius: 2,
+      barGap: 1.5,
+      height: 80,
+      normalize: true,
+      plugins: [regions],
+    })
+
+    // Fetch audio with auth token, then load as blob
+    const audioUrl = getTempAudioUrl(newTempId)
+    try {
+      const resp = await fetch(audioUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!resp.ok) throw new Error('Failed to load audio')
+      const blob = await resp.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      ws.load(blobUrl)
+    } catch {
+      ws.load(audioUrl)
+    }
+
+    ws.on('ready', () => {
+      const dur = ws.getDuration()
+      const endSec = Math.min(dur, 40)
+      regions.addRegion({
+        id: 'trim',
+        start: 0,
+        end: endSec,
+        color: 'rgba(196, 160, 82, 0.15)',
+        drag: true,
+        resize: true,
+      })
+    })
+
+    ws.on('play', () => setIsPlaying(true))
+    ws.on('pause', () => setIsPlaying(false))
+
+    regions.on('region-updated', (region) => {
+      setRegionStart(Math.round(region.start * 1000))
+      setRegionEnd(Math.round(region.end * 1000))
+    })
+
+    wavesurferRef.current = ws
+  }, [token])
+
   const handleExtract = useCallback(async () => {
     if (!videoUrl.trim()) return
     try {
       const result = await extractAudio.mutateAsync(videoUrl.trim())
-      setTempId(result.temp_id)
-      setDurationMs(result.duration_ms)
-      setRegionStart(0)
-      setRegionEnd(Math.min(result.duration_ms, 40000))
-
-      // Initialize wavesurfer
-      if (waveformRef.current) {
-        wavesurferRef.current?.destroy()
-
-        const regions = RegionsPlugin.create()
-        regionsRef.current = regions
-
-        const ws = WaveSurfer.create({
-          container: waveformRef.current,
-          waveColor: '#0d4b33',
-          progressColor: '#c4a052',
-          cursorColor: '#c4a052',
-          barWidth: 2,
-          barRadius: 2,
-          barGap: 1.5,
-          height: 80,
-          normalize: true,
-          plugins: [regions],
-        })
-
-        // Fetch audio with auth token, then load as blob
-        const audioUrl = getTempAudioUrl(result.temp_id)
-        try {
-          const resp = await fetch(audioUrl, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          if (!resp.ok) throw new Error('Failed to load audio')
-          const blob = await resp.blob()
-          const blobUrl = URL.createObjectURL(blob)
-          ws.load(blobUrl)
-        } catch {
-          // If fetch fails, try direct load as fallback
-          ws.load(audioUrl)
-        }
-
-        ws.on('ready', () => {
-          const dur = ws.getDuration()
-          const endSec = Math.min(dur, 40)
-          regions.addRegion({
-            id: 'trim',
-            start: 0,
-            end: endSec,
-            color: 'rgba(196, 160, 82, 0.15)',
-            drag: true,
-            resize: true,
-          })
-        })
-
-        ws.on('play', () => setIsPlaying(true))
-        ws.on('pause', () => setIsPlaying(false))
-
-        regions.on('region-updated', (region) => {
-          setRegionStart(Math.round(region.start * 1000))
-          setRegionEnd(Math.round(region.end * 1000))
-        })
-
-        wavesurferRef.current = ws
-      }
+      await initWaveform(result.temp_id, result.duration_ms)
     } catch {
       // Error handled by mutation state
     }
-  }, [videoUrl, extractAudio])
+  }, [videoUrl, extractAudio, initWaveform])
+
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const result = await uploadFile.mutateAsync(file)
+      await initWaveform(result.temp_id, result.duration_ms)
+    } catch {
+      // Error handled by mutation state
+    }
+    // Reset input so same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }, [uploadFile, initWaveform])
 
   const handlePlayPause = useCallback(() => {
     const ws = wavesurferRef.current
@@ -204,20 +222,57 @@ export default function AudioPipeline({ value, onChange }: AudioPipelineProps) {
         )}
       </div>
 
+      {/* File upload */}
+      <div className="space-y-2">
+        <label className="font-tajawal text-xs text-[#0d4b33]/50">
+          أو: رفع ملف صوتي مباشرة (MP3, M4A, WAV, OGG)
+        </label>
+        <div className="flex gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".mp3,.m4a,.wav,.ogg,.webm,.aac,audio/*"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadFile.isPending}
+            className="border-[#0d4b33]/10 font-tajawal text-sm hover:bg-[#0d4b33]/5"
+          >
+            {uploadFile.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <FileAudio className="h-4 w-4" />
+            )}
+            {uploadFile.isPending ? 'جاري الرفع...' : 'اختر ملف صوتي'}
+          </Button>
+        </div>
+        {uploadFile.isError && (
+          <p className="font-tajawal text-xs text-red-500">
+            {uploadFile.error.message}
+          </p>
+        )}
+      </div>
+
       {/* Waveform display */}
-      {(tempId || extractAudio.isPending) && (
+      {(tempId || extractAudio.isPending || uploadFile.isPending) && (
         <div className="space-y-3">
           <div
             ref={waveformRef}
             className={cn(
               'min-h-[80px] overflow-hidden rounded-lg border border-[#0d4b33]/[0.06] bg-white',
-              extractAudio.isPending && 'flex items-center justify-center'
+              (extractAudio.isPending || uploadFile.isPending) && 'flex items-center justify-center'
             )}
           >
-            {extractAudio.isPending && (
+            {(extractAudio.isPending || uploadFile.isPending) && (
               <div className="flex flex-col items-center gap-2 py-6">
                 <Loader2 className="h-6 w-6 animate-spin text-[#c4a052]" />
-                <span className="font-tajawal text-xs text-[#0d4b33]/40">جاري استخراج الصوت...</span>
+                <span className="font-tajawal text-xs text-[#0d4b33]/40">
+                  {uploadFile.isPending ? 'جاري رفع الملف...' : 'جاري استخراج الصوت...'}
+                </span>
               </div>
             )}
           </div>

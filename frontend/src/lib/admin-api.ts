@@ -155,6 +155,20 @@ export async function extractAudio(token: string, url: string): Promise<AudioExt
   })
 }
 
+export async function uploadAudioFile(token: string, file: File): Promise<AudioExtractResult> {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await adminFetch(`${API_BASE}/audio/upload-file`, token, {
+    method: 'POST',
+    body: formData,
+  })
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: 'Upload failed' }))
+    throw new Error(err.error || `Upload failed: ${response.status}`)
+  }
+  return response.json()
+}
+
 export function getTempAudioUrl(tempId: string): string {
   return `${API_BASE}/audio/temp/${tempId}`
 }

@@ -2028,6 +2028,58 @@ def admin_audio_temp(temp_id):
                                mimetype="audio/mpeg")
 
 
+@app.route("/api/admin/audio/upload-file", methods=["POST"])
+@admin_or_moderator_required
+@limiter.limit("10 per minute")
+def admin_audio_upload_file():
+    """Accept a direct MP3/audio file upload, save as temp file for waveform/trim."""
+    file = request.files.get("file")
+    if not file or not file.filename:
+        return jsonify({"error": "لم يتم اختيار ملف"}), 400
+
+    # Validate file type
+    allowed_ext = {".mp3", ".m4a", ".wav", ".ogg", ".webm", ".aac"}
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in allowed_ext:
+        return jsonify({"error": f"نوع الملف غير مدعوم ({ext})"}), 400
+
+    temp_id = uuid.uuid4().hex
+    temp_dir = tempfile.gettempdir()
+    output_path = os.path.join(temp_dir, f"admin_audio_{temp_id}.mp3")
+
+    try:
+        if ext == ".mp3":
+            # Save directly
+            file.save(output_path)
+        else:
+            # Convert to mp3 via ffmpeg
+            raw_path = os.path.join(temp_dir, f"admin_audio_{temp_id}_raw{ext}")
+            file.save(raw_path)
+            subprocess.run(
+                ["ffmpeg", "-y", "-i", raw_path, "-vn", "-acodec", "libmp3lame",
+                 "-q:a", "2", output_path],
+                capture_output=True, text=True, timeout=120,
+            )
+            try:
+                os.remove(raw_path)
+            except OSError:
+                pass
+
+        # Get duration
+        probe = subprocess.run(
+            ["ffprobe", "-v", "quiet", "-show_entries", "format=duration",
+             "-of", "default=noprint_wrappers=1:nokey=1", output_path],
+            capture_output=True, text=True, timeout=30,
+        )
+        duration_ms = int(float(probe.stdout.strip()) * 1000) if probe.stdout.strip() else 0
+
+        return jsonify({"temp_id": temp_id, "duration_ms": duration_ms})
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "انتهت مهلة التحويل"}), 504
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/admin/audio/trim-upload", methods=["POST"])
 @admin_or_moderator_required
 def admin_audio_trim_upload():

@@ -16,6 +16,7 @@ import {
   fetchAdminUsers,
   updateUserRole,
   extractAudio,
+  uploadAudioFile,
   trimAndUploadAudio,
 } from '@/lib/admin-api'
 import type { UserRole } from '@/types'
@@ -184,6 +185,13 @@ export function useExtractAudio() {
   const { token } = useAuth()
   return useMutation({
     mutationFn: (url: string) => extractAudio(token!, url),
+  })
+}
+
+export function useUploadAudioFile() {
+  const { token } = useAuth()
+  return useMutation({
+    mutationFn: (file: File) => uploadAudioFile(token!, file),
   })
 }
 
