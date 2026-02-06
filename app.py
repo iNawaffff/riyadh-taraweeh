@@ -2016,10 +2016,15 @@ def admin_audio_extract():
 @app.route("/api/admin/audio/temp/<temp_id>")
 @admin_or_moderator_required
 def admin_audio_temp(temp_id):
-    info = _admin_temp_audio.get(temp_id)
-    if not info or not os.path.exists(info["path"]):
+    # Validate temp_id is a hex string (prevent path traversal)
+    if not temp_id.isalnum():
+        return jsonify({"error": "معرف غير صالح"}), 400
+    # Derive path from temp_id directly (survives dyno restarts)
+    temp_dir = tempfile.gettempdir()
+    path = os.path.join(temp_dir, f"admin_audio_{temp_id}.mp3")
+    if not os.path.exists(path):
         return jsonify({"error": "الملف غير موجود"}), 404
-    return send_from_directory(os.path.dirname(info["path"]), os.path.basename(info["path"]),
+    return send_from_directory(temp_dir, f"admin_audio_{temp_id}.mp3",
                                mimetype="audio/mpeg")
 
 
@@ -2028,25 +2033,35 @@ def admin_audio_temp(temp_id):
 def admin_audio_trim_upload():
     data = request.get_json() or {}
     temp_id = data.get("temp_id", "").strip()
+    if not temp_id.isalnum():
+        return jsonify({"error": "معرف غير صالح"}), 400
     start_ms = data.get("start_ms", 0)
     end_ms = data.get("end_ms")
 
-    info = _admin_temp_audio.get(temp_id)
-    if not info or not os.path.exists(info["path"]):
+    # Derive path from temp_id directly (survives dyno restarts)
+    temp_dir = tempfile.gettempdir()
+    source_path = os.path.join(temp_dir, f"admin_audio_{temp_id}.mp3")
+    if not os.path.exists(source_path):
         return jsonify({"error": "الملف غير موجود"}), 404
 
     if end_ms is None:
-        end_ms = info["duration_ms"]
+        # Get duration from file if not provided
+        probe = subprocess.run(
+            ["ffprobe", "-v", "quiet", "-show_entries", "format=duration",
+             "-of", "default=noprint_wrappers=1:nokey=1", source_path],
+            capture_output=True, text=True, timeout=30,
+        )
+        end_ms = int(float(probe.stdout.strip()) * 1000) if probe.stdout.strip() else 0
 
     start_sec = start_ms / 1000.0
     duration_sec = (end_ms - start_ms) / 1000.0
     if duration_sec <= 0:
         return jsonify({"error": "مدة غير صالحة"}), 400
 
-    trimmed_path = info["path"].replace(".mp3", "_trimmed.mp3")
+    trimmed_path = source_path.replace(".mp3", "_trimmed.mp3")
     try:
         subprocess.run(
-            ["ffmpeg", "-y", "-i", info["path"],
+            ["ffmpeg", "-y", "-i", source_path,
              "-ss", str(start_sec), "-t", str(duration_sec),
              "-c", "copy", trimmed_path],
             capture_output=True, text=True, timeout=60,
@@ -2077,12 +2092,11 @@ def admin_audio_trim_upload():
         s3_url = f"https://{bucket}.s3.{region}.amazonaws.com/{key}"
 
         # Clean up temp files
-        for path in [info["path"], trimmed_path]:
+        for p in [source_path, trimmed_path]:
             try:
-                os.remove(path)
+                os.remove(p)
             except OSError:
                 pass
-        _admin_temp_audio.pop(temp_id, None)
 
         return jsonify({"s3_url": s3_url})
     except subprocess.TimeoutExpired:
