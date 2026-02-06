@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
-import { Trash2, Music, Youtube } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Pencil, Trash2, Music, Youtube } from 'lucide-react'
 import { toast } from 'sonner'
 import { DataTable, type ColumnDef } from '@/components/admin/DataTable'
 import { Button } from '@/components/ui/button'
@@ -93,6 +94,14 @@ export default function ImamsPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="font-tajawal">
+              {row.original.mosque_id && (
+                <DropdownMenuItem asChild>
+                  <Link to={`/dashboard/mosques/${row.original.mosque_id}/edit`} className="flex items-center gap-2">
+                    <Pencil className="h-3.5 w-3.5" />
+                    تعديل
+                  </Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 className="flex items-center gap-2 text-red-600 focus:text-red-600"
                 onClick={() => handleDelete(row.original)}
