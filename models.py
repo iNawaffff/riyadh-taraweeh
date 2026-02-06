@@ -27,6 +27,7 @@ class PublicUser(db.Model):
     avatar_url = db.Column(db.String(500))
     email = db.Column(db.String(255))
     phone = db.Column(db.String(20))
+    role = db.Column(db.String(20), nullable=False, server_default='user')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     contribution_points = db.Column(db.Integer, default=0, nullable=False)

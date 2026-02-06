@@ -174,6 +174,33 @@ def firebase_auth_optional(f):
     return decorated
 
 
+def admin_or_moderator_required(f):
+    """Firebase auth + role check (admin or moderator)."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not firebase_app:
+            return jsonify({"error": "Auth not configured"}), 503
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return jsonify({"error": "Missing or invalid token"}), 401
+        token = auth_header[7:]
+        try:
+            decoded = firebase_auth.verify_id_token(token, check_revoked=True)
+        except RevokedIdTokenError:
+            return jsonify({"error": "Token revoked"}), 401
+        except CertificateFetchError:
+            return jsonify({"error": "Auth service temporarily unavailable"}), 503
+        except Exception:
+            return jsonify({"error": "Invalid or expired token"}), 401
+        user = PublicUser.query.filter_by(firebase_uid=decoded["uid"]).first()
+        if not user or user.role not in ("admin", "moderator"):
+            return jsonify({"error": "Forbidden"}), 403
+        g.firebase_decoded = decoded
+        g.current_public_user = user
+        return f(*args, **kwargs)
+    return decorated
+
+
 # username validation
 RESERVED_USERNAMES = {"admin", "api", "static", "login", "logout", "about", "contact", "mosque", "assets", "u", "s"}
 USERNAME_PATTERN = re.compile(r'^[\w\u0600-\u06FF]{3,30}$')
@@ -1006,6 +1033,7 @@ def auth_me():
         "display_name": user.display_name,
         "avatar_url": user.avatar_url,
         "email": user.email,
+        "role": user.role,
         "favorites": fav_ids,
     })
 
@@ -1547,6 +1575,510 @@ def reject_transfer(transfer_id):
     tr.reviewed_by = current_user.id
     db.session.commit()
     return jsonify({"success": True})
+
+
+# --- Dashboard (React admin panel) ---
+@app.route("/dashboard")
+@app.route("/dashboard/<path:path>")
+def serve_dashboard(path=None):
+    return serve_react_app({"title": "لوحة التحكم - أئمة التراويح"})
+
+
+# --- Admin API endpoints ---
+def _invalidate_caches():
+    """Invalidate all in-memory caches after admin write operations."""
+    global _imam_index_cache
+    _imam_index_cache = None
+    _api_response_cache.clear()
+
+
+@app.route("/api/admin/stats")
+@admin_or_moderator_required
+def admin_stats():
+    mosque_count = db.session.query(db.func.count(Mosque.id)).scalar()
+    imam_count = db.session.query(db.func.count(Imam.id)).scalar()
+    user_count = db.session.query(db.func.count(PublicUser.id)).scalar()
+    pending_transfers = db.session.query(db.func.count(ImamTransferRequest.id)).filter(
+        ImamTransferRequest.status == "pending"
+    ).scalar()
+    return jsonify({
+        "mosque_count": mosque_count,
+        "imam_count": imam_count,
+        "user_count": user_count,
+        "pending_transfers": pending_transfers,
+    })
+
+
+@app.route("/api/admin/mosques")
+@admin_or_moderator_required
+def admin_list_mosques():
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 50, type=int)
+    search = request.args.get("search", "").strip()
+    area = request.args.get("area", "").strip()
+
+    query = db.session.query(Mosque, Imam).outerjoin(Imam, Imam.mosque_id == Mosque.id)
+    if search:
+        normalized = normalize_arabic(search)
+        query = query.filter(
+            db.or_(
+                Mosque.name.ilike(f"%{search}%"),
+                Mosque.location.ilike(f"%{search}%"),
+                Imam.name.ilike(f"%{search}%"),
+            )
+        )
+    if area:
+        query = query.filter(Mosque.area == area)
+    query = query.order_by(Mosque.id.desc())
+    total = query.count()
+    pairs = query.offset((page - 1) * per_page).limit(per_page).all()
+    items = []
+    for mosque, imam in pairs:
+        items.append({
+            "id": mosque.id,
+            "name": mosque.name,
+            "location": mosque.location,
+            "area": mosque.area,
+            "map_link": mosque.map_link,
+            "latitude": mosque.latitude,
+            "longitude": mosque.longitude,
+            "imam_id": imam.id if imam else None,
+            "imam_name": imam.name if imam else None,
+            "audio_sample": imam.audio_sample if imam else None,
+            "youtube_link": imam.youtube_link if imam else None,
+        })
+    return jsonify({"items": items, "total": total, "page": page, "per_page": per_page})
+
+
+@app.route("/api/admin/mosques", methods=["POST"])
+@admin_or_moderator_required
+def admin_create_mosque():
+    data = request.get_json() or {}
+    name = data.get("name", "").strip()
+    location = data.get("location", "").strip()
+    area = data.get("area", "").strip()
+    if not name or not location or not area:
+        return jsonify({"error": "الاسم والموقع والمنطقة مطلوبة"}), 400
+    if area not in ("شمال", "جنوب", "شرق", "غرب"):
+        return jsonify({"error": "المنطقة غير صالحة"}), 400
+
+    mosque = Mosque(
+        name=name,
+        location=location,
+        area=area,
+        map_link=data.get("map_link", "").strip() or None,
+        latitude=data.get("latitude"),
+        longitude=data.get("longitude"),
+    )
+    db.session.add(mosque)
+    db.session.flush()
+
+    imam_name = data.get("imam_name", "").strip()
+    if imam_name:
+        imam = Imam(
+            name=imam_name,
+            mosque_id=mosque.id,
+            audio_sample=data.get("audio_sample", "").strip() or None,
+            youtube_link=data.get("youtube_link", "").strip() or None,
+        )
+        db.session.add(imam)
+
+    db.session.commit()
+    _invalidate_caches()
+    return jsonify({"id": mosque.id}), 201
+
+
+@app.route("/api/admin/mosques/<int:mosque_id>", methods=["PUT"])
+@admin_or_moderator_required
+def admin_update_mosque(mosque_id):
+    mosque = Mosque.query.get(mosque_id)
+    if not mosque:
+        return jsonify({"error": "غير موجود"}), 404
+    data = request.get_json() or {}
+
+    if "name" in data:
+        mosque.name = data["name"].strip()
+    if "location" in data:
+        mosque.location = data["location"].strip()
+    if "area" in data:
+        if data["area"] not in ("شمال", "جنوب", "شرق", "غرب"):
+            return jsonify({"error": "المنطقة غير صالحة"}), 400
+        mosque.area = data["area"]
+    if "map_link" in data:
+        mosque.map_link = data["map_link"].strip() or None
+    if "latitude" in data:
+        mosque.latitude = data["latitude"]
+    if "longitude" in data:
+        mosque.longitude = data["longitude"]
+
+    # Update or create imam
+    imam = Imam.query.filter_by(mosque_id=mosque.id).first()
+    imam_name = data.get("imam_name", "").strip() if "imam_name" in data else None
+    if imam_name is not None:
+        if imam_name:
+            if imam:
+                imam.name = imam_name
+            else:
+                imam = Imam(name=imam_name, mosque_id=mosque.id)
+                db.session.add(imam)
+        elif imam:
+            imam.mosque_id = None
+
+    if imam and "audio_sample" in data:
+        imam.audio_sample = data["audio_sample"].strip() or None
+    if imam and "youtube_link" in data:
+        imam.youtube_link = data["youtube_link"].strip() or None
+
+    db.session.commit()
+    _invalidate_caches()
+    return jsonify({"success": True})
+
+
+@app.route("/api/admin/mosques/<int:mosque_id>", methods=["DELETE"])
+@admin_or_moderator_required
+def admin_delete_mosque(mosque_id):
+    mosque = Mosque.query.get(mosque_id)
+    if not mosque:
+        return jsonify({"error": "غير موجود"}), 404
+    # Unassign imams
+    Imam.query.filter_by(mosque_id=mosque.id).update({"mosque_id": None})
+    # Remove favorites
+    UserFavorite.query.filter_by(mosque_id=mosque.id).delete()
+    # Remove attendance records
+    TaraweehAttendance.query.filter_by(mosque_id=mosque.id).update({"mosque_id": None})
+    db.session.delete(mosque)
+    db.session.commit()
+    _invalidate_caches()
+    return jsonify({"success": True})
+
+
+@app.route("/api/admin/imams")
+@admin_or_moderator_required
+def admin_list_imams():
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 50, type=int)
+    search = request.args.get("search", "").strip()
+
+    query = db.session.query(Imam, Mosque).outerjoin(Mosque, Imam.mosque_id == Mosque.id)
+    if search:
+        query = query.filter(Imam.name.ilike(f"%{search}%"))
+    query = query.order_by(Imam.id.desc())
+    total = query.count()
+    pairs = query.offset((page - 1) * per_page).limit(per_page).all()
+    items = []
+    for imam, mosque in pairs:
+        items.append({
+            "id": imam.id,
+            "name": imam.name,
+            "mosque_id": imam.mosque_id,
+            "mosque_name": mosque.name if mosque else None,
+            "audio_sample": imam.audio_sample,
+            "youtube_link": imam.youtube_link,
+        })
+    return jsonify({"items": items, "total": total, "page": page, "per_page": per_page})
+
+
+@app.route("/api/admin/imams", methods=["POST"])
+@admin_or_moderator_required
+def admin_create_imam():
+    data = request.get_json() or {}
+    name = data.get("name", "").strip()
+    if not name:
+        return jsonify({"error": "اسم الإمام مطلوب"}), 400
+    imam = Imam(
+        name=name,
+        mosque_id=data.get("mosque_id"),
+        audio_sample=data.get("audio_sample", "").strip() or None,
+        youtube_link=data.get("youtube_link", "").strip() or None,
+    )
+    db.session.add(imam)
+    db.session.commit()
+    _invalidate_caches()
+    return jsonify({"id": imam.id}), 201
+
+
+@app.route("/api/admin/imams/<int:imam_id>", methods=["PUT"])
+@admin_or_moderator_required
+def admin_update_imam(imam_id):
+    imam = Imam.query.get(imam_id)
+    if not imam:
+        return jsonify({"error": "غير موجود"}), 404
+    data = request.get_json() or {}
+    if "name" in data:
+        imam.name = data["name"].strip()
+    if "mosque_id" in data:
+        imam.mosque_id = data["mosque_id"]
+    if "audio_sample" in data:
+        imam.audio_sample = data["audio_sample"].strip() or None
+    if "youtube_link" in data:
+        imam.youtube_link = data["youtube_link"].strip() or None
+    db.session.commit()
+    _invalidate_caches()
+    return jsonify({"success": True})
+
+
+@app.route("/api/admin/imams/<int:imam_id>", methods=["DELETE"])
+@admin_or_moderator_required
+def admin_delete_imam(imam_id):
+    imam = Imam.query.get(imam_id)
+    if not imam:
+        return jsonify({"error": "غير موجود"}), 404
+    db.session.delete(imam)
+    db.session.commit()
+    _invalidate_caches()
+    return jsonify({"success": True})
+
+
+@app.route("/api/admin/transfers")
+@admin_or_moderator_required
+def admin_list_transfers():
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 50, type=int)
+    status_filter = request.args.get("status", "").strip()
+
+    query = ImamTransferRequest.query
+    if status_filter:
+        query = query.filter(ImamTransferRequest.status == status_filter)
+    query = query.order_by(ImamTransferRequest.created_at.desc())
+    total = query.count()
+    transfers = query.offset((page - 1) * per_page).limit(per_page).all()
+    items = []
+    for tr in transfers:
+        mosque = Mosque.query.get(tr.mosque_id)
+        submitter = PublicUser.query.get(tr.submitter_id)
+        items.append({
+            "id": tr.id,
+            "submitter_name": submitter.display_name or submitter.username if submitter else None,
+            "mosque_id": tr.mosque_id,
+            "mosque_name": mosque.name if mosque else None,
+            "current_imam_name": tr.current_imam.name if tr.current_imam else None,
+            "new_imam_name": tr.new_imam.name if tr.new_imam else (tr.new_imam_name or None),
+            "notes": tr.notes,
+            "status": tr.status,
+            "reject_reason": tr.reject_reason,
+            "created_at": tr.created_at.isoformat(),
+            "reviewed_at": tr.reviewed_at.isoformat() if tr.reviewed_at else None,
+        })
+    return jsonify({"items": items, "total": total, "page": page, "per_page": per_page})
+
+
+@app.route("/api/admin/transfers/<int:transfer_id>/approve", methods=["POST"])
+@admin_or_moderator_required
+def admin_approve_transfer(transfer_id):
+    tr = ImamTransferRequest.query.get(transfer_id)
+    if not tr:
+        return jsonify({"error": "غير موجود"}), 404
+    if tr.status != "pending":
+        return jsonify({"error": "تمت المراجعة مسبقاً"}), 400
+    mosque = Mosque.query.get(tr.mosque_id)
+    old_imam = Imam.query.filter_by(mosque_id=mosque.id).first()
+    if old_imam:
+        old_imam.mosque_id = None
+    if tr.new_imam_id:
+        new_imam = Imam.query.get(tr.new_imam_id)
+        if new_imam:
+            new_imam.mosque_id = mosque.id
+    elif tr.new_imam_name:
+        new_imam = Imam(name=tr.new_imam_name, mosque_id=mosque.id)
+        db.session.add(new_imam)
+    submitter = PublicUser.query.get(tr.submitter_id)
+    if submitter:
+        submitter.contribution_points = PublicUser.contribution_points + 1
+    tr.status = "approved"
+    tr.reviewed_at = datetime.datetime.utcnow()
+    db.session.commit()
+    _invalidate_caches()
+    return jsonify({"success": True})
+
+
+@app.route("/api/admin/transfers/<int:transfer_id>/reject", methods=["POST"])
+@admin_or_moderator_required
+def admin_reject_transfer(transfer_id):
+    tr = ImamTransferRequest.query.get(transfer_id)
+    if not tr:
+        return jsonify({"error": "غير موجود"}), 404
+    if tr.status != "pending":
+        return jsonify({"error": "تمت المراجعة مسبقاً"}), 400
+    data = request.get_json() or {}
+    tr.status = "rejected"
+    tr.reject_reason = data.get("reason", "").strip() or None
+    tr.reviewed_at = datetime.datetime.utcnow()
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+@app.route("/api/admin/users")
+@admin_or_moderator_required
+def admin_list_users():
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 50, type=int)
+    search = request.args.get("search", "").strip()
+
+    query = PublicUser.query
+    if search:
+        query = query.filter(
+            db.or_(
+                PublicUser.username.ilike(f"%{search}%"),
+                PublicUser.display_name.ilike(f"%{search}%"),
+                PublicUser.email.ilike(f"%{search}%"),
+            )
+        )
+    query = query.order_by(PublicUser.id.desc())
+    total = query.count()
+    users = query.offset((page - 1) * per_page).limit(per_page).all()
+    items = []
+    for u in users:
+        items.append({
+            "id": u.id,
+            "username": u.username,
+            "display_name": u.display_name,
+            "avatar_url": u.avatar_url,
+            "email": u.email,
+            "role": u.role,
+            "contribution_points": u.contribution_points,
+            "created_at": u.created_at.isoformat() if u.created_at else None,
+        })
+    return jsonify({"items": items, "total": total, "page": page, "per_page": per_page})
+
+
+@app.route("/api/admin/users/<int:user_id>/role", methods=["PUT"])
+@admin_or_moderator_required
+def admin_update_user_role(user_id):
+    if g.current_public_user.role != "admin":
+        return jsonify({"error": "Only admins can change roles"}), 403
+    user = PublicUser.query.get(user_id)
+    if not user:
+        return jsonify({"error": "غير موجود"}), 404
+    data = request.get_json() or {}
+    new_role = data.get("role", "").strip()
+    if new_role not in ("user", "moderator", "admin"):
+        return jsonify({"error": "الدور غير صالح"}), 400
+    user.role = new_role
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+# --- Admin Audio Pipeline ---
+import subprocess
+import tempfile
+
+# Store temp audio files: uuid -> {"path": str, "duration_ms": int}
+_admin_temp_audio = {}
+
+
+@app.route("/api/admin/audio/extract", methods=["POST"])
+@admin_or_moderator_required
+@limiter.limit("10 per minute")
+def admin_audio_extract():
+    data = request.get_json() or {}
+    url = data.get("url", "").strip()
+    if not url:
+        return jsonify({"error": "الرابط مطلوب"}), 400
+
+    # Whitelist domains
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    allowed_domains = {"youtube.com", "www.youtube.com", "youtu.be", "twitter.com", "x.com", "www.x.com"}
+    if parsed.hostname not in allowed_domains:
+        return jsonify({"error": "الرابط غير مدعوم (يوتيوب أو تويتر فقط)"}), 400
+
+    temp_id = uuid.uuid4().hex
+    temp_dir = tempfile.gettempdir()
+    output_path = os.path.join(temp_dir, f"admin_audio_{temp_id}.mp3")
+
+    try:
+        result = subprocess.run(
+            ["yt-dlp", "-x", "--audio-format", "mp3", "--no-playlist",
+             "-o", output_path, url],
+            capture_output=True, text=True, timeout=120,
+        )
+        if result.returncode != 0:
+            return jsonify({"error": f"فشل استخراج الصوت: {result.stderr[:200]}"}), 400
+
+        # Get duration using ffprobe
+        probe = subprocess.run(
+            ["ffprobe", "-v", "quiet", "-show_entries", "format=duration",
+             "-of", "default=noprint_wrappers=1:nokey=1", output_path],
+            capture_output=True, text=True, timeout=30,
+        )
+        duration_ms = int(float(probe.stdout.strip()) * 1000) if probe.stdout.strip() else 0
+
+        _admin_temp_audio[temp_id] = {"path": output_path, "duration_ms": duration_ms}
+        return jsonify({"temp_id": temp_id, "duration_ms": duration_ms})
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "انتهت مهلة الاستخراج"}), 504
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/admin/audio/temp/<temp_id>")
+@admin_or_moderator_required
+def admin_audio_temp(temp_id):
+    info = _admin_temp_audio.get(temp_id)
+    if not info or not os.path.exists(info["path"]):
+        return jsonify({"error": "الملف غير موجود"}), 404
+    return send_from_directory(os.path.dirname(info["path"]), os.path.basename(info["path"]),
+                               mimetype="audio/mpeg")
+
+
+@app.route("/api/admin/audio/trim-upload", methods=["POST"])
+@admin_or_moderator_required
+def admin_audio_trim_upload():
+    data = request.get_json() or {}
+    temp_id = data.get("temp_id", "").strip()
+    start_ms = data.get("start_ms", 0)
+    end_ms = data.get("end_ms")
+
+    info = _admin_temp_audio.get(temp_id)
+    if not info or not os.path.exists(info["path"]):
+        return jsonify({"error": "الملف غير موجود"}), 404
+
+    if end_ms is None:
+        end_ms = info["duration_ms"]
+
+    start_sec = start_ms / 1000.0
+    duration_sec = (end_ms - start_ms) / 1000.0
+    if duration_sec <= 0:
+        return jsonify({"error": "مدة غير صالحة"}), 400
+
+    trimmed_path = info["path"].replace(".mp3", "_trimmed.mp3")
+    try:
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", info["path"],
+             "-ss", str(start_sec), "-t", str(duration_sec),
+             "-c", "copy", trimmed_path],
+            capture_output=True, text=True, timeout=60,
+        )
+
+        # Upload to S3
+        bucket = os.environ.get("S3_BUCKET", "imams-riyadh-audio")
+        key = f"audio/{uuid.uuid4().hex}.mp3"
+        s3 = boto3.client(
+            "s3",
+            aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+            aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+        )
+        with open(trimmed_path, "rb") as f:
+            s3.upload_fileobj(
+                f, bucket, key,
+                ExtraArgs={"ContentType": "audio/mpeg", "ACL": "public-read"},
+            )
+        region = os.environ.get("AWS_REGION", "us-east-1")
+        s3_url = f"https://{bucket}.s3.{region}.amazonaws.com/{key}"
+
+        # Clean up temp files
+        for path in [info["path"], trimmed_path]:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+        _admin_temp_audio.pop(temp_id, None)
+
+        return jsonify({"s3_url": s3_url})
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "انتهت مهلة القص"}), 504
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # --- error reporting route ---

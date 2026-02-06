@@ -135,3 +135,77 @@ export interface AudioState {
   isLoading: boolean
   error: string | null
 }
+
+// Admin types
+export type UserRole = 'user' | 'moderator' | 'admin'
+
+export interface AdminMosque {
+  id: number
+  name: string
+  location: string
+  area: string
+  map_link: string | null
+  latitude: number | null
+  longitude: number | null
+  imam_id: number | null
+  imam_name: string | null
+  audio_sample: string | null
+  youtube_link: string | null
+}
+
+export interface AdminImam {
+  id: number
+  name: string
+  mosque_id: number | null
+  mosque_name: string | null
+  audio_sample: string | null
+  youtube_link: string | null
+}
+
+export interface AdminTransfer {
+  id: number
+  submitter_name: string | null
+  mosque_id: number
+  mosque_name: string | null
+  current_imam_name: string | null
+  new_imam_name: string | null
+  notes: string | null
+  status: 'pending' | 'approved' | 'rejected'
+  reject_reason: string | null
+  created_at: string
+  reviewed_at: string | null
+}
+
+export interface AdminUser {
+  id: number
+  username: string
+  display_name: string | null
+  avatar_url: string | null
+  email: string | null
+  role: UserRole
+  contribution_points: number
+  created_at: string | null
+}
+
+export interface AdminStats {
+  mosque_count: number
+  imam_count: number
+  user_count: number
+  pending_transfers: number
+}
+
+export interface PaginatedResponse<T> {
+  items: T[]
+  total: number
+  page: number
+  per_page: number
+}
+
+export interface AudioExtractResult {
+  temp_id: string
+  duration_ms: number
+}
+
+export interface AudioTrimResult {
+  s3_url: string
+}

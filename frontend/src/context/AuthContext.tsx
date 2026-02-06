@@ -13,12 +13,15 @@ import {
   firebaseSignOut,
 } from '@/lib/firebase'
 
+import type { UserRole } from '@/types'
+
 export interface PublicUserProfile {
   id: number
   username: string
   display_name: string | null
   avatar_url: string | null
   email: string | null
+  role: UserRole
   favorites: number[]
 }
 
