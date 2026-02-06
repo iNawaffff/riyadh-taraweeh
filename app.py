@@ -453,7 +453,7 @@ def upload_audio_to_s3(file):
         file,
         bucket,
         key,
-        ExtraArgs={"ContentType": file.content_type or "audio/mpeg", "ACL": "public-read"},
+        ExtraArgs={"ContentType": file.content_type or "audio/mpeg"},
     )
     region = os.environ.get("AWS_REGION", "us-east-1")
     return f"https://{bucket}.s3.{region}.amazonaws.com/{key}"
@@ -2087,7 +2087,7 @@ def admin_audio_trim_upload():
         with open(trimmed_path, "rb") as f:
             s3.upload_fileobj(
                 f, bucket, key,
-                ExtraArgs={"ContentType": "audio/mpeg", "ACL": "public-read"},
+                ExtraArgs={"ContentType": "audio/mpeg"},
             )
         s3_url = f"https://{bucket}.s3.{region}.amazonaws.com/{key}"
 
