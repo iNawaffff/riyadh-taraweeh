@@ -1989,7 +1989,9 @@ def admin_audio_extract():
     try:
         result = subprocess.run(
             ["yt-dlp", "-x", "--audio-format", "mp3", "--no-playlist",
-             "--js-runtimes", "node", "-o", output_path, url],
+             "--js-runtimes", "node",
+             "--extractor-args", "youtube:player_client=web_creator,mediaconnect",
+             "-o", output_path, url],
             capture_output=True, text=True, timeout=120,
         )
         if result.returncode != 0:
