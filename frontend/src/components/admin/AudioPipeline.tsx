@@ -29,6 +29,7 @@ export default function AudioPipeline({ value, onChange }: AudioPipelineProps) {
   const [regionStart, setRegionStart] = useState(0)
   const [regionEnd, setRegionEnd] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [filename, setFilename] = useState('')
   const [directUrl, setDirectUrl] = useState(value || '')
 
   const waveformRef = useRef<HTMLDivElement>(null)
@@ -141,6 +142,7 @@ export default function AudioPipeline({ value, onChange }: AudioPipelineProps) {
         tempId,
         startMs: regionStart,
         endMs: regionEnd,
+        filename: filename.trim() || undefined,
       })
       onChange(result.s3_url)
       setDirectUrl(result.s3_url)
@@ -227,6 +229,20 @@ export default function AudioPipeline({ value, onChange }: AudioPipelineProps) {
                 <span>البداية: <strong className="text-[#0d4b33]">{formatTime(regionStart)}</strong></span>
                 <span>النهاية: <strong className="text-[#0d4b33]">{formatTime(regionEnd)}</strong></span>
                 <span>المدة: <strong className="text-[#c4a052]">{formatTime(regionEnd - regionStart)}</strong></span>
+              </div>
+
+              {/* Filename */}
+              <div className="space-y-1">
+                <label className="font-tajawal text-xs text-[#0d4b33]/50">
+                  اسم الملف (اختياري — مثال: abdulaziz-aldamgh)
+                </label>
+                <Input
+                  value={filename}
+                  onChange={(e) => setFilename(e.target.value)}
+                  placeholder="firstname-lastname"
+                  className="border-[#0d4b33]/10 font-tajawal text-sm placeholder:text-[#0d4b33]/25 focus-visible:ring-[#c4a052]/30"
+                  dir="ltr"
+                />
               </div>
 
               {/* Controls */}

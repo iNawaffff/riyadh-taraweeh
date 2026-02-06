@@ -190,7 +190,7 @@ export function useExtractAudio() {
 export function useTrimAndUpload() {
   const { token } = useAuth()
   return useMutation({
-    mutationFn: ({ tempId, startMs, endMs }: { tempId: string; startMs: number; endMs: number }) =>
-      trimAndUploadAudio(token!, tempId, startMs, endMs),
+    mutationFn: ({ tempId, startMs, endMs, filename }: { tempId: string; startMs: number; endMs: number; filename?: string }) =>
+      trimAndUploadAudio(token!, tempId, startMs, endMs, filename),
   })
 }

@@ -163,11 +163,12 @@ export async function trimAndUploadAudio(
   token: string,
   tempId: string,
   startMs: number,
-  endMs: number
+  endMs: number,
+  filename?: string
 ): Promise<AudioTrimResult> {
   return adminJson(`${API_BASE}/audio/trim-upload`, token, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ temp_id: tempId, start_ms: startMs, end_ms: endMs }),
+    body: JSON.stringify({ temp_id: tempId, start_ms: startMs, end_ms: endMs, filename }),
   })
 }

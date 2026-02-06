@@ -2054,18 +2054,26 @@ def admin_audio_trim_upload():
 
         # Upload to S3
         bucket = os.environ.get("S3_BUCKET", "imams-riyadh-audio")
-        key = f"audio/{uuid.uuid4().hex}.mp3"
+        filename = data.get("filename", "").strip()
+        if filename:
+            # Sanitize: lowercase, replace spaces with hyphens, remove non-alphanumeric
+            import re
+            filename = re.sub(r'[^\w\-]', '', filename.replace(' ', '-').lower())
+            key = f"audio/{filename}.mp3"
+        else:
+            key = f"audio/{uuid.uuid4().hex}.mp3"
+        region = os.environ.get("AWS_REGION", "us-east-1")
         s3 = boto3.client(
             "s3",
             aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
             aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+            region_name=region,
         )
         with open(trimmed_path, "rb") as f:
             s3.upload_fileobj(
                 f, bucket, key,
                 ExtraArgs={"ContentType": "audio/mpeg", "ACL": "public-read"},
             )
-        region = os.environ.get("AWS_REGION", "us-east-1")
         s3_url = f"https://{bucket}.s3.{region}.amazonaws.com/{key}"
 
         # Clean up temp files
