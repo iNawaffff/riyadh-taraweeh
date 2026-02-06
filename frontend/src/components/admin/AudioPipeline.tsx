@@ -4,6 +4,7 @@ import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.js'
 import { Download, Play, Pause, Upload, Loader2, Music } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useAuth } from '@/hooks/use-auth'
 import { useExtractAudio, useTrimAndUpload } from '@/hooks/use-admin'
 import { getTempAudioUrl } from '@/lib/admin-api'
 import { cn } from '@/lib/utils'
@@ -21,6 +22,7 @@ function formatTime(ms: number): string {
 }
 
 export default function AudioPipeline({ value, onChange }: AudioPipelineProps) {
+  const { token } = useAuth()
   const [videoUrl, setVideoUrl] = useState('')
   const [tempId, setTempId] = useState<string | null>(null)
   const [, setDurationMs] = useState(0)
@@ -72,9 +74,20 @@ export default function AudioPipeline({ value, onChange }: AudioPipelineProps) {
           plugins: [regions],
         })
 
+        // Fetch audio with auth token, then load as blob
         const audioUrl = getTempAudioUrl(result.temp_id)
-        // Pass auth token via XMLHttpRequest for the temp audio endpoint
-        ws.load(audioUrl, undefined, undefined)
+        try {
+          const resp = await fetch(audioUrl, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          if (!resp.ok) throw new Error('Failed to load audio')
+          const blob = await resp.blob()
+          const blobUrl = URL.createObjectURL(blob)
+          ws.load(blobUrl)
+        } catch {
+          // If fetch fails, try direct load as fallback
+          ws.load(audioUrl)
+        }
 
         ws.on('ready', () => {
           const dur = ws.getDuration()
