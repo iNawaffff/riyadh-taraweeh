@@ -44,10 +44,10 @@ const RAKAAT_OPTIONS = [2, 4, 6, 8, 10, 11] as const
 
 function streakLabel(n: number): string {
   if (n === 0) return ''
-  if (n === 1) return 'ليلة واحدة متتالية'
-  if (n === 2) return 'ليلتان متتاليتان'
-  if (n >= 3 && n <= 10) return `${toArabicNum(n)} ليالٍ متتالية`
-  return `${toArabicNum(n)} ليلة متتالية` // 11+
+  if (n === 1) return 'ليلة واحدة'
+  if (n === 2) return 'ليلتان'
+  if (n >= 3 && n <= 10) return `${toArabicNum(n)} ليالٍ`
+  return `${toArabicNum(n)} ليلة` // 11+
 }
 
 function rakaatLabel(n: number): string {
