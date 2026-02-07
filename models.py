@@ -1,8 +1,23 @@
 from datetime import datetime
 
+from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import check_password_hash, generate_password_hash
 
 db = SQLAlchemy()
+
+
+class User(UserMixin, db.Model):
+    """Legacy admin user for Flask-Login / Flask-Admin."""
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True)
+    password_hash = db.Column(db.String(255))
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 
 class Mosque(db.Model):

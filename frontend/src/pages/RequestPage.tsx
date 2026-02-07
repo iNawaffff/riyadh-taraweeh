@@ -413,7 +413,7 @@ export function RequestPage() {
                 <h3 className="text-base font-bold text-foreground">معلومات المسجد</h3>
 
                 {/* Mosque name */}
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground/70">
                     اسم المسجد <span className="text-red-400">*</span>
                   </label>
@@ -441,7 +441,7 @@ export function RequestPage() {
                 </div>
 
                 {/* Area */}
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground/70">
                     المنطقة <span className="text-red-400">*</span>
                   </label>
@@ -458,7 +458,7 @@ export function RequestPage() {
                 </div>
 
                 {/* Location */}
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground/70">
                     الحي <span className="text-red-400">*</span>
                   </label>
@@ -510,7 +510,7 @@ export function RequestPage() {
                 </div>
 
                 {/* Map link */}
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground/70">رابط خرائط جوجل</label>
                   <Input
                     value={mosqueMapLink}
@@ -562,14 +562,14 @@ export function RequestPage() {
                             {existingImamName || 'ابحث عن إمام...'}
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                        <PopoverContent className="max-h-[60vh] w-[var(--radix-popover-trigger-width)] p-0" align="start">
                           <Command dir="rtl">
                             <CommandInput
                               placeholder="اسم الإمام..."
                               value={imamSearchQuery}
                               onValueChange={setImamSearchQuery}
                             />
-                            <CommandList>
+                            <CommandList className="max-h-[50vh]">
                               <CommandEmpty>لم يتم العثور على نتائج</CommandEmpty>
                               <CommandGroup>
                                 {imamResults?.map((imam) => (
@@ -596,7 +596,7 @@ export function RequestPage() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <div className="space-y-1.5">
+                      <div className="space-y-2">
                         <label className="text-sm font-medium text-foreground/70">اسم الإمام</label>
                         <Input
                           value={imamName}
@@ -605,7 +605,7 @@ export function RequestPage() {
                           className="h-11 bg-muted/30"
                         />
                       </div>
-                      <div className="space-y-1.5">
+                      <div className="space-y-2">
                         <label className="text-sm font-medium text-foreground/70">رابط يوتيوب أو مقطع صوتي</label>
                         <Input
                           value={imamYoutubeLink}
@@ -626,7 +626,7 @@ export function RequestPage() {
                 <h3 className="text-base font-bold text-foreground">تغيير إمام</h3>
 
                 {/* Target mosque combobox */}
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground/70">
                     المسجد <span className="text-red-400">*</span>
                   </label>
@@ -640,14 +640,14 @@ export function RequestPage() {
                         {targetMosqueName || 'اختر المسجد...'}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                    <PopoverContent className="max-h-[60vh] w-[var(--radix-popover-trigger-width)] p-0" align="start">
                       <Command dir="rtl">
                         <CommandInput
                           placeholder="ابحث عن مسجد..."
                           value={mosqueFilter}
                           onValueChange={setMosqueFilter}
                         />
-                        <CommandList>
+                        <CommandList className="max-h-[50vh]">
                           <CommandEmpty>لم يتم العثور على نتائج</CommandEmpty>
                           <CommandGroup>
                             {filteredMosques.map((m) => (
@@ -713,14 +713,14 @@ export function RequestPage() {
                             {changeExistingImamName || 'ابحث عن إمام...'}
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                        <PopoverContent className="max-h-[60vh] w-[var(--radix-popover-trigger-width)] p-0" align="start">
                           <Command dir="rtl">
                             <CommandInput
                               placeholder="اسم الإمام..."
                               value={changeImamSearchQuery}
                               onValueChange={setChangeImamSearchQuery}
                             />
-                            <CommandList>
+                            <CommandList className="max-h-[50vh]">
                               <CommandEmpty>لم يتم العثور على نتائج</CommandEmpty>
                               <CommandGroup>
                                 {changeImamResults?.map((imam) => (
@@ -801,7 +801,7 @@ export function RequestPage() {
             )}
 
             {/* Notes (all types) */}
-            <div className="mt-5 space-y-1.5">
+            <div className="mt-5 space-y-2">
               <label className="text-sm font-medium text-foreground/70">ملاحظات إضافية</label>
               <Textarea
                 value={notes}
@@ -819,7 +819,7 @@ export function RequestPage() {
 
           {/* Submit */}
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <Link to="/my-requests" className="text-center text-sm text-primary hover:underline sm:text-start">
+            <Link to="/my-requests" className="py-2 text-center text-sm text-primary hover:underline sm:text-start">
               عرض طلباتي السابقة
             </Link>
             <Button

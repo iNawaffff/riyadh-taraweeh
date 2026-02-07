@@ -18,15 +18,23 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
+import { useMediaQuery } from '@/hooks/use-media-query'
 import { useAuth } from '@/hooks/use-auth'
 import { useMyRequests, useCancelRequest } from '@/hooks/use-requests'
 import type { CommunityRequest, RequestStatus, RequestType } from '@/types'
@@ -69,9 +77,9 @@ function RequestCard({ request, onCancel, cancelling }: {
 
   return (
     <div className="rounded-2xl bg-white p-3.5 sm:p-5 ring-1 ring-border/50 transition-all">
-      <div className="mb-3 flex items-start justify-between">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-light">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-light">
             <TypeIcon className="h-4 w-4 text-primary" />
           </div>
           <div>
@@ -96,7 +104,7 @@ function RequestCard({ request, onCancel, cancelling }: {
 
       {/* Reject reason */}
       {request.status === 'rejected' && request.reject_reason && (
-        <div className="mb-3 rounded-lg border border-red-200 bg-red-50 p-2.5">
+        <div className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3">
           <p className="text-xs font-medium text-red-800">سبب الرفض:</p>
           <p className="text-xs text-red-700">{request.reject_reason}</p>
         </div>
@@ -104,7 +112,7 @@ function RequestCard({ request, onCancel, cancelling }: {
 
       {/* Needs info message */}
       {request.status === 'needs_info' && (
-        <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 p-2.5">
+        <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
           <p className="text-xs font-medium text-blue-800">يحتاج معلومات إضافية</p>
           <p className="text-xs text-blue-700">
             {request.admin_notes || 'تواصل معنا لتزويدنا بالمعلومات المطلوبة'}
@@ -192,6 +200,7 @@ export function MyRequestsPage() {
   const [cancelTarget, setCancelTarget] = useState<number | null>(null)
   const [cancellingId, setCancellingId] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState<'all' | RequestStatus>('all')
+  const isDesktop = useMediaQuery('(min-width: 768px)')
 
   const handleCancel = async () => {
     if (!cancelTarget) return
@@ -254,7 +263,7 @@ export function MyRequestsPage() {
         </div>
 
         {/* Filter tabs */}
-        <div className="mb-6 flex gap-2 overflow-x-auto">
+        <div className="mb-6 flex gap-2 overflow-x-auto scrollbar-hide">
           {[
             { key: 'all' as const, label: 'الكل' },
             { key: 'pending' as const, label: 'قيد المراجعة' },
@@ -265,7 +274,7 @@ export function MyRequestsPage() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`shrink-0 rounded-full px-4 py-2 text-xs font-medium transition-all ${
+              className={`shrink-0 rounded-full px-4 py-2.5 text-sm min-h-[44px] font-medium transition-all ${
                 activeTab === tab.key
                   ? 'bg-primary text-white'
                   : 'bg-muted/50 text-muted-foreground hover:bg-muted'
@@ -310,26 +319,44 @@ export function MyRequestsPage() {
         )}
       </div>
 
-      {/* Cancel confirmation */}
-      <AlertDialog open={!!cancelTarget} onOpenChange={(open) => { if (!open) setCancelTarget(null) }}>
-        <AlertDialogContent dir="rtl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>إلغاء الطلب</AlertDialogTitle>
-            <AlertDialogDescription>
-              هل تريد إلغاء هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>تراجع</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCancel}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              إلغاء الطلب
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Cancel confirmation — Dialog on desktop, Drawer on mobile */}
+      {isDesktop ? (
+        <Dialog open={!!cancelTarget} onOpenChange={(open) => { if (!open) setCancelTarget(null) }}>
+          <DialogContent dir="rtl">
+            <DialogHeader>
+              <DialogTitle>إلغاء الطلب</DialogTitle>
+              <DialogDescription>
+                هل تريد إلغاء هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setCancelTarget(null)}>تراجع</Button>
+              <Button onClick={handleCancel} className="bg-red-600 hover:bg-red-700">
+                إلغاء الطلب
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <Drawer open={!!cancelTarget} onOpenChange={(open) => { if (!open) setCancelTarget(null) }}>
+          <DrawerContent dir="rtl">
+            <DrawerHeader className="text-right">
+              <DrawerTitle>إلغاء الطلب</DrawerTitle>
+              <DrawerDescription>
+                هل تريد إلغاء هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.
+              </DrawerDescription>
+            </DrawerHeader>
+            <DrawerFooter>
+              <Button onClick={handleCancel} className="bg-red-600 hover:bg-red-700">
+                إلغاء الطلب
+              </Button>
+              <DrawerClose asChild>
+                <Button variant="outline">تراجع</Button>
+              </DrawerClose>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      )}
     </>
   )
 }

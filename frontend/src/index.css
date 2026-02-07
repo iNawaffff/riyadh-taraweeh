@@ -373,6 +373,15 @@
     100% { transform: translate(25px, -55px) scale(0); opacity: 0; }
   }
 
+  /* Hide scrollbar for horizontal tab scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Safe area utilities for mobile bottom bars */
   .pb-safe {
     padding-bottom: max(0.75rem, env(safe-area-inset-bottom));

@@ -288,7 +288,7 @@ function RequestDetail({ request: listRequest, onClose }: {
 
         {/* Actions */}
         {isPending && (
-          <div className="flex gap-2 border-t border-[#0d4b33]/[0.06] pt-4">
+          <div className="flex flex-col gap-2 border-t border-[#0d4b33]/[0.06] pt-4 sm:flex-row">
             <Button
               onClick={handleApprove}
               disabled={approveMutation.isPending}
