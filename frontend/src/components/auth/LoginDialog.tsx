@@ -419,7 +419,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
                 </div>
               </div>
               <p className="text-center text-sm text-muted-foreground">
-                يمكنك كتابة الرقم بأي صيغة (05... أو 5... أو +966...)
+                أدخل رقم الجوال بدون صفر (مثال: 5XXXXXXXX)
               </p>
             </div>
 
