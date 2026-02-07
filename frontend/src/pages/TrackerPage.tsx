@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useMemo } from 'react'
 import { Helmet } from 'react-helmet-async'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Calendar, Check, Share2, Flame, LogIn, Trophy, Star, X, MapPin } from 'lucide-react'
+import { Calendar, Check, Share2, Flame, LogIn, Trophy, Star, X, MapPin, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -36,7 +36,7 @@ import { fetchTracker, toggleNight, removeNight } from '@/lib/api'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { toArabicNum, formatArabicCount, arabicNouns, getRamadanInfo } from '@/lib/arabic-utils'
-import type { TrackerData, Mosque } from '@/types'
+import type { TrackerData, TrackerNight, Mosque } from '@/types'
 
 const RAKAAT_OPTIONS = [2, 4, 6, 8, 10, 11] as const
 
@@ -213,6 +213,77 @@ function MosquePicker({
   )
 }
 
+// --- Night Detail View (for viewing attended night info) ---
+
+function NightDetail({
+  nightData,
+  mosque,
+  onEdit,
+  onRemove,
+}: {
+  nightData: TrackerNight
+  mosque: Mosque | null
+  onEdit: () => void
+  onRemove: () => void
+}) {
+  return (
+    <div className="flex flex-col gap-4 px-4 pb-4">
+      {/* Info rows */}
+      <div className="space-y-2">
+        {/* Mosque */}
+        {mosque ? (
+          <div className="flex items-center gap-3 rounded-xl bg-primary/5 px-4 py-3">
+            <MapPin className="h-5 w-5 text-primary shrink-0" />
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-bold text-foreground">{mosque.name}</div>
+              <div className="truncate text-xs text-muted-foreground">حي {mosque.location}</div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 rounded-xl bg-muted/40 px-4 py-3">
+            <MapPin className="h-5 w-5 text-muted-foreground/50 shrink-0" />
+            <span className="text-sm text-muted-foreground">لم يُحدد مسجد</span>
+          </div>
+        )}
+
+        {/* Rakaat */}
+        {nightData.rakaat ? (
+          <div className="flex items-center gap-3 rounded-xl bg-primary/5 px-4 py-3">
+            <Star className="h-5 w-5 text-primary shrink-0" />
+            <span className="text-sm font-bold text-foreground">
+              {toArabicNum(nightData.rakaat)} {rakaatLabel(nightData.rakaat)}
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 rounded-xl bg-muted/40 px-4 py-3">
+            <Star className="h-5 w-5 text-muted-foreground/50 shrink-0" />
+            <span className="text-sm text-muted-foreground">لم يُحدد عدد الركعات</span>
+          </div>
+        )}
+      </div>
+
+      {/* Actions */}
+      <div className="flex flex-col gap-2">
+        <Button
+          variant="outline"
+          className="h-12 w-full gap-2 rounded-xl text-base font-semibold"
+          onClick={onEdit}
+        >
+          <Pencil className="h-4 w-4" />
+          تعديل الحضور
+        </Button>
+        <button
+          onClick={onRemove}
+          className="flex h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          حذف الحضور
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // --- Rakaat picker content (shared between Dialog and Drawer) ---
 
 function RakaatPicker({
@@ -221,12 +292,14 @@ function RakaatPicker({
   selectedMosque,
   onChangeMosque,
   onClearMosque,
+  currentRakaat,
 }: {
   onSelect: (rakaat: number) => void
   onSkip: () => void
   selectedMosque: Mosque | null
   onChangeMosque: () => void
   onClearMosque: () => void
+  currentRakaat?: number | null
 }) {
   return (
     <>
@@ -253,19 +326,25 @@ function RakaatPicker({
       ) : null}
 
       <div className="grid grid-cols-3 gap-2 px-4 pt-2 pb-1">
-        {RAKAAT_OPTIONS.map((r) => (
-          <button
-            key={r}
-            onClick={() => onSelect(r)}
-            className={cn(
-              'flex flex-col items-center justify-center rounded-xl border-2 border-border/60 bg-white py-3 transition-all duration-150',
-              'hover:border-primary hover:bg-primary/10 active:scale-95',
-            )}
-          >
-            <span className="text-2xl font-bold text-primary tabular-nums">{toArabicNum(r)}</span>
-            <span className="text-xs text-muted-foreground">{rakaatLabel(r)}</span>
-          </button>
-        ))}
+        {RAKAAT_OPTIONS.map((r) => {
+          const isCurrent = currentRakaat === r
+          return (
+            <button
+              key={r}
+              onClick={() => onSelect(r)}
+              className={cn(
+                'flex flex-col items-center justify-center rounded-xl border-2 py-3 transition-all duration-150',
+                isCurrent
+                  ? 'border-primary bg-primary/15 ring-2 ring-primary/20'
+                  : 'border-border/60 bg-white hover:border-primary hover:bg-primary/10',
+                'active:scale-95',
+              )}
+            >
+              <span className="text-2xl font-bold text-primary tabular-nums">{toArabicNum(r)}</span>
+              <span className="text-xs text-muted-foreground">{rakaatLabel(r)}</span>
+            </button>
+          )
+        })}
       </div>
 
       {/* Add mosque link (only when no mosque selected) */}
@@ -283,7 +362,7 @@ function RakaatPicker({
         onClick={onSkip}
         className="mt-1 mb-3 w-full text-center text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
-        تخطي
+        {currentRakaat != null ? 'بدون تغيير الركعات' : 'تخطي'}
       </button>
     </>
   )
@@ -331,6 +410,9 @@ export function TrackerPage() {
   const [mosquePickerOpen, setMosquePickerOpen] = useState(false)
   const [selectedMosqueId, setSelectedMosqueId] = useState<number | null>(null)
   const [hasInitializedMosque, setHasInitializedMosque] = useState(false)
+  const [viewingNight, setViewingNight] = useState<number | null>(null)
+  // Track the rakaat value of the night being edited (null when adding new)
+  const editingRakaatRef = useRef<number | null>(null)
   const queryClient = useQueryClient()
   const isDesktop = useMediaQuery('(min-width: 768px)')
 
@@ -370,6 +452,12 @@ export function TrackerPage() {
   const attendedNights = new Set(tracker?.nights.map(n => n.night) ?? [])
   const nightDataMap = new Map(tracker?.nights.map(n => [n.night, n]) ?? [])
 
+  // Viewing night data
+  const viewingNightData = viewingNight !== null ? nightDataMap.get(viewingNight) ?? null : null
+  const viewingNightMosque = viewingNightData?.mosque_id
+    ? allMosques.find(m => m.id === viewingNightData.mosque_id) ?? null
+    : null
+
   // Determine tonight's number
   const todayNight = useMemo(() => {
     const info = getRamadanInfo()
@@ -384,10 +472,17 @@ export function TrackerPage() {
       await queryClient.cancelQueries({ queryKey: ['tracker'] })
       const previous = queryClient.getQueryData<TrackerData>(['tracker'])
       if (previous) {
+        const existingIdx = previous.nights.findIndex(n => n.night === night)
+        const newNight = { night, mosque_id: mosqueId ?? null, rakaat: rakaat ?? null, attended_at: new Date().toISOString() }
+        const updatedNights = existingIdx >= 0
+          ? previous.nights.map((n, i) => i === existingIdx ? newNight : n)
+          : [...previous.nights, newNight]
         queryClient.setQueryData<TrackerData>(['tracker'], {
           ...previous,
-          nights: [...previous.nights, { night, mosque_id: mosqueId ?? null, rakaat: rakaat ?? null, attended_at: new Date().toISOString() }],
-          stats: { ...previous.stats, attended: previous.stats.attended + 1 },
+          nights: updatedNights,
+          stats: existingIdx >= 0
+            ? previous.stats
+            : { ...previous.stats, attended: previous.stats.attended + 1 },
         })
       }
       // Trigger cell pop animation
@@ -428,17 +523,40 @@ export function TrackerPage() {
     if (todayNight !== null && night > todayNight) return
 
     if (attendedNights.has(night)) {
-      unmarkMutation.mutate(night)
+      setViewingNight(night)
     } else {
+      editingRakaatRef.current = null
       pendingNightRef.current = night
       setPendingNight(night)
     }
-  }, [attendedNights, unmarkMutation, todayNight])
+  }, [attendedNights, todayNight])
+
+  const handleEditNight = () => {
+    if (viewingNight === null) return
+    const nightData = nightDataMap.get(viewingNight)
+    // Pre-select the night's mosque for the edit session
+    if (nightData?.mosque_id) {
+      setSelectedMosqueId(nightData.mosque_id)
+    }
+    // Store current rakaat for highlight
+    editingRakaatRef.current = nightData?.rakaat ?? null
+    setViewingNight(null)
+    pendingNightRef.current = viewingNight
+    setPendingNight(viewingNight)
+  }
+
+  const handleRemoveNight = () => {
+    if (viewingNight === null) return
+    const night = viewingNight
+    setViewingNight(null)
+    unmarkMutation.mutate(night)
+  }
 
   const handleRakaatSelect = (rakaat: number) => {
     const night = pendingNightRef.current
     if (night === null) return
     markMutation.mutate({ night, rakaat, mosqueId: selectedMosqueId })
+    editingRakaatRef.current = null
     pendingNightRef.current = null
     setPendingNight(null)
   }
@@ -446,16 +564,30 @@ export function TrackerPage() {
   const handleRakaatSkip = () => {
     const night = pendingNightRef.current
     if (night === null) return
-    markMutation.mutate({ night, mosqueId: selectedMosqueId })
+    // When editing and skipping rakaat, keep the existing rakaat value
+    const existingRakaat = editingRakaatRef.current
+    if (existingRakaat != null) {
+      // Editing mode: save with current mosque + existing rakaat
+      markMutation.mutate({ night, rakaat: existingRakaat, mosqueId: selectedMosqueId })
+    } else {
+      // New mode: mark without rakaat
+      markMutation.mutate({ night, mosqueId: selectedMosqueId })
+    }
+    editingRakaatRef.current = null
     pendingNightRef.current = null
     setPendingNight(null)
   }
 
   const handleDialogClose = (open: boolean) => {
     if (!open) {
+      editingRakaatRef.current = null
       pendingNightRef.current = null
       setPendingNight(null)
     }
+  }
+
+  const handleViewingClose = (open: boolean) => {
+    if (!open) setViewingNight(null)
   }
 
   const handleMosqueSelect = (mosque: Mosque) => {
@@ -501,6 +633,9 @@ export function TrackerPage() {
   const stats = tracker?.stats ?? { attended: 0, total: 30, current_streak: 0, best_streak: 0 }
   const progress = Math.round((stats.attended / 30) * 100)
   const totalRakaat = tracker?.nights.reduce((sum, n) => sum + (n.rakaat ?? 0), 0) ?? 0
+
+  // Whether the rakaat picker is in edit mode
+  const isEditingNight = editingRakaatRef.current !== null || (pendingNight !== null && attendedNights.has(pendingNight))
 
   return (
     <>
@@ -641,12 +776,59 @@ export function TrackerPage() {
         </div>
       </div>
 
+      {/* Night detail view — Drawer on mobile, Dialog on desktop */}
+      {isDesktop ? (
+        <Dialog open={viewingNight !== null} onOpenChange={handleViewingClose}>
+          <DialogContent className="max-w-xs sm:max-w-sm">
+            <DialogHeader className="text-center">
+              <DialogTitle className="text-xl">
+                الليلة {viewingNight !== null ? toArabicNum(viewingNight) : ''}
+              </DialogTitle>
+              <DialogDescription>
+                {viewingNight !== null ? getNightHijri(viewingNight) : ''}
+              </DialogDescription>
+            </DialogHeader>
+            {viewingNightData && (
+              <NightDetail
+                nightData={viewingNightData}
+                mosque={viewingNightMosque}
+                onEdit={handleEditNight}
+                onRemove={handleRemoveNight}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <Drawer open={viewingNight !== null} onOpenChange={handleViewingClose}>
+          <DrawerContent>
+            <DrawerHeader className="text-center">
+              <DrawerTitle className="text-xl">
+                الليلة {viewingNight !== null ? toArabicNum(viewingNight) : ''}
+              </DrawerTitle>
+              <DrawerDescription>
+                {viewingNight !== null ? getNightHijri(viewingNight) : ''}
+              </DrawerDescription>
+            </DrawerHeader>
+            {viewingNightData && (
+              <NightDetail
+                nightData={viewingNightData}
+                mosque={viewingNightMosque}
+                onEdit={handleEditNight}
+                onRemove={handleRemoveNight}
+              />
+            )}
+          </DrawerContent>
+        </Drawer>
+      )}
+
       {/* Rakaat selection — Drawer on mobile, Dialog on desktop */}
       {isDesktop ? (
         <Dialog open={pendingNight !== null} onOpenChange={handleDialogClose}>
           <DialogContent className="max-w-xs sm:max-w-sm">
             <DialogHeader className="text-center">
-              <DialogTitle className="text-xl">كم عدد الركعات؟</DialogTitle>
+              <DialogTitle className="text-xl">
+                {isEditingNight ? 'تعديل الحضور' : 'كم عدد الركعات؟'}
+              </DialogTitle>
               <DialogDescription>
                 الليلة {pendingNight !== null ? toArabicNum(pendingNight) : ''}
               </DialogDescription>
@@ -657,6 +839,7 @@ export function TrackerPage() {
               selectedMosque={selectedMosque}
               onChangeMosque={() => setMosquePickerOpen(true)}
               onClearMosque={handleClearMosque}
+              currentRakaat={editingRakaatRef.current}
             />
           </DialogContent>
         </Dialog>
@@ -664,7 +847,9 @@ export function TrackerPage() {
         <Drawer open={pendingNight !== null} onOpenChange={handleDialogClose}>
           <DrawerContent>
             <DrawerHeader className="text-center">
-              <DrawerTitle className="text-xl">كم عدد الركعات؟</DrawerTitle>
+              <DrawerTitle className="text-xl">
+                {isEditingNight ? 'تعديل الحضور' : 'كم عدد الركعات؟'}
+              </DrawerTitle>
               <DrawerDescription>
                 الليلة {pendingNight !== null ? toArabicNum(pendingNight) : ''}
               </DrawerDescription>
@@ -675,6 +860,7 @@ export function TrackerPage() {
               selectedMosque={selectedMosque}
               onChangeMosque={() => setMosquePickerOpen(true)}
               onClearMosque={handleClearMosque}
+              currentRakaat={editingRakaatRef.current}
             />
           </DrawerContent>
         </Drawer>
