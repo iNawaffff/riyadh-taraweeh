@@ -6,7 +6,7 @@ from auth_utils import firebase_auth_required, firebase_auth_optional
 from extensions import limiter
 from models import Imam, Mosque, PublicUser, TaraweehAttendance, UserFavorite, db
 from services.serializers import serialize_mosque
-from services.validation import validate_username
+from services.validation import sanitize_text, validate_username
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -30,7 +30,7 @@ def register_user():
     user = PublicUser(
         firebase_uid=decoded["uid"],
         username=username,
-        display_name=data.get("display_name") or decoded.get("name"),
+        display_name=sanitize_text(data.get("display_name") or decoded.get("name") or "")[:100] or None,
         avatar_url=decoded.get("picture"),
         email=decoded.get("email"),
         phone=decoded.get("phone_number"),

@@ -82,7 +82,7 @@ export function FavoritesPage() {
 
   const handleShare = async () => {
     if (!user) return
-    const url = `${window.location.origin}/u/${user.username}`
+    const url = `${window.location.origin}/u/${user.username}/favorites`
 
     // Use Web Share API on mobile if available, fall back to clipboard
     if (navigator.share) {
@@ -96,7 +96,7 @@ export function FavoritesPage() {
 
     try {
       await navigator.clipboard.writeText(url)
-      toast.success('تم نسخ رابط الملف الشخصي')
+      toast.success('تم نسخ رابط المفضلة')
     } catch {
       // Fallback for insecure context / older browsers
       const input = document.createElement('input')
@@ -105,7 +105,7 @@ export function FavoritesPage() {
       input.select()
       document.execCommand('copy')
       document.body.removeChild(input)
-      toast.success('تم نسخ رابط الملف الشخصي')
+      toast.success('تم نسخ رابط المفضلة')
     }
   }
 
@@ -146,7 +146,7 @@ export function FavoritesPage() {
             {stats.total > 0 && (
               <div className="flex gap-2">
                 <Button asChild variant="outline" size="sm" className="gap-1.5">
-                  <Link to="/map">
+                  <Link to={`/map?ids=${favorites.join(',')}`}>
                     <Map className="h-4 w-4" />
                     خريطة
                   </Link>

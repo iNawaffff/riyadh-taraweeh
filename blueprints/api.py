@@ -31,7 +31,7 @@ def get_mosques():
         cache_set("mosques", result)
         return jsonify(result)
     except Exception as e:
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
+        return jsonify({"error": "حدث خطأ في الخادم"}), 500
 
 
 @api_bp.route("/api/mosques/<int:mosque_id>")
@@ -42,7 +42,7 @@ def get_mosque(mosque_id):
             return jsonify({"error": "Mosque not found"}), 404
         return jsonify(serialize_mosque(mosque))
     except Exception as e:
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
+        return jsonify({"error": "حدث خطأ في الخادم"}), 500
 
 
 @api_bp.route("/api/mosques/search")
@@ -83,7 +83,7 @@ def search_mosques():
         result = [serialize_mosque(m, imam=i) for m, i in pairs]
         return jsonify(result)
     except Exception as e:
-        return jsonify({"error": f"Search error: {str(e)}"}), 500
+        return jsonify({"error": "حدث خطأ في البحث"}), 500
 
 
 @api_bp.route("/api/locations")
@@ -112,7 +112,7 @@ def get_locations():
         cache_set(cache_key, locations)
         return jsonify(locations)
     except Exception as e:
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
+        return jsonify({"error": "حدث خطأ في الخادم"}), 500
 
 
 @api_bp.route("/api/areas")
@@ -122,7 +122,7 @@ def get_areas():
         areas = sorted([row[0] for row in query.all() if row[0]])
         return jsonify(areas)
     except Exception as e:
-        return jsonify({"error": f"Database error: {str(e)}"}), 500
+        return jsonify({"error": "حدث خطأ في الخادم"}), 500
 
 
 @api_bp.route("/api/mosques/nearby")
@@ -150,7 +150,7 @@ def nearby_mosques():
         result.sort(key=lambda x: x["distance"])
         return jsonify(result)
     except Exception as e:
-        return jsonify({"error": f"Error calculating nearby mosques: {str(e)}"}), 500
+        return jsonify({"error": "حدث خطأ في حساب المسافة"}), 500
 
 
 @api_bp.route("/api/leaderboard")

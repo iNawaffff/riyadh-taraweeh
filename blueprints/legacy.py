@@ -11,6 +11,7 @@ from markupsafe import Markup
 from wtforms import StringField
 from wtforms_sqlalchemy.fields import QuerySelectField
 
+from extensions import limiter
 from models import Imam, ImamTransferRequest, Mosque, PublicUser, User, db
 from services.audio import upload_audio_to_s3
 from services.cache import invalidate_caches
@@ -22,6 +23,7 @@ legacy_bp = Blueprint("legacy", __name__)
 
 # --- authentication routes ---
 @legacy_bp.route("/login", methods=["GET", "POST"])
+@limiter.limit("5 per minute")
 def login():
     if request.method == "POST":
         username = request.form["username"]
@@ -141,8 +143,11 @@ def _imam_name_formatter(view, context, model, name):
 
 def _map_link_formatter(view, context, model, name):
     if model.map_link:
+        from markupsafe import escape
+        safe_url = escape(model.map_link)
         short = model.map_link[:40] + "..." if len(model.map_link) > 40 else model.map_link
-        return Markup(f'<a href="{model.map_link}" target="_blank">{short}</a>')
+        safe_short = escape(short)
+        return Markup(f'<a href="{safe_url}" target="_blank">{safe_short}</a>')
     return "—"
 
 

@@ -65,9 +65,18 @@ def create_app():
     # --- Flask-Admin (legacy) ---
     init_legacy_admin(app)
 
-    # --- HTTP cache headers ---
+    # --- HTTP security + cache headers ---
     @app.after_request
-    def add_cache_headers(response):
+    def add_headers(response):
+        # Security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(self)"
+        if not app.debug:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+
+        # Cache headers
         path = request.path
         if path.startswith("/assets/"):
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"

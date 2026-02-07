@@ -13,6 +13,24 @@ class Config:
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    # --- Connection Pool (tune for Heroku Postgres plan) ---
+    # Mini/Basic plan: 20 max connections
+    # With 4 gunicorn workers: 4 × (pool_size + max_overflow) must be ≤ 18
+    # (reserve 2 connections for migrations/admin)
+    # 4 × (3 + 1) = 16 ≤ 18 ✓
+    SQLALCHEMY_POOL_SIZE = int(os.environ.get("SQLALCHEMY_POOL_SIZE", 3))
+    SQLALCHEMY_MAX_OVERFLOW = int(os.environ.get("SQLALCHEMY_MAX_OVERFLOW", 1))
+    SQLALCHEMY_POOL_TIMEOUT = 20  # seconds to wait for a connection
+    SQLALCHEMY_POOL_RECYCLE = 300  # recycle connections every 5 min (Heroku closes idle connections)
+    SQLALCHEMY_POOL_PRE_PING = True  # test connections before use (prevents stale connection errors)
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_size": int(os.environ.get("SQLALCHEMY_POOL_SIZE", 3)),
+        "max_overflow": int(os.environ.get("SQLALCHEMY_MAX_OVERFLOW", 1)),
+        "pool_timeout": 20,
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
+    }
+
     SESSION_COOKIE_SECURE = os.environ.get("FLASK_ENV") != "development"
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
@@ -36,4 +54,4 @@ class Config:
             app.config["SQLALCHEMY_DATABASE_URI"] = uri.replace(
                 "postgres://", "postgresql://", 1
             )
-            print(f"database url converted to: {app.config['SQLALCHEMY_DATABASE_URI']}")
+            print("database url converted from postgres:// to postgresql://")

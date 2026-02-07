@@ -22,6 +22,7 @@ const ContactPage = lazy(() => import('@/pages/ContactPage').then(m => ({ defaul
 const FavoritesPage = lazy(() => import('@/pages/FavoritesPage').then(m => ({ default: m.FavoritesPage })))
 const TrackerPage = lazy(() => import('@/pages/TrackerPage').then(m => ({ default: m.TrackerPage })))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage').then(m => ({ default: m.ProfilePage })))
+const PublicFavoritesPage = lazy(() => import('@/pages/PublicFavoritesPage').then(m => ({ default: m.PublicFavoritesPage })))
 const LeaderboardPage = lazy(() => import('@/pages/LeaderboardPage').then(m => ({ default: m.LeaderboardPage })))
 const MapPage = lazy(() => import('@/pages/MapPage').then(m => ({ default: m.MapPage })))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })))
@@ -82,6 +83,7 @@ function App() {
                     <Route path="my-requests" element={<MyRequestsPage />} />
                     <Route path="makkah" element={<MakkahSchedulePage />} />
                     <Route path="u/:username" element={<ProfilePage />} />
+                    <Route path="u/:username/favorites" element={<PublicFavoritesPage />} />
                     <Route path="*" element={<NotFoundPage />} />
                   </Route>
 

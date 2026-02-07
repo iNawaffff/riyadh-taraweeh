@@ -22,10 +22,11 @@ def is_arabic_text(text):
 
 
 def sanitize_text(text):
-    """Sanitize user text input: strip, collapse spaces, limit length."""
+    """Sanitize user text input: strip HTML tags, collapse spaces, remove control chars."""
     if not text:
         return ""
     text = str(text).strip()
+    text = re.sub(r'<[^>]+>', '', text)  # Strip HTML tags
     text = re.sub(r'\s+', ' ', text)
     text = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', text)
     return text

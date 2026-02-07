@@ -3,6 +3,7 @@
 import datetime
 import os
 import re
+from html import escape as html_escape
 
 from flask import Blueprint, jsonify, make_response, redirect, render_template, request, send_from_directory
 from flask_mail import Message
@@ -26,33 +27,40 @@ def _get_react_html():
 
 
 def inject_meta_tags(html, meta):
-    """Replace meta tags in the built React HTML with route-specific values."""
+    """Replace meta tags in the built React HTML with route-specific values.
+
+    All values are HTML-escaped to prevent stored XSS via user-controlled data
+    (e.g., display_name, mosque names from community requests).
+    """
     if meta.get("title"):
+        safe_title = html_escape(meta["title"], quote=True)
         html = re.sub(
             r"<title>[^<]*</title>",
-            f"<title>{meta['title']}</title>",
+            f"<title>{safe_title}</title>",
             html,
         )
         html = re.sub(
             r'<meta property="og:title" content="[^"]*"',
-            f'<meta property="og:title" content="{meta["title"]}"',
+            f'<meta property="og:title" content="{safe_title}"',
             html,
         )
     if meta.get("description"):
+        safe_desc = html_escape(meta["description"], quote=True)
         html = re.sub(
             r'<meta name="description" content="[^"]*"',
-            f'<meta name="description" content="{meta["description"]}"',
+            f'<meta name="description" content="{safe_desc}"',
             html,
         )
         html = re.sub(
             r'<meta property="og:description" content="[^"]*"',
-            f'<meta property="og:description" content="{meta["description"]}"',
+            f'<meta property="og:description" content="{safe_desc}"',
             html,
         )
     if meta.get("url"):
+        safe_url = html_escape(meta["url"], quote=True)
         html = re.sub(
             r'<meta property="og:url" content="[^"]*"',
-            f'<meta property="og:url" content="{meta["url"]}"',
+            f'<meta property="og:url" content="{safe_url}"',
             html,
         )
     return html
@@ -147,6 +155,20 @@ def user_profile_page(username):
                 "title": f"مفضلات {user.display_name or user.username} - أئمة التراويح",
                 "description": f"قائمة المساجد المفضلة لـ {user.display_name or user.username}",
                 "url": f"https://taraweeh.org/u/{username}",
+            })
+        return serve_react_app()
+    return redirect("/")
+
+
+@spa_bp.route("/u/<username>/favorites")
+def user_favorites_page(username):
+    if USE_REACT_FRONTEND:
+        user = PublicUser.query.filter_by(username=username).first()
+        if user:
+            return serve_react_app(meta_tags={
+                "title": f"مفضلات {user.display_name or user.username} - أئمة التراويح",
+                "description": f"قائمة المساجد المفضلة لـ {user.display_name or user.username}",
+                "url": f"https://taraweeh.org/u/{username}/favorites",
             })
         return serve_react_app()
     return redirect("/")

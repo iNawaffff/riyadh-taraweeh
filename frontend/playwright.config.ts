@@ -5,7 +5,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Limit workers to avoid starving Flask dev server (single-threaded)
+  workers: process.env.CI ? 1 : 2,
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:5173',
@@ -15,16 +16,17 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'Desktop Chrome',
-      use: {
-        ...devices['Desktop Chrome'],
-        viewport: { width: 1280, height: 720 },
-      },
-    },
-    {
       name: 'Mobile Safari',
       use: {
         ...devices['iPhone 14'],
+      },
+    },
+    {
+      name: 'Desktop Chrome',
+      dependencies: ['Mobile Safari'],
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1280, height: 720 },
       },
     },
   ],
