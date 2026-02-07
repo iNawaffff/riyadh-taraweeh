@@ -18,6 +18,7 @@ import {
   MapPin,
   Compass,
   User,
+  UserPlus,
   ExternalLink,
   Play,
   Pause,
@@ -105,10 +106,15 @@ export function MosqueDetailPage() {
                   <Home className="hidden h-7 w-7 shrink-0 text-accent-light md:block" aria-hidden="true" />
                   <span className="truncate">{name}</span>
                 </h1>
-                {imam && (
+                {imam ? (
                   <p className="mt-1 truncate text-sm text-white/80 md:mt-2 md:text-lg">
                     <User className="me-1.5 inline h-3.5 w-3.5 md:h-4 md:w-4" />
                     {imam}
+                  </p>
+                ) : (
+                  <p className="mt-1 truncate text-sm text-white/50 md:mt-2 md:text-lg">
+                    <User className="me-1.5 inline h-3.5 w-3.5 md:h-4 md:w-4" />
+                    لم يُحدد الإمام
                   </p>
                 )}
               </div>
@@ -209,7 +215,7 @@ export function MosqueDetailPage() {
                 </div>
 
                 {/* Imam - Horizontal on mobile */}
-                {imam && (
+                {imam ? (
                   <div className="flex items-center gap-3 rounded-lg border border-primary/10 bg-primary-light/50 p-3 md:col-span-2 md:flex-col md:items-start md:p-4">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 md:hidden">
                       <User className="h-5 w-5 text-primary" />
@@ -236,6 +242,35 @@ export function MosqueDetailPage() {
                           تغيّر؟
                         </button>
                       </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* No imam — polished empty state with contribute CTA */
+                  <div className="group relative overflow-hidden rounded-lg border border-dashed border-primary/20 bg-gradient-to-l from-accent/[0.04] to-primary/[0.02] p-3 md:col-span-2 md:p-4">
+                    <div className="flex items-center gap-3 md:gap-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-dashed border-primary/20 bg-primary/[0.04] md:h-12 md:w-12">
+                        <UserPlus className="h-4 w-4 text-primary/30 md:h-5 md:w-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <span className="mb-1 hidden items-center gap-2 font-bold text-primary/60 md:flex">
+                          <User className="h-4 w-4" />
+                          إمام التراويح:
+                        </span>
+                        <span className="text-xs font-medium text-muted-foreground md:hidden">إمام التراويح</span>
+                        <p className="text-sm text-foreground/50 md:text-base">لم يُحدد الإمام بعد</p>
+                      </div>
+                      <Link
+                        to="/request"
+                        className={cn(
+                          'flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-3 text-xs font-medium text-accent-foreground/70',
+                          'transition-all duration-200',
+                          'hover:bg-accent/20 hover:text-accent-foreground hover:shadow-sm',
+                          'md:h-auto md:py-1.5 md:px-4'
+                        )}
+                      >
+                        <UserPlus className="h-3 w-3" />
+                        أضف الإمام
+                      </Link>
                     </div>
                   </div>
                 )}
@@ -419,7 +454,7 @@ export function MosqueDetailPage() {
       </div>
 
       {/* Mobile: Fixed bottom action bar */}
-      {(map_link || youtube_link) && (
+      {(map_link || youtube_link || !imam) && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 p-3 pb-safe backdrop-blur-md md:hidden">
           <div className="container flex gap-3">
             {map_link && (
@@ -436,6 +471,14 @@ export function MosqueDetailPage() {
                   <Youtube className="h-4 w-4" />
                   يوتيوب
                 </a>
+              </Button>
+            )}
+            {!imam && (
+              <Button asChild className="h-12 flex-1 gap-2 rounded-xl">
+                <Link to="/request">
+                  <UserPlus className="h-4 w-4" />
+                  أضف الإمام
+                </Link>
               </Button>
             )}
           </div>

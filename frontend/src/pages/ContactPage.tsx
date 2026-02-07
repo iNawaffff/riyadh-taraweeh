@@ -136,7 +136,7 @@ export function ContactPage() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-base font-bold text-foreground">ساهم في إضافة مسجد أو إمام</p>
-            <p className="text-sm text-foreground/60">أرسل طلب إضافة مسجد جديد أو إمام أو نقل إمام</p>
+            <p className="text-sm text-foreground/60">ارسل طلب إضافة مسجد جديد او ابلاغ عن انتقال امام</p>
           </div>
           <ArrowLeft className="h-5 w-5 shrink-0 text-muted-foreground/40 transition-transform group-hover:-translate-x-1" />
         </Link>

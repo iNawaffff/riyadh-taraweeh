@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { Link } from 'react-router-dom'
-import { ExternalLink, Youtube, MapPin, Play, Pause, Loader2, ChevronLeft } from 'lucide-react'
+import { ExternalLink, Youtube, MapPin, Play, Pause, Loader2, ChevronLeft, UserPlus } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import {
@@ -216,12 +216,13 @@ export const MosqueCard = memo(function MosqueCard({ mosque, className }: Mosque
                 </Tooltip>
               )}
             </button>
-          ) : (
+          ) : imam ? (
+            /* Has imam but no audio */
             <div className="flex w-full items-center gap-3 rounded-xl border border-primary/10 bg-primary-light/30 p-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/[0.06]">
                 <Play className="h-3.5 w-3.5 text-primary/25" />
               </div>
-              <p className="flex-1 text-sm font-medium text-foreground/70">{imam ?? 'غير محدد'}</p>
+              <p className="flex-1 text-sm font-medium text-foreground/70">{imam}</p>
               {youtube_link && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -246,6 +247,27 @@ export const MosqueCard = memo(function MosqueCard({ mosque, className }: Mosque
                 </Tooltip>
               )}
             </div>
+          ) : (
+            /* No imam assigned */
+            <Link
+              to="/request"
+              className={cn(
+                'group/cta flex w-full items-center gap-3 rounded-xl border border-dashed border-primary/20 p-3',
+                'bg-gradient-to-l from-accent/[0.04] to-primary/[0.02]',
+                'transition-all duration-300',
+                'hover:border-accent/40 hover:from-accent/[0.08] hover:to-primary/[0.04] hover:shadow-sm'
+              )}
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-dashed border-primary/20 bg-primary/[0.04] transition-colors duration-300 group-hover/cta:border-accent/30 group-hover/cta:bg-accent/10">
+                <UserPlus className="h-4 w-4 text-primary/40 transition-colors duration-300 group-hover/cta:text-accent" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-foreground/50">لم يُحدد الإمام</p>
+                <p className="mt-0.5 text-[11px] text-accent/70 opacity-0 transition-opacity duration-300 group-hover/cta:opacity-100">
+                  ساعدنا بالتحديث
+                </p>
+              </div>
+            </Link>
           )}
         </div>
 
