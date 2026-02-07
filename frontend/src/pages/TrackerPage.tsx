@@ -782,11 +782,9 @@ export function TrackerPage() {
           <DialogContent className="max-w-xs sm:max-w-sm">
             <DialogHeader className="text-center">
               <DialogTitle className="text-xl">
-                الليلة {viewingNight !== null ? toArabicNum(viewingNight) : ''}
+                ليلة {viewingNight !== null ? toArabicNum(viewingNight) : ''} رمضان
               </DialogTitle>
-              <DialogDescription>
-                {viewingNight !== null ? getNightHijri(viewingNight) : ''}
-              </DialogDescription>
+              <DialogDescription className="sr-only">تفاصيل الحضور</DialogDescription>
             </DialogHeader>
             {viewingNightData && (
               <NightDetail
@@ -803,11 +801,9 @@ export function TrackerPage() {
           <DrawerContent>
             <DrawerHeader className="text-center">
               <DrawerTitle className="text-xl">
-                الليلة {viewingNight !== null ? toArabicNum(viewingNight) : ''}
+                ليلة {viewingNight !== null ? toArabicNum(viewingNight) : ''} رمضان
               </DrawerTitle>
-              <DrawerDescription>
-                {viewingNight !== null ? getNightHijri(viewingNight) : ''}
-              </DrawerDescription>
+              <DrawerDescription className="sr-only">تفاصيل الحضور</DrawerDescription>
             </DrawerHeader>
             {viewingNightData && (
               <NightDetail
@@ -830,7 +826,7 @@ export function TrackerPage() {
                 {isEditingNight ? 'تعديل الحضور' : 'كم عدد الركعات؟'}
               </DialogTitle>
               <DialogDescription>
-                الليلة {pendingNight !== null ? toArabicNum(pendingNight) : ''}
+                ليلة {pendingNight !== null ? toArabicNum(pendingNight) : ''} رمضان
               </DialogDescription>
             </DialogHeader>
             <RakaatPicker
@@ -851,7 +847,7 @@ export function TrackerPage() {
                 {isEditingNight ? 'تعديل الحضور' : 'كم عدد الركعات؟'}
               </DrawerTitle>
               <DrawerDescription>
-                الليلة {pendingNight !== null ? toArabicNum(pendingNight) : ''}
+                ليلة {pendingNight !== null ? toArabicNum(pendingNight) : ''} رمضان
               </DrawerDescription>
             </DrawerHeader>
             <RakaatPicker
