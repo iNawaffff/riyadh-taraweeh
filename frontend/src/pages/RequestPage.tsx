@@ -166,6 +166,7 @@ export function RequestPage() {
   const [mosqueArea, setMosqueArea] = useState('')
   const [mosqueLocation, setMosqueLocation] = useState('')
   const [mosqueMapLink, setMosqueMapLink] = useState('')
+  const [customLocationMode, setCustomLocationMode] = useState(false)
   // new_mosque optional imam
   const [imamSource, setImamSource] = useState<'new' | 'existing'>('new')
   const [imamName, setImamName] = useState('')
@@ -225,6 +226,7 @@ export function RequestPage() {
     setMosqueArea('')
     setMosqueLocation('')
     setMosqueMapLink('')
+    setCustomLocationMode(false)
     setImamName('')
     setImamYoutubeLink('')
     setImamSource('new')
@@ -253,11 +255,12 @@ export function RequestPage() {
       if (!mosqueName.trim()) return toast.error('اسم المسجد مطلوب')
       if (!isArabicOnly(mosqueName.trim())) return toast.error('اسم المسجد يجب أن يكون بالعربية فقط')
       if (!mosqueArea) return toast.error('المنطقة مطلوبة')
-      if (!mosqueLocation) return toast.error('الحي مطلوب')
+      if (!mosqueLocation.trim()) return toast.error('الحي مطلوب')
+      if (customLocationMode && !isArabicOnly(mosqueLocation.trim())) return toast.error('اسم الحي يجب أن يكون بالعربية فقط')
       data.request_type = 'new_mosque'
       data.mosque_name = mosqueName.trim()
       data.mosque_area = mosqueArea
-      data.mosque_location = mosqueLocation
+      data.mosque_location = mosqueLocation.trim()
       data.mosque_map_link = mosqueMapLink.trim() || undefined
       // Imam info (optional) — can be new or existing
       data.imam_source = imamSource
@@ -459,16 +462,51 @@ export function RequestPage() {
                   <label className="text-sm font-medium text-foreground/70">
                     الحي <span className="text-red-400">*</span>
                   </label>
-                  <Select value={mosqueLocation} onValueChange={setMosqueLocation}>
-                    <SelectTrigger className="h-11 bg-muted/30">
-                      <SelectValue placeholder={mosqueArea ? 'اختر الحي' : 'اختر المنطقة أولاً'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {locations.map((loc) => (
-                        <SelectItem key={loc} value={loc}>{loc}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {customLocationMode ? (
+                    <div>
+                      <Input
+                        value={mosqueLocation}
+                        onChange={(e) => setMosqueLocation(e.target.value)}
+                        placeholder="اكتب اسم الحي (بدون كلمة حي)"
+                        className="h-11 bg-muted/30"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCustomLocationMode(false)
+                          setMosqueLocation('')
+                        }}
+                        className="mt-2 flex items-center gap-1.5 text-sm text-primary transition-colors hover:text-primary/80"
+                      >
+                        <Search className="h-3.5 w-3.5" />
+                        اختر من الأحياء الموجودة
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <Select value={mosqueLocation} onValueChange={setMosqueLocation}>
+                        <SelectTrigger className="h-11 bg-muted/30">
+                          <SelectValue placeholder={mosqueArea ? 'اختر الحي' : 'اختر المنطقة أولاً'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {locations.map((loc) => (
+                            <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCustomLocationMode(true)
+                          setMosqueLocation('')
+                        }}
+                        className="mt-2 flex items-center gap-1.5 text-sm text-primary transition-colors hover:text-primary/80"
+                      >
+                        <UserPlus className="h-3.5 w-3.5" />
+                        الحي غير موجود؟ اكتب اسمه
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Map link */}
@@ -631,6 +669,18 @@ export function RequestPage() {
                       </Command>
                     </PopoverContent>
                   </Popover>
+
+                  {/* Mosque not found — switch to new_mosque */}
+                  {!targetMosqueId && (
+                    <button
+                      type="button"
+                      onClick={() => handleTypeChange('new_mosque')}
+                      className="mt-2 flex items-center gap-1.5 text-sm text-primary transition-colors hover:text-primary/80"
+                    >
+                      <Building2 className="h-3.5 w-3.5" />
+                      المسجد غير موجود؟ أضفه كمسجد جديد
+                    </button>
+                  )}
 
                   {/* Current imam info box */}
                   {targetMosqueId && selectedMosqueImam && (
