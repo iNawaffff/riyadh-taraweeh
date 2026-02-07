@@ -31,6 +31,7 @@ class PublicUser(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     contribution_points = db.Column(db.Integer, default=0, nullable=False)
+    trust_level = db.Column(db.String(20), nullable=False, server_default='default')  # default/trusted/not_trusted
 
     favorites = db.relationship('UserFavorite', backref='user', lazy=True, cascade='all, delete-orphan')
 
@@ -89,6 +90,53 @@ class ImamTransferRequest(db.Model):
     current_imam = db.relationship('Imam', foreign_keys=[current_imam_id])
     new_imam = db.relationship('Imam', foreign_keys=[new_imam_id])
     reviewer = db.relationship('User', foreign_keys=[reviewed_by])
+
+
+class CommunityRequest(db.Model):
+    __tablename__ = 'community_request'
+    id = db.Column(db.Integer, primary_key=True)
+    submitter_id = db.Column(db.Integer, db.ForeignKey('public_user.id'), nullable=False)
+    request_type = db.Column(db.String(20), nullable=False)  # new_mosque, new_imam, imam_transfer
+
+    # Mosque fields (for new_mosque)
+    mosque_name = db.Column(db.String(100), nullable=True)
+    mosque_location = db.Column(db.String(200), nullable=True)
+    mosque_area = db.Column(db.String(50), nullable=True)
+    mosque_map_link = db.Column(db.String(500), nullable=True)
+
+    # Imam fields (for new_imam or new_mosque with imam)
+    imam_name = db.Column(db.String(100), nullable=True)
+    imam_audio_url = db.Column(db.String(500), nullable=True)
+    imam_youtube_link = db.Column(db.String(500), nullable=True)
+    imam_source = db.Column(db.String(20), nullable=True)  # existing / new
+    existing_imam_id = db.Column(db.Integer, db.ForeignKey('imam.id', use_alter=True), nullable=True)
+
+    # Transfer fields (for imam_transfer / new_imam)
+    target_mosque_id = db.Column(db.Integer, db.ForeignKey('mosque.id'), nullable=True)
+
+    # Common fields
+    notes = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(20), nullable=False, server_default='pending')  # pending/approved/rejected/needs_info
+    reject_reason = db.Column(db.String(500), nullable=True)
+    admin_notes = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+    reviewed_by = db.Column(db.Integer, db.ForeignKey('public_user.id'), nullable=True)
+
+    # Duplicate detection
+    duplicate_of = db.Column(db.Integer, db.ForeignKey('community_request.id'), nullable=True)
+
+    __table_args__ = (
+        db.Index('ix_community_request_status', 'status'),
+        db.Index('ix_community_request_type_status', 'request_type', 'status'),
+        db.Index('ix_community_request_submitter', 'submitter_id'),
+    )
+
+    submitter = db.relationship('PublicUser', foreign_keys=[submitter_id], backref=db.backref('community_requests', lazy=True))
+    reviewer_user = db.relationship('PublicUser', foreign_keys=[reviewed_by])
+    target_mosque = db.relationship('Mosque', foreign_keys=[target_mosque_id])
+    existing_imam = db.relationship('Imam', foreign_keys=[existing_imam_id])
+    duplicate_request = db.relationship('CommunityRequest', remote_side=[id])
 
 
 class Imam(db.Model):

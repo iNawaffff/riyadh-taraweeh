@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { LogOut, User, Calendar, ChevronDown } from 'lucide-react'
+import { LogOut, User, Calendar, ChevronDown, FileText } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,6 +47,12 @@ export function UserMenu() {
           <Link to="/tracker" className="gap-2">
             <Calendar className="h-4 w-4" />
             متابعة التراويح
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/my-requests" className="gap-2">
+            <FileText className="h-4 w-4" />
+            طلباتي
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem

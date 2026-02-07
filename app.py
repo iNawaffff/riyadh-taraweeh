@@ -47,7 +47,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
 from wtforms_sqlalchemy.fields import QuerySelectField
 
-from models import Imam, ImamTransferRequest, Mosque, PublicUser, TaraweehAttendance, UserFavorite, db
+from models import CommunityRequest, Imam, ImamTransferRequest, Mosque, PublicUser, TaraweehAttendance, UserFavorite, db
 from utils import normalize_arabic
 
 load_dotenv()
@@ -586,10 +586,13 @@ class TransferRequestModelView(BaseModelView):
             elif tr.new_imam_name:
                 new_imam = Imam(name=tr.new_imam_name, mosque_id=mosque.id)
                 db.session.add(new_imam)
-            # Award point
+            # Award point (atomic increment to avoid race condition)
             submitter = PublicUser.query.get(tr.submitter_id)
             if submitter:
-                submitter.contribution_points = PublicUser.contribution_points + 1
+                db.session.execute(
+                    db.text("UPDATE public_user SET contribution_points = contribution_points + 1 WHERE id = :uid"),
+                    {"uid": submitter.id}
+                )
             tr.status = "approved"
             tr.reviewed_at = datetime.datetime.utcnow()
             tr.reviewed_by = current_user.id if current_user.is_authenticated else None
@@ -1511,6 +1514,229 @@ def user_transfers():
     return jsonify(result)
 
 
+# --- Community Requests (Public) ---
+
+import re as _re
+
+def _is_arabic_text(text):
+    """Validate that text contains only Arabic letters, spaces, and common punctuation."""
+    if not text:
+        return True
+    # Allow Arabic Unicode block, spaces, digits (Arabic & Western), and common punctuation
+    return bool(_re.match(r'^[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF\s\d٠-٩.,،؟!؛:\-()]+$', text))
+
+def _sanitize_text(text):
+    """Sanitize user text input: strip, collapse spaces, limit length."""
+    if not text:
+        return ""
+    text = str(text).strip()
+    text = _re.sub(r'\s+', ' ', text)
+    # Remove any control characters
+    text = _re.sub(r'[\x00-\x1f\x7f-\x9f]', '', text)
+    return text
+
+@app.route("/api/requests", methods=["POST"])
+@limiter.limit("10 per minute")
+@firebase_auth_required
+def submit_request():
+    user = g.current_public_user
+    if not user:
+        return jsonify({"error": "Not registered"}), 401
+    data = request.get_json() or {}
+    request_type = data.get("request_type", "").strip()
+    if request_type not in ("new_mosque", "new_imam", "imam_transfer"):
+        return jsonify({"error": "نوع الطلب غير صالح"}), 400
+
+    cr = CommunityRequest(submitter_id=user.id, request_type=request_type)
+
+    if request_type == "new_mosque":
+        mosque_name = _sanitize_text(data.get("mosque_name", ""))
+        if not mosque_name:
+            return jsonify({"error": "اسم المسجد مطلوب"}), 400
+        if not _is_arabic_text(mosque_name):
+            return jsonify({"error": "اسم المسجد يجب أن يكون بالعربية فقط"}), 400
+        cr.mosque_name = mosque_name
+        cr.mosque_location = _sanitize_text(data.get("mosque_location", "")) or None
+        cr.mosque_area = data.get("mosque_area", "").strip() or None
+        if cr.mosque_area and cr.mosque_area not in ("شمال", "جنوب", "شرق", "غرب"):
+            return jsonify({"error": "المنطقة غير صالحة"}), 400
+        cr.mosque_map_link = data.get("mosque_map_link", "").strip() or None
+        # Optional imam info for new mosque — can be new or existing
+        imam_source = data.get("imam_source", "").strip()
+        if imam_source == "existing":
+            existing_imam_id = data.get("existing_imam_id")
+            if existing_imam_id and Imam.query.get(existing_imam_id):
+                cr.imam_source = "existing"
+                cr.existing_imam_id = existing_imam_id
+        else:
+            imam_name = _sanitize_text(data.get("imam_name", ""))
+            if imam_name:
+                if not _is_arabic_text(imam_name):
+                    return jsonify({"error": "اسم الإمام يجب أن يكون بالعربية فقط"}), 400
+                cr.imam_source = "new"
+                cr.imam_name = imam_name
+                cr.imam_youtube_link = data.get("imam_youtube_link", "").strip() or None
+                cr.imam_audio_url = data.get("imam_audio_url", "").strip() or None
+
+    elif request_type == "new_imam":
+        target_mosque_id = data.get("target_mosque_id")
+        if not target_mosque_id or not Mosque.query.get(target_mosque_id):
+            return jsonify({"error": "المسجد مطلوب"}), 400
+        cr.target_mosque_id = target_mosque_id
+        imam_source = data.get("imam_source", "").strip()
+        if imam_source not in ("existing", "new"):
+            return jsonify({"error": "مصدر الإمام غير صالح"}), 400
+        cr.imam_source = imam_source
+        if imam_source == "existing":
+            existing_imam_id = data.get("existing_imam_id")
+            if not existing_imam_id or not Imam.query.get(existing_imam_id):
+                return jsonify({"error": "الإمام غير موجود"}), 400
+            cr.existing_imam_id = existing_imam_id
+        else:
+            imam_name = _sanitize_text(data.get("imam_name", ""))
+            if not imam_name:
+                return jsonify({"error": "اسم الإمام مطلوب"}), 400
+            if not _is_arabic_text(imam_name):
+                return jsonify({"error": "اسم الإمام يجب أن يكون بالعربية فقط"}), 400
+            cr.imam_name = imam_name
+            cr.imam_youtube_link = data.get("imam_youtube_link", "").strip() or None
+            cr.imam_audio_url = data.get("imam_audio_url", "").strip() or None
+
+    elif request_type == "imam_transfer":
+        target_mosque_id = data.get("target_mosque_id")
+        if not target_mosque_id or not Mosque.query.get(target_mosque_id):
+            return jsonify({"error": "المسجد مطلوب"}), 400
+        cr.target_mosque_id = target_mosque_id
+        imam_source = data.get("imam_source", "").strip()
+        if imam_source not in ("existing", "new"):
+            return jsonify({"error": "مصدر الإمام غير صالح"}), 400
+        cr.imam_source = imam_source
+        if imam_source == "existing":
+            existing_imam_id = data.get("existing_imam_id")
+            if not existing_imam_id or not Imam.query.get(existing_imam_id):
+                return jsonify({"error": "الإمام غير موجود"}), 400
+            cr.existing_imam_id = existing_imam_id
+        else:
+            imam_name = _sanitize_text(data.get("imam_name", ""))
+            if not imam_name:
+                return jsonify({"error": "اسم الإمام مطلوب"}), 400
+            if not _is_arabic_text(imam_name):
+                return jsonify({"error": "اسم الإمام يجب أن يكون بالعربية فقط"}), 400
+            cr.imam_name = imam_name
+            cr.imam_youtube_link = data.get("imam_youtube_link", "").strip() or None
+            cr.imam_audio_url = data.get("imam_audio_url", "").strip() or None
+
+    # Sanitize notes
+    cr.notes = _sanitize_text(data.get("notes", ""))[:500] or None
+
+    # Check for exact duplicate pending request
+    dup_query = CommunityRequest.query.filter_by(
+        submitter_id=user.id, request_type=request_type, status="pending"
+    )
+    if request_type == "new_mosque" and cr.mosque_name:
+        dup_query = dup_query.filter_by(mosque_name=cr.mosque_name)
+    elif request_type in ("new_imam", "imam_transfer") and cr.target_mosque_id:
+        dup_query = dup_query.filter_by(target_mosque_id=cr.target_mosque_id)
+    if dup_query.first():
+        return jsonify({"error": "لديك طلب معلق مشابه"}), 409
+
+    db.session.add(cr)
+    db.session.commit()
+    return jsonify({"id": cr.id, "status": cr.status}), 201
+
+
+@app.route("/api/requests/my")
+@firebase_auth_required
+def my_requests():
+    user = g.current_public_user
+    if not user:
+        return jsonify({"error": "Not registered"}), 401
+    requests_list = CommunityRequest.query.filter_by(
+        submitter_id=user.id
+    ).order_by(CommunityRequest.created_at.desc()).all()
+    result = []
+    for cr in requests_list:
+        item = {
+            "id": cr.id,
+            "request_type": cr.request_type,
+            "status": cr.status,
+            "reject_reason": cr.reject_reason,
+            "notes": cr.notes,
+            "created_at": cr.created_at.isoformat() if cr.created_at else None,
+            "reviewed_at": cr.reviewed_at.isoformat() if cr.reviewed_at else None,
+        }
+        # Show admin notes to user when status is needs_info
+        if cr.status == "needs_info" and cr.admin_notes:
+            item["admin_notes"] = cr.admin_notes
+        if cr.request_type == "new_mosque":
+            item["mosque_name"] = cr.mosque_name
+            item["mosque_area"] = cr.mosque_area
+            item["mosque_location"] = cr.mosque_location
+            item["imam_name"] = cr.imam_name
+        elif cr.request_type in ("new_imam", "imam_transfer"):
+            mosque = Mosque.query.get(cr.target_mosque_id) if cr.target_mosque_id else None
+            item["target_mosque_name"] = mosque.name if mosque else None
+            item["target_mosque_id"] = cr.target_mosque_id
+            if cr.imam_source == "existing" and cr.existing_imam_id:
+                imam = Imam.query.get(cr.existing_imam_id)
+                item["imam_name"] = imam.name if imam else None
+            else:
+                item["imam_name"] = cr.imam_name
+            item["imam_source"] = cr.imam_source
+        result.append(item)
+    return jsonify(result)
+
+
+@app.route("/api/requests/<int:request_id>", methods=["DELETE"])
+@firebase_auth_required
+def cancel_request(request_id):
+    user = g.current_public_user
+    if not user:
+        return jsonify({"error": "Not registered"}), 401
+    cr = CommunityRequest.query.get(request_id)
+    if not cr or cr.submitter_id != user.id:
+        return jsonify({"error": "غير موجود"}), 404
+    if cr.status not in ("pending", "needs_info"):
+        return jsonify({"error": "لا يمكن إلغاء طلب تمت مراجعته"}), 400
+    db.session.delete(cr)
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+@app.route("/api/requests/check-duplicate")
+@firebase_auth_required
+def check_duplicate_request():
+    """Check for potential duplicate mosques or imams (for inline warnings)."""
+    check_type = request.args.get("type", "").strip()
+    query_str = request.args.get("q", "").strip()
+    if not query_str or len(query_str) < 3:
+        return jsonify({"matches": []})
+
+    normalized_query = normalize_arabic(query_str)
+    matches = []
+    if check_type == "mosque":
+        # Fetch all mosques and filter with Arabic normalization
+        all_mosques = Mosque.query.all()
+        for m in all_mosques:
+            if normalized_query in normalize_arabic(m.name):
+                matches.append({"id": m.id, "name": m.name, "area": m.area, "location": m.location})
+                if len(matches) >= 5:
+                    break
+    elif check_type == "imam":
+        all_imams = Imam.query.all()
+        for i in all_imams:
+            if normalized_query in normalize_arabic(i.name):
+                matches.append({
+                    "id": i.id,
+                    "name": i.name,
+                    "mosque_id": i.mosque_id,
+                    "mosque_name": i.mosque.name if i.mosque else None,
+                })
+                if len(matches) >= 5:
+                    break
+    return jsonify({"matches": matches})
+
+
 @app.route("/api/leaderboard")
 def leaderboard():
     users = PublicUser.query.filter(
@@ -1551,7 +1777,10 @@ def approve_transfer(transfer_id):
         db.session.add(new_imam)
     submitter = PublicUser.query.get(tr.submitter_id)
     if submitter:
-        submitter.contribution_points = PublicUser.contribution_points + 1
+        db.session.execute(
+            db.text("UPDATE public_user SET contribution_points = contribution_points + 1 WHERE id = :uid"),
+            {"uid": submitter.id}
+        )
     tr.status = "approved"
     tr.reviewed_at = datetime.datetime.utcnow()
     tr.reviewed_by = current_user.id
@@ -1598,22 +1827,22 @@ def admin_stats():
     mosque_count = db.session.query(db.func.count(Mosque.id)).scalar()
     imam_count = db.session.query(db.func.count(Imam.id)).scalar()
     user_count = db.session.query(db.func.count(PublicUser.id)).scalar()
-    pending_transfers = db.session.query(db.func.count(ImamTransferRequest.id)).filter(
-        ImamTransferRequest.status == "pending"
+    pending_requests = db.session.query(db.func.count(CommunityRequest.id)).filter(
+        CommunityRequest.status.in_(("pending", "needs_info"))
     ).scalar()
     return jsonify({
         "mosque_count": mosque_count,
         "imam_count": imam_count,
         "user_count": user_count,
-        "pending_transfers": pending_transfers,
+        "pending_requests": pending_requests,
     })
 
 
 @app.route("/api/admin/mosques")
 @admin_or_moderator_required
 def admin_list_mosques():
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 50, type=int)
+    page = max(1, request.args.get("page", 1, type=int))
+    per_page = min(200, max(1, request.args.get("per_page", 50, type=int)))
     search = request.args.get("search", "").strip()
     area = request.args.get("area", "").strip()
 
@@ -1648,6 +1877,28 @@ def admin_list_mosques():
             "youtube_link": imam.youtube_link if imam else None,
         })
     return jsonify({"items": items, "total": total, "page": page, "per_page": per_page})
+
+
+@app.route("/api/admin/mosques/<int:mosque_id>")
+@admin_or_moderator_required
+def admin_get_mosque(mosque_id):
+    mosque = Mosque.query.get(mosque_id)
+    if not mosque:
+        return jsonify({"error": "غير موجود"}), 404
+    imam = Imam.query.filter_by(mosque_id=mosque.id).first()
+    return jsonify({
+        "id": mosque.id,
+        "name": mosque.name,
+        "location": mosque.location,
+        "area": mosque.area,
+        "map_link": mosque.map_link,
+        "latitude": mosque.latitude,
+        "longitude": mosque.longitude,
+        "imam_id": imam.id if imam else None,
+        "imam_name": imam.name if imam else None,
+        "audio_sample": imam.audio_sample if imam else None,
+        "youtube_link": imam.youtube_link if imam else None,
+    })
 
 
 @app.route("/api/admin/mosques", methods=["POST"])
@@ -1755,8 +2006,8 @@ def admin_delete_mosque(mosque_id):
 @app.route("/api/admin/imams")
 @admin_or_moderator_required
 def admin_list_imams():
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 50, type=int)
+    page = max(1, request.args.get("page", 1, type=int))
+    per_page = min(200, max(1, request.args.get("per_page", 50, type=int)))
     search = request.args.get("search", "").strip()
 
     query = db.session.query(Imam, Mosque).outerjoin(Mosque, Imam.mosque_id == Mosque.id)
@@ -1776,6 +2027,23 @@ def admin_list_imams():
             "youtube_link": imam.youtube_link,
         })
     return jsonify({"items": items, "total": total, "page": page, "per_page": per_page})
+
+
+@app.route("/api/admin/imams/<int:imam_id>")
+@admin_or_moderator_required
+def admin_get_imam(imam_id):
+    imam = Imam.query.get(imam_id)
+    if not imam:
+        return jsonify({"error": "غير موجود"}), 404
+    mosque = Mosque.query.get(imam.mosque_id) if imam.mosque_id else None
+    return jsonify({
+        "id": imam.id,
+        "name": imam.name,
+        "mosque_id": imam.mosque_id,
+        "mosque_name": mosque.name if mosque else None,
+        "audio_sample": imam.audio_sample,
+        "youtube_link": imam.youtube_link,
+    })
 
 
 @app.route("/api/admin/imams", methods=["POST"])
@@ -1832,8 +2100,8 @@ def admin_delete_imam(imam_id):
 @app.route("/api/admin/transfers")
 @admin_or_moderator_required
 def admin_list_transfers():
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 50, type=int)
+    page = max(1, request.args.get("page", 1, type=int))
+    per_page = min(200, max(1, request.args.get("per_page", 50, type=int)))
     status_filter = request.args.get("status", "").strip()
 
     query = ImamTransferRequest.query
@@ -1871,6 +2139,8 @@ def admin_approve_transfer(transfer_id):
     if tr.status != "pending":
         return jsonify({"error": "تمت المراجعة مسبقاً"}), 400
     mosque = Mosque.query.get(tr.mosque_id)
+    if not mosque:
+        return jsonify({"error": "المسجد المرتبط غير موجود"}), 400
     old_imam = Imam.query.filter_by(mosque_id=mosque.id).first()
     if old_imam:
         old_imam.mosque_id = None
@@ -1883,7 +2153,10 @@ def admin_approve_transfer(transfer_id):
         db.session.add(new_imam)
     submitter = PublicUser.query.get(tr.submitter_id)
     if submitter:
-        submitter.contribution_points = PublicUser.contribution_points + 1
+        db.session.execute(
+            db.text("UPDATE public_user SET contribution_points = contribution_points + 1 WHERE id = :uid"),
+            {"uid": submitter.id}
+        )
     tr.status = "approved"
     tr.reviewed_at = datetime.datetime.utcnow()
     db.session.commit()
@@ -1904,14 +2177,15 @@ def admin_reject_transfer(transfer_id):
     tr.reject_reason = data.get("reason", "").strip() or None
     tr.reviewed_at = datetime.datetime.utcnow()
     db.session.commit()
+    _invalidate_caches()
     return jsonify({"success": True})
 
 
 @app.route("/api/admin/users")
 @admin_or_moderator_required
 def admin_list_users():
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 50, type=int)
+    page = max(1, request.args.get("page", 1, type=int))
+    per_page = min(200, max(1, request.args.get("per_page", 50, type=int)))
     search = request.args.get("search", "").strip()
 
     query = PublicUser.query
@@ -1936,6 +2210,7 @@ def admin_list_users():
             "email": u.email,
             "role": u.role,
             "contribution_points": u.contribution_points,
+            "trust_level": u.trust_level,
             "created_at": u.created_at.isoformat() if u.created_at else None,
         })
     return jsonify({"items": items, "total": total, "page": page, "per_page": per_page})
@@ -1954,6 +2229,290 @@ def admin_update_user_role(user_id):
     if new_role not in ("user", "moderator", "admin"):
         return jsonify({"error": "الدور غير صالح"}), 400
     user.role = new_role
+    db.session.commit()
+    _invalidate_caches()
+    return jsonify({"success": True})
+
+
+@app.route("/api/admin/users/<int:user_id>/trust-level", methods=["PUT"])
+@admin_or_moderator_required
+def admin_update_trust_level(user_id):
+    user = PublicUser.query.get(user_id)
+    if not user:
+        return jsonify({"error": "غير موجود"}), 404
+    data = request.get_json() or {}
+    new_level = data.get("trust_level", "").strip()
+    if new_level not in ("default", "trusted", "not_trusted"):
+        return jsonify({"error": "مستوى الثقة غير صالح"}), 400
+    user.trust_level = new_level
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+# --- Admin Community Requests ---
+
+@app.route("/api/admin/requests")
+@admin_or_moderator_required
+def admin_list_requests():
+    page = max(1, request.args.get("page", 1, type=int))
+    per_page = min(200, max(1, request.args.get("per_page", 50, type=int)))
+    status_filter = request.args.get("status", "").strip()
+    type_filter = request.args.get("type", "").strip()
+
+    query = CommunityRequest.query
+    if status_filter:
+        query = query.filter(CommunityRequest.status == status_filter)
+    if type_filter:
+        query = query.filter(CommunityRequest.request_type == type_filter)
+    # Priority: trusted submitters first, then by date
+    query = query.outerjoin(PublicUser, CommunityRequest.submitter_id == PublicUser.id).order_by(
+        db.case(
+            (PublicUser.trust_level == "trusted", 0),
+            (PublicUser.trust_level == "default", 1),
+            else_=2,
+        ),
+        CommunityRequest.created_at.desc(),
+    )
+    total = query.count()
+    items_raw = query.offset((page - 1) * per_page).limit(per_page).all()
+    items = []
+    for cr in items_raw:
+        submitter = PublicUser.query.get(cr.submitter_id)
+        item = {
+            "id": cr.id,
+            "request_type": cr.request_type,
+            "status": cr.status,
+            "notes": cr.notes,
+            "reject_reason": cr.reject_reason,
+            "admin_notes": cr.admin_notes,
+            "created_at": cr.created_at.isoformat() if cr.created_at else None,
+            "reviewed_at": cr.reviewed_at.isoformat() if cr.reviewed_at else None,
+            "submitter_name": submitter.display_name or submitter.username if submitter else None,
+            "submitter_id": cr.submitter_id,
+            "submitter_trust_level": submitter.trust_level if submitter else "default",
+            "duplicate_of": cr.duplicate_of,
+        }
+        if cr.request_type == "new_mosque":
+            item["mosque_name"] = cr.mosque_name
+            item["mosque_area"] = cr.mosque_area
+            item["mosque_location"] = cr.mosque_location
+            item["mosque_map_link"] = cr.mosque_map_link
+            item["imam_name"] = cr.imam_name
+            item["imam_youtube_link"] = cr.imam_youtube_link
+            item["imam_audio_url"] = cr.imam_audio_url
+        elif cr.request_type in ("new_imam", "imam_transfer"):
+            mosque = Mosque.query.get(cr.target_mosque_id) if cr.target_mosque_id else None
+            item["target_mosque_id"] = cr.target_mosque_id
+            item["target_mosque_name"] = mosque.name if mosque else None
+            item["imam_source"] = cr.imam_source
+            if cr.imam_source == "existing" and cr.existing_imam_id:
+                imam = Imam.query.get(cr.existing_imam_id)
+                item["imam_name"] = imam.name if imam else None
+                item["existing_imam_id"] = cr.existing_imam_id
+            else:
+                item["imam_name"] = cr.imam_name
+                item["imam_youtube_link"] = cr.imam_youtube_link
+                item["imam_audio_url"] = cr.imam_audio_url
+        items.append(item)
+    return jsonify({"items": items, "total": total, "page": page, "per_page": per_page})
+
+
+@app.route("/api/admin/requests/<int:request_id>")
+@admin_or_moderator_required
+def admin_get_request(request_id):
+    cr = CommunityRequest.query.get(request_id)
+    if not cr:
+        return jsonify({"error": "غير موجود"}), 404
+    submitter = PublicUser.query.get(cr.submitter_id)
+    item = {
+        "id": cr.id,
+        "request_type": cr.request_type,
+        "status": cr.status,
+        "notes": cr.notes,
+        "reject_reason": cr.reject_reason,
+        "admin_notes": cr.admin_notes,
+        "created_at": cr.created_at.isoformat() if cr.created_at else None,
+        "reviewed_at": cr.reviewed_at.isoformat() if cr.reviewed_at else None,
+        "submitter_name": submitter.display_name or submitter.username if submitter else None,
+        "submitter_id": cr.submitter_id,
+        "submitter_trust_level": submitter.trust_level if submitter else "default",
+        "mosque_name": cr.mosque_name,
+        "mosque_area": cr.mosque_area,
+        "mosque_location": cr.mosque_location,
+        "mosque_map_link": cr.mosque_map_link,
+        "imam_name": cr.imam_name,
+        "imam_youtube_link": cr.imam_youtube_link,
+        "imam_audio_url": cr.imam_audio_url,
+        "imam_source": cr.imam_source,
+        "existing_imam_id": cr.existing_imam_id,
+        "target_mosque_id": cr.target_mosque_id,
+        "duplicate_of": cr.duplicate_of,
+    }
+    if cr.target_mosque_id:
+        mosque = Mosque.query.get(cr.target_mosque_id)
+        item["target_mosque_name"] = mosque.name if mosque else None
+        # Impact warning: current imam of target mosque
+        if mosque:
+            current_imam = Imam.query.filter_by(mosque_id=mosque.id).first()
+            item["current_mosque_imam"] = current_imam.name if current_imam else None
+    if cr.existing_imam_id:
+        imam = Imam.query.get(cr.existing_imam_id)
+        item["existing_imam_name"] = imam.name if imam else None
+        # Impact warning: source mosque of transferred imam
+        if imam and imam.mosque_id:
+            source_mosque = Mosque.query.get(imam.mosque_id)
+            item["imam_current_mosque_name"] = source_mosque.name if source_mosque else None
+    return jsonify(item)
+
+
+@app.route("/api/admin/requests/<int:request_id>/approve", methods=["POST"])
+@admin_or_moderator_required
+def admin_approve_request(request_id):
+    cr = CommunityRequest.query.get(request_id)
+    if not cr:
+        return jsonify({"error": "غير موجود"}), 404
+    if cr.status not in ("pending", "needs_info"):
+        return jsonify({"error": "تمت المراجعة مسبقاً"}), 400
+    data = request.get_json() or {}
+
+    if cr.request_type == "new_mosque":
+        # Admin can override fields before approving
+        mosque_name = data.get("mosque_name", cr.mosque_name or "").strip()
+        mosque_area = data.get("mosque_area", cr.mosque_area or "").strip()
+        mosque_location = data.get("mosque_location", cr.mosque_location or "").strip()
+        mosque_map_link = data.get("mosque_map_link", cr.mosque_map_link or "").strip()
+        if not mosque_name or not mosque_area or not mosque_location:
+            return jsonify({"error": "اسم المسجد والمنطقة والحي مطلوبة"}), 400
+        new_mosque = Mosque(
+            name=mosque_name,
+            area=mosque_area,
+            location=mosque_location,
+            map_link=mosque_map_link or None,
+        )
+        db.session.add(new_mosque)
+        db.session.flush()
+        # Assign imam if provided — either existing or new
+        if cr.imam_source == "existing" and cr.existing_imam_id:
+            imam = Imam.query.get(cr.existing_imam_id)
+            if imam:
+                imam.mosque_id = new_mosque.id
+        else:
+            imam_name = data.get("imam_name", cr.imam_name or "").strip()
+            if imam_name:
+                new_imam = Imam(
+                    name=imam_name,
+                    mosque_id=new_mosque.id,
+                    youtube_link=data.get("imam_youtube_link", cr.imam_youtube_link or "").strip() or None,
+                    audio_sample=data.get("audio_sample", cr.imam_audio_url or "").strip() or None,
+                )
+                db.session.add(new_imam)
+
+    elif cr.request_type == "new_imam":
+        if not cr.target_mosque_id:
+            return jsonify({"error": "المسجد المستهدف غير محدد"}), 400
+        mosque = Mosque.query.get(cr.target_mosque_id)
+        if not mosque:
+            return jsonify({"error": "المسجد غير موجود"}), 400
+        # Unassign current imam
+        old_imam = Imam.query.filter_by(mosque_id=mosque.id).first()
+        if old_imam:
+            old_imam.mosque_id = None
+        if cr.imam_source == "existing" and cr.existing_imam_id:
+            imam = Imam.query.get(cr.existing_imam_id)
+            if imam:
+                imam.mosque_id = mosque.id
+        else:
+            imam_name = data.get("imam_name", cr.imam_name or "").strip()
+            if not imam_name:
+                return jsonify({"error": "اسم الإمام مطلوب"}), 400
+            new_imam = Imam(
+                name=imam_name,
+                mosque_id=mosque.id,
+                youtube_link=data.get("imam_youtube_link", cr.imam_youtube_link or "").strip() or None,
+                audio_sample=data.get("audio_sample", cr.imam_audio_url or "").strip() or None,
+            )
+            db.session.add(new_imam)
+
+    elif cr.request_type == "imam_transfer":
+        if not cr.target_mosque_id:
+            return jsonify({"error": "المسجد المستهدف غير محدد"}), 400
+        mosque = Mosque.query.get(cr.target_mosque_id)
+        if not mosque:
+            return jsonify({"error": "المسجد غير موجود"}), 400
+        old_imam = Imam.query.filter_by(mosque_id=mosque.id).first()
+        if old_imam:
+            old_imam.mosque_id = None
+        if cr.imam_source == "existing" and cr.existing_imam_id:
+            imam = Imam.query.get(cr.existing_imam_id)
+            if imam:
+                imam.mosque_id = mosque.id
+        else:
+            imam_name = data.get("imam_name", cr.imam_name or "").strip()
+            if not imam_name:
+                return jsonify({"error": "اسم الإمام مطلوب"}), 400
+            new_imam = Imam(
+                name=imam_name,
+                mosque_id=mosque.id,
+                youtube_link=data.get("imam_youtube_link", cr.imam_youtube_link or "").strip() or None,
+                audio_sample=data.get("audio_sample", cr.imam_audio_url or "").strip() or None,
+            )
+            db.session.add(new_imam)
+
+    # Award contribution point
+    submitter = PublicUser.query.get(cr.submitter_id)
+    if submitter:
+        db.session.execute(
+            db.text("UPDATE public_user SET contribution_points = contribution_points + 1 WHERE id = :uid"),
+            {"uid": submitter.id}
+        )
+        # Auto-upgrade trust level after 3+ approved requests
+        # Note: count is checked BEFORE this request is marked approved,
+        # so >= 2 previously approved + this one = 3 total
+        approved_count = CommunityRequest.query.filter_by(
+            submitter_id=submitter.id, status="approved"
+        ).count()
+        if approved_count >= 2 and submitter.trust_level == "default":
+            submitter.trust_level = "trusted"
+
+    cr.status = "approved"
+    cr.admin_notes = data.get("admin_notes", "").strip() or cr.admin_notes
+    cr.reviewed_at = datetime.datetime.utcnow()
+    cr.reviewed_by = g.current_public_user.id
+    db.session.commit()
+    _invalidate_caches()
+    return jsonify({"success": True})
+
+
+@app.route("/api/admin/requests/<int:request_id>/reject", methods=["POST"])
+@admin_or_moderator_required
+def admin_reject_request(request_id):
+    cr = CommunityRequest.query.get(request_id)
+    if not cr:
+        return jsonify({"error": "غير موجود"}), 404
+    if cr.status not in ("pending", "needs_info"):
+        return jsonify({"error": "تمت المراجعة مسبقاً"}), 400
+    data = request.get_json() or {}
+    cr.status = "rejected"
+    cr.reject_reason = data.get("reason", "").strip() or None
+    cr.admin_notes = data.get("admin_notes", "").strip() or cr.admin_notes
+    cr.reviewed_at = datetime.datetime.utcnow()
+    cr.reviewed_by = g.current_public_user.id
+    db.session.commit()
+    return jsonify({"success": True})
+
+
+@app.route("/api/admin/requests/<int:request_id>/needs-info", methods=["POST"])
+@admin_or_moderator_required
+def admin_needs_info_request(request_id):
+    cr = CommunityRequest.query.get(request_id)
+    if not cr:
+        return jsonify({"error": "غير موجود"}), 404
+    if cr.status != "pending":
+        return jsonify({"error": "لا يمكن طلب معلومات إضافية لهذا الطلب"}), 400
+    data = request.get_json() or {}
+    cr.status = "needs_info"
+    cr.admin_notes = data.get("admin_notes", "").strip() or None
+    cr.reviewed_by = g.current_public_user.id
     db.session.commit()
     return jsonify({"success": True})
 
@@ -2033,6 +2592,9 @@ def admin_audio_temp(temp_id):
 @limiter.limit("10 per minute")
 def admin_audio_upload_file():
     """Accept a direct MP3/audio file upload, save as temp file for waveform/trim."""
+    MAX_AUDIO_SIZE = 50 * 1024 * 1024  # 50MB
+    if request.content_length and request.content_length > MAX_AUDIO_SIZE:
+        return jsonify({"error": "حجم الملف كبير جداً (الحد الأقصى 50 ميجابايت)"}), 413
     file = request.files.get("file")
     if not file or not file.filename:
         return jsonify({"error": "لم يتم اختيار ملف"}), 400
@@ -2142,19 +2704,19 @@ def admin_audio_trim_upload():
                 ExtraArgs={"ContentType": "audio/mpeg"},
             )
         s3_url = f"https://{bucket}.s3.{region}.amazonaws.com/{key}"
-
-        # Clean up temp files
-        for p in [source_path, trimmed_path]:
-            try:
-                os.remove(p)
-            except OSError:
-                pass
-
         return jsonify({"s3_url": s3_url})
     except subprocess.TimeoutExpired:
         return jsonify({"error": "انتهت مهلة القص"}), 504
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    finally:
+        # Always clean up temp files, even on error
+        for p in [source_path, trimmed_path]:
+            try:
+                if os.path.exists(p):
+                    os.remove(p)
+            except OSError:
+                pass
 
 
 # --- error reporting route ---

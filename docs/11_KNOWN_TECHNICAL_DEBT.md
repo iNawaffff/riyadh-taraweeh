@@ -90,11 +90,13 @@
 
 ---
 
-### 9. No Soft Delete for Cancelled Transfers
+### 9. No Soft Delete for Cancelled Transfers (Legacy System)
 
-**What:** `DELETE /api/transfers/<id>` hard-deletes the record.
+**What:** `DELETE /api/transfers/<id>` hard-deletes the record. This is the OLD transfer system.
 
 **Impact:** No audit trail for cancelled transfer requests. Cannot analyze submission patterns.
+
+**Note:** The new community request system (`POST /api/requests/<id>/cancel`) uses a `cancelled` status instead of hard delete — this debt only affects the legacy transfer system.
 
 ---
 
@@ -150,13 +152,13 @@
 
 ---
 
-### 16. No Pagination on Admin Transfer List
+### 16. No Pagination on Legacy Transfer List
 
-**What:** `GET /api/user/transfers` returns ALL user transfers without pagination.
+**What:** `GET /api/user/transfers` returns ALL user transfers without pagination. This is the OLD transfer system.
 
-**Impact:** Fine for now but could grow large for active contributors.
+**Impact:** Fine for now since no new records are being created. The legacy system has no frontend consumers.
 
-**Note:** The new admin API at `GET /api/admin/transfers` does support pagination and filtering by status.
+**Note:** The new community request system (`GET /api/requests`, `GET /api/admin/requests`) supports pagination and filtering by status/type.
 
 ---
 

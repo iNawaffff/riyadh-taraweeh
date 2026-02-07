@@ -1,10 +1,20 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Pencil, Trash2, ExternalLink } from 'lucide-react'
+import { Plus, Pencil, Trash2, ExternalLink, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { DataTable, type ColumnDef } from '@/components/admin/DataTable'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAdminMosques, useDeleteMosque } from '@/hooks/use-admin'
+import { AREAS } from '@/lib/constants'
 import type { AdminMosque } from '@/types'
 
 const areaBadgeColors: Record<string, string> = {
@@ -34,14 +45,20 @@ export default function MosquesPage() {
   const [area, setArea] = useState('')
   const { data, isLoading } = useAdminMosques({ page, search: search || undefined, area: area || undefined })
   const deleteMosque = useDeleteMosque()
+  const [deleteTarget, setDeleteTarget] = useState<AdminMosque | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
 
-  const handleDelete = async (mosque: AdminMosque) => {
-    if (!confirm(`هل تريد حذف "${mosque.name}"؟`)) return
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    setDeletingId(deleteTarget.id)
     try {
-      await deleteMosque.mutateAsync(mosque.id)
+      await deleteMosque.mutateAsync(deleteTarget.id)
       toast.success('تم حذف المسجد')
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'فشل الحذف')
+    } finally {
+      setDeletingId(null)
+      setDeleteTarget(null)
     }
   }
 
@@ -104,41 +121,46 @@ export default function MosquesPage() {
         id: 'actions',
         header: '',
         cell: ({ row }) => (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#0d4b33]/40 hover:text-[#0d4b33]">
-                <span className="sr-only">القائمة</span>
-                ···
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="font-tajawal">
-              <DropdownMenuItem asChild>
-                <Link to={`/dashboard/mosques/${row.original.id}/edit`} className="flex items-center gap-2">
-                  <Pencil className="h-3.5 w-3.5" />
-                  تعديل
-                </Link>
-              </DropdownMenuItem>
-              {row.original.map_link && (
+          <div className="flex items-center gap-1">
+            {deletingId === row.original.id && (
+              <Loader2 className="h-4 w-4 animate-spin text-[#0d4b33]/40" />
+            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#0d4b33]/40 hover:text-[#0d4b33]">
+                  <span className="sr-only">القائمة</span>
+                  ···
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="font-tajawal">
                 <DropdownMenuItem asChild>
-                  <a href={row.original.map_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    الخريطة
-                  </a>
+                  <Link to={`/dashboard/mosques/${row.original.id}/edit`} className="flex items-center gap-2">
+                    <Pencil className="h-3.5 w-3.5" />
+                    تعديل
+                  </Link>
                 </DropdownMenuItem>
-              )}
-              <DropdownMenuItem
-                className="flex items-center gap-2 text-red-600 focus:text-red-600"
-                onClick={() => handleDelete(row.original)}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                حذف
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                {row.original.map_link && (
+                  <DropdownMenuItem asChild>
+                    <a href={row.original.map_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      الخريطة
+                    </a>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  className="flex items-center gap-2 text-red-600 focus:text-red-600"
+                  onClick={() => setDeleteTarget(row.original)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  حذف
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         ),
       },
     ],
-    [deleteMosque]
+    [deleteMosque, deletingId]
   )
 
   return (
@@ -161,7 +183,7 @@ export default function MosquesPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all" className="font-tajawal">الكل</SelectItem>
-                {['شمال', 'جنوب', 'شرق', 'غرب'].map((a) => (
+                {AREAS.map((a) => (
                   <SelectItem key={a} value={a} className="font-tajawal">{a}</SelectItem>
                 ))}
               </SelectContent>
@@ -175,6 +197,26 @@ export default function MosquesPage() {
           </>
         }
       />
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null) }}>
+        <AlertDialogContent dir="rtl" className="font-tajawal">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-tajawal text-[#0d4b33]">حذف المسجد</AlertDialogTitle>
+            <AlertDialogDescription className="font-tajawal">
+              هل تريد حذف &quot;{deleteTarget?.name}&quot;؟ لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="font-tajawal">إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-600 font-tajawal hover:bg-red-700"
+            >
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

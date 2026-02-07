@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
-import { Mail, Send, MessageSquare, Plus, ExternalLink } from 'lucide-react'
+import { Mail, Send, MessageSquare, ArrowLeft, ExternalLink } from 'lucide-react'
 
 function XIcon({ className }: { className?: string }) {
   return (
@@ -13,15 +14,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 
-const SUBMISSION_ITEMS = [
-  'اسم المسجد',
-  'موقع المسجد',
-  'المنطقة',
-  'رابط الموقع على خرائط جوجل (إن وجد)',
-  'اسم الإمام',
-  'رابط عينة صوتية للإمام (إن وجد)',
-  'رابط قناة اليوتيوب للإمام (إن وجد)',
-]
 
 function ContactForm() {
   const [name, setName] = useState('')
@@ -134,28 +126,20 @@ export function ContactPage() {
           </a>
         </div>
 
-        {/* Suggest a mosque */}
-        <section className="mb-8 rounded-2xl bg-gradient-to-bl from-accent/5 to-accent/[0.02] p-6 ring-1 ring-accent/15">
-          <div className="mb-4 flex items-center gap-2">
-            <Plus className="h-4.5 w-4.5 text-accent-foreground" />
-            <h2 className="text-base font-bold text-foreground">اقتراح إضافة مسجد</h2>
+        {/* CTA: Request page */}
+        <Link
+          to="/request"
+          className="group mb-8 flex items-center gap-4 rounded-2xl bg-gradient-to-bl from-accent/5 to-accent/[0.02] p-6 ring-1 ring-accent/15 transition-all hover:shadow-md hover:ring-accent/30"
+        >
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent/10 transition-colors group-hover:bg-accent/15">
+            <Send className="h-5 w-5 text-accent-foreground" />
           </div>
-          <p className="mb-4 text-sm leading-7 text-foreground/80">
-            إذا كنت ترغب في اقتراح إضافة مسجد أو إمام جديد، يرجى مراسلتنا عبر البريد الإلكتروني
-            مع تضمين المعلومات التالية:
-          </p>
-          <ul className="mb-4 space-y-2">
-            {SUBMISSION_ITEMS.map((item, i) => (
-              <li key={i} className="flex items-center gap-2.5 text-sm text-foreground/80">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-                {item}
-              </li>
-            ))}
-          </ul>
-          <p className="text-sm text-foreground/70">
-            سنقوم بمراجعة اقتراحك وإضافته للموقع في أقرب وقت ممكن.
-          </p>
-        </section>
+          <div className="min-w-0 flex-1">
+            <p className="text-base font-bold text-foreground">ساهم في إضافة مسجد أو إمام</p>
+            <p className="text-sm text-foreground/60">أرسل طلب إضافة مسجد جديد أو إمام أو نقل إمام</p>
+          </div>
+          <ArrowLeft className="h-5 w-5 shrink-0 text-muted-foreground/40 transition-transform group-hover:-translate-x-1" />
+        </Link>
 
         {/* Contact form */}
         <div className="mb-8">

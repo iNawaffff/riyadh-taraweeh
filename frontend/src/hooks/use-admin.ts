@@ -2,10 +2,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/use-auth'
 import {
   fetchAdminStats,
+  fetchAdminMosque,
   fetchAdminMosques,
   createAdminMosque,
   updateAdminMosque,
   deleteAdminMosque,
+  fetchAdminImam,
   fetchAdminImams,
   createAdminImam,
   updateAdminImam,
@@ -32,6 +34,15 @@ export function useAdminStats() {
 }
 
 // Mosques
+export function useAdminMosque(id: number | undefined) {
+  const { token } = useAuth()
+  return useQuery({
+    queryKey: ['admin', 'mosques', id],
+    queryFn: () => fetchAdminMosque(token!, id!),
+    enabled: !!token && !!id,
+  })
+}
+
 export function useAdminMosques(params: { page?: number; search?: string; area?: string } = {}) {
   const { token } = useAuth()
   return useQuery({
@@ -78,6 +89,15 @@ export function useDeleteMosque() {
 }
 
 // Imams
+export function useAdminImam(id: number | undefined) {
+  const { token } = useAuth()
+  return useQuery({
+    queryKey: ['admin', 'imams', id],
+    queryFn: () => fetchAdminImam(token!, id!),
+    enabled: !!token && !!id,
+  })
+}
+
 export function useAdminImams(params: { page?: number; search?: string } = {}) {
   const { token } = useAuth()
   return useQuery({

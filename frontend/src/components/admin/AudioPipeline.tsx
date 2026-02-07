@@ -35,6 +35,7 @@ export default function AudioPipeline({ value, onChange }: AudioPipelineProps) {
   const waveformRef = useRef<HTMLDivElement>(null)
   const wavesurferRef = useRef<WaveSurfer | null>(null)
   const regionsRef = useRef<RegionsPlugin | null>(null)
+  const blobUrlsRef = useRef<string[]>([])
 
   const extractAudio = useExtractAudio()
   const uploadFile = useUploadAudioFile()
@@ -42,10 +43,12 @@ export default function AudioPipeline({ value, onChange }: AudioPipelineProps) {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Clean up wavesurfer on unmount
+  // Clean up wavesurfer + blob URLs on unmount
   useEffect(() => {
     return () => {
       wavesurferRef.current?.destroy()
+      blobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
+      blobUrlsRef.current = []
     }
   }, [])
 
@@ -84,6 +87,7 @@ export default function AudioPipeline({ value, onChange }: AudioPipelineProps) {
       if (!resp.ok) throw new Error('Failed to load audio')
       const blob = await resp.blob()
       const blobUrl = URL.createObjectURL(blob)
+      blobUrlsRef.current.push(blobUrl)
       ws.load(blobUrl)
     } catch {
       ws.load(audioUrl)

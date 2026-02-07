@@ -3,10 +3,10 @@ import {
   LayoutDashboard,
   Building2,
   Users,
-  ArrowLeftRight,
   UserCog,
   ChevronsLeft,
   ChevronsRight,
+  FileText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -14,18 +14,18 @@ import { Badge } from '@/components/ui/badge'
 interface AdminSidebarProps {
   collapsed: boolean
   onToggle: () => void
-  pendingTransfers: number
+  pendingRequests: number
 }
 
 const navItems = [
   { path: '/dashboard', label: 'لوحة التحكم', icon: LayoutDashboard, end: true },
   { path: '/dashboard/mosques', label: 'المساجد', icon: Building2 },
   { path: '/dashboard/imams', label: 'الأئمة', icon: Users },
-  { path: '/dashboard/transfers', label: 'بلاغات النقل', icon: ArrowLeftRight, hasBadge: true },
+  { path: '/dashboard/requests', label: 'طلبات المجتمع', icon: FileText, hasBadge: true },
   { path: '/dashboard/users', label: 'المستخدمون', icon: UserCog },
 ]
 
-export default function AdminSidebar({ collapsed, onToggle, pendingTransfers }: AdminSidebarProps) {
+export default function AdminSidebar({ collapsed, onToggle, pendingRequests }: AdminSidebarProps) {
   return (
     <aside
       className={cn(
@@ -89,14 +89,14 @@ export default function AdminSidebar({ collapsed, onToggle, pendingTransfers }: 
                 )}
 
                 {/* Pending transfers badge */}
-                {item.hasBadge && pendingTransfers > 0 && (
+                {item.hasBadge && pendingRequests > 0 && (
                   <Badge
                     className={cn(
                       'h-5 min-w-5 justify-center border-0 bg-[#c4a052] px-1.5 text-[10px] font-bold text-[#0d4b33]',
                       collapsed && 'absolute -left-1 -top-1'
                     )}
                   >
-                    {pendingTransfers}
+                    {pendingRequests}
                   </Badge>
                 )}
               </>

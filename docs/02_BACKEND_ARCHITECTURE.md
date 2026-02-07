@@ -11,7 +11,7 @@ The entire backend lives in **three files**:
 | File | Lines | Responsibility |
 |------|-------|---------------|
 | `app.py` | 1631 | Flask app, ALL routes, admin panel, auth decorators, caching, search, email |
-| `models.py` | 104 | SQLAlchemy models (6 tables) |
+| `models.py` | ~130 | SQLAlchemy models (7 tables) |
 | `utils.py` | 32 | Arabic text normalization function |
 
 There is no service layer, no controller separation, no blueprint structure. Everything is in `app.py`.
@@ -171,16 +171,30 @@ All of these call `serve_react_app(meta_tags={...})` which:
 | GET | `/api/user/tracker` | — | Attendance data |
 | POST | `/api/user/tracker/<night>` | — | Mark night attended (with rakaat) |
 | DELETE | `/api/user/tracker/<night>` | — | Unmark night |
-| POST | `/api/transfers` | 10/min | Submit imam transfer request |
-| DELETE | `/api/transfers/<id>` | — | Cancel pending transfer |
-| GET | `/api/user/transfers` | — | User's transfer history |
+| POST | `/api/requests` | 10/min | Submit community request (new mosque or imam change) |
+| GET | `/api/requests` | — | User's request history |
+| POST | `/api/requests/<id>/cancel` | — | Cancel pending/needs_info request |
+| GET | `/api/requests/check-duplicate` | — | Check for duplicate request |
+| POST | `/api/transfers` | 10/min | Submit imam transfer (LEGACY — no frontend uses this) |
+| DELETE | `/api/transfers/<id>` | — | Cancel pending transfer (LEGACY) |
+| GET | `/api/user/transfers` | — | User's transfer history (LEGACY) |
+
+### Community Request Admin API (Firebase auth + admin/moderator role)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/admin/requests` | List community requests (paginated, filterable by status/type) |
+| GET | `/api/admin/requests/<id>` | Get single request details |
+| POST | `/api/admin/requests/<id>/approve` | Approve request (creates mosque/imam records) |
+| POST | `/api/admin/requests/<id>/reject` | Reject with reason |
+| POST | `/api/admin/requests/<id>/needs-info` | Ask user for more info |
 
 ### Admin API Routes (Flask-Login required)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/transfers/<id>/approve` | Approve transfer + award point |
-| POST | `/api/transfers/<id>/reject` | Reject with reason |
+| POST | `/api/transfers/<id>/approve` | Approve transfer + award point (LEGACY) |
+| POST | `/api/transfers/<id>/reject` | Reject with reason (LEGACY) |
 | POST | `/admin/upload-audio` | Upload MP3 to S3 |
 | GET/POST | `/admin/mosque/swap-imam/<id>` | Imam swap form |
 | GET | `/admin/` | Flask-Admin panel |
@@ -219,7 +233,8 @@ _api_response_cache = {}        # Dict for API response caching
 | Event | Caches Cleared |
 |-------|---------------|
 | Admin edits mosque/imam | `_imam_index_cache`, `_api_response_cache` |
-| Transfer approved | `_imam_index_cache`, `_api_response_cache` |
+| Community request approved | `_imam_index_cache`, `_api_response_cache` |
+| Transfer approved (legacy) | `_imam_index_cache`, `_api_response_cache` |
 | Heroku dyno restart | All (in-memory = lost) |
 
 **Important limitation**: In-memory cache does NOT survive across Gunicorn workers. If Gunicorn runs multiple workers, each has its own cache.

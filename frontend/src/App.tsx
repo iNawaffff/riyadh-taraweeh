@@ -26,6 +26,8 @@ const LeaderboardPage = lazy(() => import('@/pages/LeaderboardPage').then(m => (
 const MapPage = lazy(() => import('@/pages/MapPage').then(m => ({ default: m.MapPage })))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })))
 const MakkahSchedulePage = lazy(() => import('@/pages/MakkahSchedulePage').then(m => ({ default: m.MakkahSchedulePage })))
+const RequestPage = lazy(() => import('@/pages/RequestPage').then(m => ({ default: m.RequestPage })))
+const MyRequestsPage = lazy(() => import('@/pages/MyRequestsPage').then(m => ({ default: m.MyRequestsPage })))
 
 // Admin pages (lazy-loaded, separate chunk)
 const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout'))
@@ -35,6 +37,7 @@ const MosqueFormPage = lazy(() => import('@/pages/admin/MosqueFormPage'))
 const ImamsPage = lazy(() => import('@/pages/admin/ImamsPage'))
 const TransfersPage = lazy(() => import('@/pages/admin/TransfersPage'))
 const UsersPage = lazy(() => import('@/pages/admin/UsersPage'))
+const AdminRequestsPage = lazy(() => import('@/pages/admin/RequestsPage'))
 const AdminGuard = lazy(() => import('@/components/admin/AdminGuard'))
 
 // Create a client for React Query
@@ -75,6 +78,8 @@ function App() {
                     <Route path="tracker" element={<TrackerPage />} />
                     <Route path="about" element={<AboutPage />} />
                     <Route path="contact" element={<ContactPage />} />
+                    <Route path="request" element={<RequestPage />} />
+                    <Route path="my-requests" element={<MyRequestsPage />} />
                     <Route path="makkah" element={<MakkahSchedulePage />} />
                     <Route path="u/:username" element={<ProfilePage />} />
                     <Route path="*" element={<NotFoundPage />} />
@@ -95,6 +100,7 @@ function App() {
                     <Route path="mosques/:id/edit" element={<MosqueFormPage />} />
                     <Route path="imams" element={<ImamsPage />} />
                     <Route path="transfers" element={<TransfersPage />} />
+                    <Route path="requests" element={<AdminRequestsPage />} />
                     <Route path="users" element={<UsersPage />} />
                   </Route>
                 </Routes>

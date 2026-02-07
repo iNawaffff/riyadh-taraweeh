@@ -31,7 +31,7 @@ All admin API endpoints use the `@admin_or_moderator_required` decorator which:
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/api/admin/stats` | Dashboard counts (mosques, imams, users, pending transfers) |
+| GET | `/api/admin/stats` | Dashboard counts (mosques, imams, users, pending community requests) |
 | GET | `/api/admin/mosques` | List mosques (paginated, searchable, filterable by area) |
 | POST | `/api/admin/mosques` | Create mosque (+ optional imam) |
 | PUT | `/api/admin/mosques/<id>` | Update mosque |
@@ -68,13 +68,14 @@ All admin API endpoints use the `@admin_or_moderator_required` decorator which:
 | MosqueFormPage | `/dashboard/mosques/new` | Create mosque form |
 | MosqueFormPage | `/dashboard/mosques/:id/edit` | Edit mosque form |
 | ImamsPage | `/dashboard/imams` | Imams data table |
-| TransfersPage | `/dashboard/transfers` | Approve/reject transfer requests |
+| RequestsPage | `/dashboard/requests` | Review community requests (new mosque, imam change) |
+| TransfersPage | `/dashboard/transfers` | Legacy transfer review (removed from sidebar, accessible by URL) |
 | UsersPage | `/dashboard/users` | User list + role management |
 
 ### Key Components
 
 - **AdminGuard** — Route protection, checks `user.role` in context
-- **AdminSidebar** — RTL collapsible sidebar (dark green #0d4b33 + gold #c4a052)
+- **AdminSidebar** — RTL collapsible sidebar (dark green #0d4b33 + gold #c4a052). Badge shows pending community request count.
 - **AdminHeader** — Top bar with user info, logout, back-to-site link
 - **DataTable** — Reusable TanStack Table wrapper (sorting, search, server pagination)
 - **AudioPipeline** — wavesurfer.js waveform with RegionsPlugin for trim selection

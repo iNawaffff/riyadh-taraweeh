@@ -68,8 +68,8 @@ python extract_coordinates.py  # Extract GPS from Google Maps links
 ```
 [Browser] → [Flask Server]
               │
-              ├─→ /api/*           → JSON responses (public API)
-              ├─→ /api/admin/*     → Admin API (Firebase auth + role check)
+              ├─→ /api/*           → JSON responses (public API + community requests)
+              ├─→ /api/admin/*     → Admin API (Firebase auth + role check, incl. request review)
               ├─→ /static/*        → Audio, images (Flask static)
               ├─→ /admin/*         → Flask-Admin legacy (Jinja2, Flask-Login)
               ├─→ /dashboard/*     → React admin panel SPA
@@ -90,6 +90,8 @@ Flask app serving both API and React SPA:
 - Favorites routes: `/api/user/favorites`
 - Tracker routes: `/api/user/tracker`
 - Public profile: `/api/u/<username>`, `/api/u/<username>/tracker`
+- Community requests (public): `/api/requests` (submit/list), `/api/requests/<id>/cancel`, `/api/requests/check-duplicate`
+- Community requests (admin): `/api/admin/requests`, `/api/admin/requests/<id>`, `/api/admin/requests/<id>/approve|reject|needs-info`
 - Legacy admin routes: `/admin/`, `/login`, `/admin/upload-audio`, `/admin/mosque/swap-imam/<id>`
 - New admin API: `/api/admin/stats`, `/api/admin/mosques`, `/api/admin/imams`, `/api/admin/transfers`, `/api/admin/users`, `/api/admin/audio/*`
 - Dashboard catch-all: `/dashboard`, `/dashboard/<path:path>` → React SPA
@@ -103,12 +105,15 @@ src/
 ├── lib/
 │   ├── api.ts           # fetchMosques, searchMosques, fetchLocations, etc.
 │   ├── admin-api.ts     # Admin API client (CRUD mosques/imams/transfers/users, audio pipeline)
+│   ├── requests-api.ts  # Community requests API client (submit, list, cancel, admin review)
+│   ├── constants.ts     # Shared constants (AREAS array)
 │   ├── arabic-utils.ts  # normalizeArabic, formatDistance, formatArabicDate
 │   ├── firebase.ts      # Firebase Auth config
 │   └── utils.ts         # cn() utility
 ├── hooks/
 │   ├── use-mosques.ts   # TanStack Query hooks (useMosques, useSearchMosques, useLocations, etc.)
 │   ├── use-admin.ts     # Admin TanStack Query hooks (CRUD, audio extract/trim)
+│   ├── use-requests.ts  # Community requests TanStack Query hooks
 │   ├── use-audio-player.ts
 │   ├── use-auth.ts      # Firebase auth state (includes role)
 │   ├── use-favorites.ts
@@ -126,7 +131,7 @@ src/
 │   ├── mosque/          # MosqueCard, MosqueGrid, FavoriteButton
 │   ├── search/          # SearchBar, AreaFilter, ProximityButton, HeroBanner
 │   ├── audio/           # AudioButton, FloatingAudioPlayer
-│   ├── auth/            # LoginDialog
+│   ├── auth/            # LoginDialog, UserMenu (profile dropdown)
 │   ├── seo/             # SEO components
 │   ├── PageLoader.tsx
 │   └── ErrorFallback.tsx
@@ -146,6 +151,8 @@ src/
     ├── LeaderboardPage.tsx   # Contributors leaderboard
     ├── MapPage.tsx           # Interactive map view
     ├── AboutPage.tsx
+    ├── RequestPage.tsx       # Community request form (new mosque or imam change)
+    ├── MyRequestsPage.tsx    # User's request history with status tracking
     ├── ContactPage.tsx
     ├── MakkahSchedulePage.tsx
     ├── NotFoundPage.tsx
@@ -155,7 +162,8 @@ src/
         ├── MosquesPage.tsx      # Mosques data table + CRUD
         ├── MosqueFormPage.tsx   # Create/edit mosque form
         ├── ImamsPage.tsx        # Imams data table
-        ├── TransfersPage.tsx    # Transfer requests (approve/reject)
+        ├── TransfersPage.tsx    # Legacy transfer requests (accessible by URL, removed from nav)
+        ├── RequestsPage.tsx     # Community request review (approve/reject/needs-info)
         └── UsersPage.tsx        # User management + role assignment
 ```
 
@@ -164,9 +172,10 @@ src/
 - **Mosque:** name, location (district/neighborhood), area (شمال/شرق/غرب/جنوب), map_link, latitude, longitude
 - **Imam:** name, audio_sample, youtube_link, foreign key to Mosque
 - **User:** Admin authentication with password hashing (Flask-Login)
-- **PublicUser:** Firebase-authed public users (firebase_uid, username, display_name, avatar_url, email, phone, **role**)
+- **PublicUser:** Firebase-authed public users (firebase_uid, username, display_name, avatar_url, email, phone, **role**, **trust_level**)
 - **UserFavorite:** User-mosque favorites (user_id, mosque_id, unique constraint)
 - **TaraweehAttendance:** Nightly attendance tracking (user_id, night 1-30, optional mosque_id)
+- **CommunityRequest:** User-submitted requests (request_type: new_mosque/new_imam/imam_transfer, status: pending/approved/rejected/needs_info, mosque/imam details, admin_notes, reviewed_by FK to public_user)
 
 ## Key Files
 
@@ -179,6 +188,8 @@ src/
 | Public API client | `frontend/src/lib/api.ts` |
 | Admin API client | `frontend/src/lib/admin-api.ts` |
 | Admin query hooks | `frontend/src/hooks/use-admin.ts` |
+| Requests API client | `frontend/src/lib/requests-api.ts` |
+| Requests query hooks | `frontend/src/hooks/use-requests.ts` |
 | Firebase config | `frontend/src/lib/firebase.ts` |
 | TypeScript types | `frontend/src/types/index.ts` |
 | Tailwind config | `frontend/tailwind.config.ts` |
@@ -193,7 +204,10 @@ src/
 - **Favorites:** Heart icon, Firebase-synced (with localStorage fallback), header badge, dedicated page with filters
 - **Tracker:** 30-night Ramadan attendance tracker with streaks
 - **Auth:** Firebase (Google/phone), public profiles at `/u/<username>`
-- **Admin (new):** React admin panel at `/dashboard/*` — CRUD mosques/imams, transfer moderation, user roles, audio pipeline (yt-dlp → wavesurfer.js → ffmpeg → S3)
+- **Community Requests:** Users submit requests at `/request` with 2 user-facing types: "مسجد جديد" (new mosque) and "تغيير إمام" (imam change). The imam change flow maps to `new_imam` or `imam_transfer` backend types depending on whether the user picks an existing imam or types a new name. Both the `/request` page and the TransferDialog (mosque detail page "تغيّر؟" button) submit through the same community request API (`POST /api/requests`). Duplicate detection with Arabic normalization. User history at `/my-requests`. Admin review at `/dashboard/requests` with approve/reject/needs-info.
+- **Trust Levels:** `public_user.trust_level` — default/trusted/not_trusted. Auto-upgrade to trusted after 3+ approved requests.
+- **Input Validation:** Arabic-only text validation (`_is_arabic_text()`) + sanitization (`_sanitize_text()`) on all user-submitted names.
+- **Admin (new):** React admin panel at `/dashboard/*` — CRUD mosques/imams, user roles, audio pipeline (yt-dlp → wavesurfer.js → ffmpeg → S3), community request review. Dashboard stat card shows pending community request count.
 - **Admin (legacy):** Flask-Admin at `/admin/` with imam swap, audio upload to S3
 - **SEO:** Meta tags, structured data (JSON-LD), sitemap
 
@@ -294,4 +308,8 @@ SELECT location FROM mosque WHERE location LIKE '%ه' AND location NOT LIKE '%ا
 - **Local DB:** Use `heroku pg:pull` to clone production (requires PostgreSQL 16 client tools)
 - **Data:** 119 mosques, 4 areas, 59 distinct locations (neighborhoods), 119 imams
 - **RBAC:** `public_user.role` column: `user` (default), `moderator`, `admin`. Admin/moderator access `/dashboard/*`. Set role via `UPDATE public_user SET role='admin' WHERE username='...'`
+- **Trust:** `public_user.trust_level` column: `default`, `trusted`, `not_trusted`. Auto-upgraded to `trusted` after 3+ approved community requests.
+- **Community Requests:** CommunityRequest model in `models.py`. Two user-facing types: "مسجد جديد" (`new_mosque`) and "تغيير إمام" (maps to `new_imam` or `imam_transfer` internally). The TransferDialog on mosque detail pages and the `/request` page both submit to `POST /api/requests`. Admin approval creates real Mosque/Imam records. Arabic duplicate detection uses `normalize_arabic()` from `utils.py`. Old transfer system (`/api/transfers`, `/dashboard/transfers`) is legacy — kept for historical data but no frontend uses it.
+- **Admin sidebar:** Shows nav items for Dashboard, Mosques, Imams, Requests (with pending count badge), Users. The legacy Transfers page is accessible by URL only.
+- **Flask dev server:** Does NOT auto-reload after code changes. Must manually restart (`Ctrl+C` then `python app.py`).
 - **Heroku buildpacks:** Node.js → Python (ffmpeg buildpack needed for audio pipeline: `heroku buildpacks:add --index 1 https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git`)

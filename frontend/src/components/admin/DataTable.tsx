@@ -9,7 +9,7 @@ import {
   type SortingState,
   type ColumnFiltersState,
 } from '@tanstack/react-table'
-import { ArrowUpDown, Search, ChevronRight, ChevronLeft } from 'lucide-react'
+import { ArrowUpDown, Search, ChevronRight, ChevronLeft, Inbox } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -99,10 +99,12 @@ export function DataTable<TData, TValue>({
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="border-[#0d4b33]/[0.06] bg-[#faf9f6] hover:bg-[#faf9f6]">
-                {headerGroup.headers.map((header) => (
+                {headerGroup.headers.map((header) => {
+                  const metaClassName = (header.column.columnDef.meta as { className?: string })?.className
+                  return (
                   <TableHead
                     key={header.id}
-                    className="font-tajawal text-xs font-semibold text-[#0d4b33]/60"
+                    className={`font-tajawal text-xs font-semibold text-[#0d4b33]/60 ${metaClassName || ''}`}
                   >
                     {header.isPlaceholder ? null : header.column.getCanSort() ? (
                       <button
@@ -116,7 +118,8 @@ export function DataTable<TData, TValue>({
                       flexRender(header.column.columnDef.header, header.getContext())
                     )}
                   </TableHead>
-                ))}
+                  )
+                })}
               </TableRow>
             ))}
           </TableHeader>
@@ -124,11 +127,14 @@ export function DataTable<TData, TValue>({
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i} className="border-[#0d4b33]/[0.04]">
-                  {columns.map((_, j) => (
-                    <TableCell key={j}>
+                  {columns.map((col, j) => {
+                    const metaClassName = (col.meta as { className?: string })?.className
+                    return (
+                    <TableCell key={j} className={metaClassName || ''}>
                       <Skeleton className="h-5 w-full max-w-[200px]" />
                     </TableCell>
-                  ))}
+                    )
+                  })}
                 </TableRow>
               ))
             ) : table.getRowModel().rows.length ? (
@@ -137,17 +143,23 @@ export function DataTable<TData, TValue>({
                   key={row.id}
                   className="border-[#0d4b33]/[0.04] transition-colors hover:bg-[#0d4b33]/[0.015]"
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="font-tajawal text-sm text-[#0d4b33]/80">
+                  {row.getVisibleCells().map((cell) => {
+                    const metaClassName = (cell.column.columnDef.meta as { className?: string })?.className
+                    return (
+                    <TableCell key={cell.id} className={`font-tajawal text-sm text-[#0d4b33]/80 ${metaClassName || ''}`}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
-                  ))}
+                    )
+                  })}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-32 text-center">
-                  <p className="font-tajawal text-sm text-[#0d4b33]/40">لا توجد نتائج</p>
+                <TableCell colSpan={columns.length} className="h-40 text-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <Inbox className="h-8 w-8 text-[#0d4b33]/15" />
+                    <p className="font-tajawal text-sm text-[#0d4b33]/40">لا توجد نتائج</p>
+                  </div>
                 </TableCell>
               </TableRow>
             )}

@@ -51,6 +51,8 @@ All pages are lazy-loaded with `React.lazy()` + `<Suspense fallback={<PageLoader
 | `/contact` | ContactPage | No | Contact channels |
 | `/makkah` | MakkahSchedulePage | No | Makkah Haram imam schedule |
 | `/u/:username` | ProfilePage | No | Public user profile |
+| `/request` | RequestPage | Yes | Submit community request (new mosque or imam change) |
+| `/my-requests` | MyRequestsPage | Yes | User's request history with status tracking |
 | `*` | NotFoundPage | No | 404 fallback |
 
 All routes are wrapped in `<Layout>` which provides Header + Footer + ScrollToTop.
@@ -66,7 +68,7 @@ All routes are wrapped in `<Layout>` which provides Header + Footer + ScrollToTo
 │  1. SERVER STATE (TanStack Query)                    │
 │     - Mosque data, search results, nearby results    │
 │     - Areas, locations (dropdown options)             │
-│     - Leaderboard, tracker, transfers                │
+│     - Leaderboard, tracker, community requests       │
 │     - Cached with configurable staleTime             │
 │     - Auto-refetch on window focus                   │
 └─────────────┬───────────────────────────────────────┘
@@ -109,7 +111,8 @@ const queryClient = new QueryClient({
 | Imam search | 30 sec | `['imams', 'search', query]` |
 | Leaderboard | 5 min | `['leaderboard']` |
 | Tracker | default | `['tracker']` |
-| User transfers | default | `['user-transfers']` |
+| User requests | default | `['my-requests']` |
+| User transfers (legacy) | default | `['user-transfers']` |
 
 ---
 
@@ -239,7 +242,7 @@ User clicks heart → store mosqueId in localStorage('pendingFavorite')
   </InformationGrid>
   <GoogleMapsEmbed />                ← iframe at mosque coordinates
   <MobileActionBar />                ← Fixed bottom: Maps + YouTube buttons
-  <TransferDialog />                 ← Lazy-loaded imam change form
+  <TransferDialog />                 ← Imam change form (submits to community request API)
   <ErrorReportModal />               ← Data correction form
   <LoginDialog />                    ← If unauthenticated tries to transfer
 </MosqueDetailPage>

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Menu, ExternalLink, LogOut } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
+import { ROLE_LABELS } from '@/lib/constants'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
@@ -63,7 +64,7 @@ export default function AdminHeader({ title, onMenuToggle, sidebarCollapsed }: A
             {user?.display_name || user?.username}
           </span>
           <span className="font-tajawal text-[10px] text-[#c4a052]">
-            {user?.role === 'admin' ? 'مدير' : 'مشرف'}
+            {ROLE_LABELS[user?.role || 'user']?.label || 'مستخدم'}
           </span>
         </div>
 

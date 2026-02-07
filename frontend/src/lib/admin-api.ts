@@ -38,6 +38,10 @@ export async function fetchAdminStats(token: string): Promise<AdminStats> {
 }
 
 // Mosques
+export async function fetchAdminMosque(token: string, id: number): Promise<AdminMosque> {
+  return adminJson(`${API_BASE}/mosques/${id}`, token)
+}
+
 export async function fetchAdminMosques(
   token: string,
   params: { page?: number; per_page?: number; search?: string; area?: string } = {}
@@ -71,6 +75,10 @@ export async function deleteAdminMosque(token: string, id: number): Promise<void
 }
 
 // Imams
+export async function fetchAdminImam(token: string, id: number): Promise<AdminImam> {
+  return adminJson(`${API_BASE}/imams/${id}`, token)
+}
+
 export async function fetchAdminImams(
   token: string,
   params: { page?: number; per_page?: number; search?: string } = {}

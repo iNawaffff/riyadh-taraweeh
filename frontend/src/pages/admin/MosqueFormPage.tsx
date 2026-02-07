@@ -4,7 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import MosqueForm from '@/components/admin/MosqueForm'
-import { useAdminMosques, useCreateMosque, useUpdateMosque } from '@/hooks/use-admin'
+import { useAdminMosque, useCreateMosque, useUpdateMosque } from '@/hooks/use-admin'
 import type { MosqueFormValues } from '@/components/admin/MosqueForm'
 
 export default function MosqueFormPage() {
@@ -12,12 +12,9 @@ export default function MosqueFormPage() {
   const navigate = useNavigate()
   const isEdit = !!id
 
-  const { data: mosquesData, isLoading } = useAdminMosques(
-    isEdit ? { page: 1, search: '' } : { page: 1 }
+  const { data: mosque, isLoading } = useAdminMosque(
+    isEdit ? Number(id) : undefined
   )
-  const mosque = isEdit
-    ? mosquesData?.items.find((m) => m.id === Number(id)) ?? null
-    : null
 
   const createMosque = useCreateMosque()
   const updateMosque = useUpdateMosque()
@@ -61,7 +58,7 @@ export default function MosqueFormPage() {
       </Button>
 
       <MosqueForm
-        mosque={mosque}
+        mosque={mosque ?? null}
         onSubmit={handleSubmit}
         isSubmitting={createMosque.isPending || updateMosque.isPending}
       />

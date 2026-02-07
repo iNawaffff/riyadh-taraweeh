@@ -12,7 +12,7 @@
 1. **Discover** mosques and preview imam recitations (audio samples)
 2. **Find** the nearest mosque via geolocation sorting
 3. **Track** their 30-night Ramadan attendance with streaks
-4. **Contribute** imam change reports (crowdsourced data updates)
+4. **Contribute** imam changes and new mosque suggestions (crowdsourced via community requests)
 5. **Compete** on a contributor leaderboard
 
 ---
@@ -138,7 +138,7 @@
 | Neighborhoods | ~66 distinct |
 | Local audio files | 27 MP3s |
 | S3-hosted audio files | Additional (Makkah imams, newer uploads) |
-| Database tables | 6 (mosque, imam, public_user, user_favorite, taraweeh_attendance, imam_transfer_request) + 1 admin (user) |
+| Database tables | 7 (mosque, imam, public_user, user_favorite, taraweeh_attendance, imam_transfer_request, community_request) + 1 admin (user) |
 | Alembic migrations | 4 |
 
 ---

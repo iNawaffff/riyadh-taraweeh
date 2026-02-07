@@ -79,9 +79,12 @@
 | `use-geolocation.ts` | Yes | Yes |
 | `use-debounce.ts` | Yes | Yes |
 | `use-media-query.ts` | Yes | Yes |
-| **`use-transfers.ts`** | **Missing** | **Yes** (imam transfer hooks) |
+| **`use-transfers.ts`** | **Missing** | **Yes** (imam search hook, legacy transfer hooks) |
+| **`use-requests.ts`** | **Listed** | **Yes** (community request hooks — the ACTIVE system) |
 
-**Verdict:** `use-transfers.ts` was added with the transfer system but not added to CLAUDE.md.
+**Verdict:** `use-transfers.ts` was added with the transfer system but not added to CLAUDE.md. `use-requests.ts` was added to CLAUDE.md when the community request system was built.
+
+**Note (2026-02-07):** `use-transfers.ts` is now only used for `useImamSearch()`. All request submission goes through `use-requests.ts`.
 
 ---
 
@@ -120,17 +123,18 @@ Sitemap: https://taraweeh.org/sitemap.xml
 |----------|-------------|-----------------|
 | `GET /api/areas` | Missing | Yes |
 | `GET /api/imams/search` | Missing | Yes |
-| `POST /api/transfers` | Missing | Yes |
-| `DELETE /api/transfers/<id>` | Missing | Yes |
-| `GET /api/user/transfers` | Missing | Yes |
-| `POST /api/transfers/<id>/approve` | Missing | Yes |
-| `POST /api/transfers/<id>/reject` | Missing | Yes |
+| `POST /api/transfers` | Missing | Yes (LEGACY — no frontend uses this) |
+| `DELETE /api/transfers/<id>` | Missing | Yes (LEGACY) |
+| `GET /api/user/transfers` | Missing | Yes (LEGACY) |
+| `POST /api/transfers/<id>/approve` | Missing | Yes (LEGACY) |
+| `POST /api/transfers/<id>/reject` | Missing | Yes (LEGACY) |
 | `GET /api/leaderboard` | Missing | Yes |
 | `PUT /api/user/favorites` | Missing | Yes |
 
-**Verdict:** CLAUDE.md's API section was written before the transfer system, leaderboard, and imam search features.
+**Verdict:** CLAUDE.md's API section was written before the transfer system, leaderboard, and imam search features. The old transfer endpoints are now LEGACY — all new imam change reports go through `POST /api/requests` (community request system).
 
 **Note (2026-02-06):** The new admin API endpoints (`/api/admin/*`) ARE documented in CLAUDE.md.
+**Note (2026-02-07):** Community request endpoints (`/api/requests/*`, `/api/admin/requests/*`) ARE documented in CLAUDE.md.
 
 ---
 
@@ -150,10 +154,11 @@ Sitemap: https://taraweeh.org/sitemap.xml
 
 | Document | Last Major Update | Completeness |
 |----------|-------------------|-------------|
-| `CLAUDE.md` | 2026-02-06 (admin panel) | ~90% current — includes admin panel, RBAC, audio pipeline, all pages/components |
-| `docs/06_ADMIN_SYSTEM.md` | 2026-02-06 (admin panel, audio upload-file endpoint) | ~98% current — documents both admin interfaces, audio pipeline with 3 input methods |
+| `CLAUDE.md` | 2026-02-07 (community request unification) | ~95% current — includes admin panel, RBAC, community requests, unified imam change flow |
+| `docs/06_ADMIN_SYSTEM.md` | 2026-02-07 (unified admin stats) | ~98% current — documents both admin interfaces, community request review |
+| `docs/08_TRANSFER_WORKFLOW_CURRENT.md` | 2026-02-07 (complete rewrite) | ~100% current — documents unified imam change flow, two entry points, backend type mapping |
 | `docs/05_MEDIA_PIPELINE.md` | 2026-02-06 (file upload, S3 ACL fix) | ~98% current — includes all 3 audio input methods, YouTube limitation |
-| `docs/04_DATABASE_SCHEMA.md` | 2026-02-06 (role column) | ~95% current — includes `role` column on public_user |
+| `docs/04_DATABASE_SCHEMA.md` | 2026-02-07 (community_request table) | ~98% current — includes community_request table, trust_level column |
 
 ---
 

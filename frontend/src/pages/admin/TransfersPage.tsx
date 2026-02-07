@@ -6,6 +6,16 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -20,13 +30,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { useAdminTransfers, useApproveTransfer, useRejectTransfer } from '@/hooks/use-admin'
+import { STATUS_LABELS } from '@/lib/constants'
 import type { AdminTransfer } from '@/types'
-
-const statusLabels: Record<string, { label: string; className: string }> = {
-  pending: { label: 'معلق', className: 'bg-amber-50 text-amber-700 border-amber-200' },
-  approved: { label: 'مقبول', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  rejected: { label: 'مرفوض', className: 'bg-red-50 text-red-700 border-red-200' },
-}
 
 export default function TransfersPage() {
   const [page, setPage] = useState(1)
@@ -35,21 +40,27 @@ export default function TransfersPage() {
   const approveMutation = useApproveTransfer()
   const rejectMutation = useRejectTransfer()
 
+  const [approveTarget, setApproveTarget] = useState<AdminTransfer | null>(null)
+  const [approvingId, setApprovingId] = useState<number | null>(null)
   const [rejectDialog, setRejectDialog] = useState<{ open: boolean; id: number | null }>({
     open: false,
     id: null,
   })
   const [rejectReason, setRejectReason] = useState('')
 
-  const handleApprove = useCallback(async (id: number) => {
-    if (!confirm('هل تريد قبول هذا البلاغ؟')) return
+  const handleApproveConfirm = useCallback(async () => {
+    if (!approveTarget) return
+    setApprovingId(approveTarget.id)
     try {
-      await approveMutation.mutateAsync(id)
+      await approveMutation.mutateAsync(approveTarget.id)
       toast.success('تم قبول البلاغ')
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'فشل القبول')
+    } finally {
+      setApprovingId(null)
+      setApproveTarget(null)
     }
-  }, [approveMutation])
+  }, [approveTarget, approveMutation])
 
   const handleRejectConfirm = useCallback(async () => {
     if (!rejectDialog.id) return
@@ -108,7 +119,7 @@ export default function TransfersPage() {
         accessorKey: 'status',
         header: 'الحالة',
         cell: ({ row }) => {
-          const s = statusLabels[row.original.status]
+          const s = STATUS_LABELS[row.original.status]
           return (
             <Badge variant="outline" className={`border font-tajawal text-[10px] ${s?.className || ''}`}>
               {s?.label || row.original.status}
@@ -130,17 +141,18 @@ export default function TransfersPage() {
         header: '',
         cell: ({ row }) => {
           if (row.original.status !== 'pending') return null
+          const isApproving = approvingId === row.original.id
           return (
             <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
-                onClick={() => handleApprove(row.original.id)}
-                disabled={approveMutation.isPending}
+                onClick={() => setApproveTarget(row.original)}
+                disabled={isApproving}
                 title="قبول"
               >
-                {approveMutation.isPending ? (
+                {isApproving ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Check className="h-4 w-4" />
@@ -160,7 +172,7 @@ export default function TransfersPage() {
         },
       },
     ],
-    [approveMutation, handleApprove]
+    [approveMutation, approvingId]
   )
 
   return (
@@ -187,6 +199,28 @@ export default function TransfersPage() {
           </Select>
         }
       />
+
+      {/* Approve confirmation */}
+      <AlertDialog open={!!approveTarget} onOpenChange={(open) => { if (!open) setApproveTarget(null) }}>
+        <AlertDialogContent dir="rtl" className="font-tajawal">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-tajawal text-[#0d4b33]">قبول البلاغ</AlertDialogTitle>
+            <AlertDialogDescription className="font-tajawal">
+              هل تريد قبول بلاغ نقل الإمام في &quot;{approveTarget?.mosque_name}&quot;؟
+              سيتم تعيين الإمام الجديد ومنح نقطة مساهمة للمُبلّغ.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="font-tajawal">إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleApproveConfirm}
+              className="bg-[#0d4b33] font-tajawal hover:bg-[#0d4b33]/90"
+            >
+              قبول
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Reject reason dialog */}
       <Dialog open={rejectDialog.open} onOpenChange={(open) => { if (!open) { setRejectDialog({ open: false, id: null }); setRejectReason('') } }}>

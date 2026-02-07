@@ -1,7 +1,7 @@
 # Adding Mosques & Imams: Current Pipeline
 
 > **This documents how mosques and imams are currently added/modified in the system.**
-> **Key finding:** There is NO public-facing mosque submission flow. All mosque/imam management is admin-only.
+> **Key update (Feb 2026):** Users can now submit requests to add mosques or report imam changes via `/request`. These go through the community request system and require admin approval.
 
 ---
 
@@ -197,16 +197,18 @@ There are NO automated data validation constraints beyond SQL types. The followi
 
 **This is NOT automated.** Error reports generate an email. An admin must manually review and fix data.
 
-### Imam Transfer Flow (Crowdsourced)
+### Imam Change Flow (Crowdsourced)
 
 **Who:** Authenticated users
-**Where:** MosqueDetailPage → "تغيّر؟" next to imam name
+**Where:** MosqueDetailPage → "تغيّر؟" next to imam name, OR `/request` page → "تغيير إمام"
 
-See [TRANSFER_WORKFLOW_CURRENT.md](./08_TRANSFER_WORKFLOW_CURRENT.md) for full details.
+See [08_TRANSFER_WORKFLOW_CURRENT.md](./08_TRANSFER_WORKFLOW_CURRENT.md) for full details.
+
+Both paths submit to the community request API (`POST /api/requests`). The user either searches for an existing imam on the platform, or adds a new imam name + optional YouTube link.
 
 Key difference from error reports:
-- Creates a database record (trackable)
-- Admin can approve/reject in admin panel
+- Creates a `CommunityRequest` database record (trackable)
+- Admin reviews at `/dashboard/requests` (approve/reject/needs-info)
 - Approval automatically updates imam assignment
 - Awards contribution points
 
@@ -226,8 +228,8 @@ Key difference from error reports:
 
 ┌────────────────────────────────────────────────────┐
 │  MANUAL STEPS REQUIRED                              │
-│  ✗ Adding new mosques (admin panel only)           │
-│  ✗ Adding audio to imam created via transfer       │
+│  ✗ Approving community requests (admin review)     │
+│  ✗ Adding audio to imam created via request        │
 │  ✗ Data quality validation (run SQL queries)       │
 │  ✗ Processing error reports (read email, fix data) │
 │  ✗ Running extract_coordinates.py after new mosque │

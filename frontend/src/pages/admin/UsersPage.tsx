@@ -12,13 +12,8 @@ import {
 } from '@/components/ui/select'
 import { useAdminUsers, useUpdateUserRole } from '@/hooks/use-admin'
 import { useAuth } from '@/hooks/use-auth'
+import { ROLE_LABELS } from '@/lib/constants'
 import type { AdminUser, UserRole } from '@/types'
-
-const roleLabels: Record<string, { label: string; className: string }> = {
-  admin: { label: 'مدير', className: 'bg-[#0d4b33] text-white border-transparent' },
-  moderator: { label: 'مشرف', className: 'bg-[#c4a052]/15 text-[#8a6914] border-[#c4a052]/30' },
-  user: { label: 'مستخدم', className: 'bg-gray-50 text-gray-500 border-gray-200' },
-}
 
 export default function UsersPage() {
   const [page, setPage] = useState(1)
@@ -103,7 +98,7 @@ export default function UsersPage() {
             )
           }
 
-          const r = roleLabels[user.role]
+          const r = ROLE_LABELS[user.role]
           return (
             <Badge variant="outline" className={`border font-tajawal text-[10px] ${r?.className || ''}`}>
               {r?.label || user.role}

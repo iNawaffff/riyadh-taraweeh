@@ -184,6 +184,7 @@ export interface AdminUser {
   email: string | null
   role: UserRole
   contribution_points: number
+  trust_level: TrustLevel
   created_at: string | null
 }
 
@@ -191,7 +192,7 @@ export interface AdminStats {
   mosque_count: number
   imam_count: number
   user_count: number
-  pending_transfers: number
+  pending_requests: number
 }
 
 export interface PaginatedResponse<T> {
@@ -199,6 +200,58 @@ export interface PaginatedResponse<T> {
   total: number
   page: number
   per_page: number
+}
+
+// Community Request types
+export type RequestType = 'new_mosque' | 'new_imam' | 'imam_transfer'
+export type RequestStatus = 'pending' | 'approved' | 'rejected' | 'needs_info'
+export type TrustLevel = 'default' | 'trusted' | 'not_trusted'
+
+export interface CommunityRequest {
+  id: number
+  request_type: RequestType
+  status: RequestStatus
+  notes: string | null
+  reject_reason: string | null
+  admin_notes?: string | null
+  created_at: string | null
+  reviewed_at: string | null
+  // Mosque fields (new_mosque)
+  mosque_name?: string | null
+  mosque_area?: string | null
+  mosque_location?: string | null
+  mosque_map_link?: string | null
+  // Imam fields
+  imam_name?: string | null
+  imam_source?: 'existing' | 'new' | null
+  imam_youtube_link?: string | null
+  imam_audio_url?: string | null
+  existing_imam_id?: number | null
+  // Transfer fields
+  target_mosque_id?: number | null
+  target_mosque_name?: string | null
+}
+
+export interface AdminCommunityRequest extends CommunityRequest {
+  submitter_name: string | null
+  submitter_id: number
+  submitter_trust_level: TrustLevel
+  admin_notes: string | null
+  duplicate_of: number | null
+  // Extra fields from GET detail
+  existing_imam_name?: string | null
+  // Impact warning fields
+  current_mosque_imam?: string | null
+  imam_current_mosque_name?: string | null
+}
+
+export interface DuplicateMatch {
+  id: number
+  name: string
+  area?: string
+  location?: string
+  mosque_id?: number | null
+  mosque_name?: string | null
 }
 
 export interface AudioExtractResult {

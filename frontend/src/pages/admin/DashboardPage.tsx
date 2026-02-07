@@ -1,4 +1,4 @@
-import { Building2, Users, UserCog, ArrowLeftRight } from 'lucide-react'
+import { Building2, Users, UserCog, FileText } from 'lucide-react'
 import { useAdminStats } from '@/hooks/use-admin'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
@@ -29,9 +29,9 @@ const statCards = [
     glow: 'shadow-[#5b3a8c]/10',
   },
   {
-    key: 'pending_transfers' as const,
-    label: 'بلاغات معلقة',
-    icon: ArrowLeftRight,
+    key: 'pending_requests' as const,
+    label: 'طلبات معلقة',
+    icon: FileText,
     gradient: 'from-[#8a6914] to-[#c4a052]',
     iconBg: 'bg-white/20',
     glow: 'shadow-[#c4a052]/10',
@@ -57,7 +57,7 @@ export default function DashboardPage() {
           <div
             key={card.key}
             className={cn(
-              'group relative overflow-hidden rounded-2xl bg-gradient-to-bl p-5 text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl',
+              'animate-fade-in-up group relative overflow-hidden rounded-2xl bg-gradient-to-bl p-5 text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl',
               card.gradient,
               card.glow
             )}
@@ -104,7 +104,7 @@ export default function DashboardPage() {
           </li>
           <li className="flex items-center gap-2">
             <div className="h-1.5 w-1.5 rounded-full bg-[#c4a052]" />
-            راجع بلاغات النقل المعلقة واعتمدها أو ارفضها
+            راجع طلبات المجتمع المعلقة واعتمدها أو ارفضها
           </li>
           <li className="flex items-center gap-2">
             <div className="h-1.5 w-1.5 rounded-full bg-[#c4a052]" />

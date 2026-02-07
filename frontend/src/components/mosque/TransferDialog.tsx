@@ -17,7 +17,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { useDebounce, useMediaQuery } from '@/hooks'
-import { useImamSearch, useSubmitTransfer } from '@/hooks/use-transfers'
+import { useImamSearch } from '@/hooks/use-transfers'
+import { useSubmitRequest } from '@/hooks/use-requests'
 import { toast } from 'sonner'
 import { showSuccessToast } from '@/components/ui/success-toast'
 import { Loader2, Search, UserPlus, Check, X, ChevronLeft } from 'lucide-react'
@@ -38,11 +39,12 @@ export function TransferDialog({ open, onOpenChange, mosqueId, mosqueName }: Tra
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedImam, setSelectedImam] = useState<ImamSearchResult | null>(null)
   const [newImamName, setNewImamName] = useState('')
+  const [youtubeLink, setYoutubeLink] = useState('')
   const [notes, setNotes] = useState('')
 
   const debouncedQuery = useDebounce(searchQuery, 300)
   const { data: imamResults = [], isLoading: isSearching } = useImamSearch(debouncedQuery)
-  const submitMutation = useSubmitTransfer()
+  const submitMutation = useSubmitRequest()
   const inputRef = useRef<HTMLInputElement>(null)
 
   const resetForm = () => {
@@ -50,6 +52,7 @@ export function TransferDialog({ open, onOpenChange, mosqueId, mosqueName }: Tra
     setSearchQuery('')
     setSelectedImam(null)
     setNewImamName('')
+    setYoutubeLink('')
     setNotes('')
   }
 
@@ -59,18 +62,24 @@ export function TransferDialog({ open, onOpenChange, mosqueId, mosqueName }: Tra
   }
 
   const handleSubmit = async () => {
-    const data: { mosque_id: number; new_imam_id?: number; new_imam_name?: string; notes?: string } = {
-      mosque_id: mosqueId,
+    const data: Record<string, unknown> = {
+      target_mosque_id: mosqueId,
+      notes: notes.trim() || undefined,
     }
+
     if (mode === 'search' && selectedImam) {
-      data.new_imam_id = selectedImam.id
+      data.request_type = 'imam_transfer'
+      data.imam_source = 'existing'
+      data.existing_imam_id = selectedImam.id
     } else if (mode === 'create' && newImamName.trim()) {
-      data.new_imam_name = newImamName.trim()
+      data.request_type = 'new_imam'
+      data.imam_source = 'new'
+      data.imam_name = newImamName.trim()
+      data.imam_youtube_link = youtubeLink.trim() || undefined
     } else {
       toast.error('يجب تحديد الإمام الجديد')
       return
     }
-    if (notes.trim()) data.notes = notes.trim()
 
     try {
       await submitMutation.mutateAsync(data)
@@ -83,7 +92,13 @@ export function TransferDialog({ open, onOpenChange, mosqueId, mosqueName }: Tra
       resetForm()
       onOpenChange(false)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'حدث خطأ')
+      const message = err instanceof Error ? err.message : 'حدث خطأ'
+      // Handle duplicate pending request (409)
+      if (message.includes('duplicate') || message.includes('معلق')) {
+        toast.error('لديك طلب معلق مشابه لهذا المسجد')
+      } else {
+        toast.error(message)
+      }
     }
   }
 
@@ -219,11 +234,22 @@ export function TransferDialog({ open, onOpenChange, mosqueId, mosqueName }: Tra
             className="text-right"
             autoFocus
           />
+          <div className="mt-3 space-y-1.5">
+            <label className="text-sm font-medium text-foreground/70">رابط يوتيوب (اختياري)</label>
+            <Input
+              value={youtubeLink}
+              onChange={(e) => setYoutubeLink(e.target.value)}
+              placeholder="https://youtube.com/watch?v=..."
+              className="text-left"
+              dir="ltr"
+            />
+          </div>
           <button
             type="button"
             onClick={() => {
               setMode('search')
               setNewImamName('')
+              setYoutubeLink('')
             }}
             className="mt-2 flex items-center gap-1.5 text-sm text-primary transition-colors hover:text-primary-dark"
           >

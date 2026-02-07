@@ -17,6 +17,10 @@ export function Footer() {
             عن الموقع
           </Link>
           <span className="text-white/30">|</span>
+          <Link to="/request" className="text-white/70 transition-colors hover:text-white">
+            إضافة طلب
+          </Link>
+          <span className="text-white/30">|</span>
           <Link to="/contact" className="text-white/70 transition-colors hover:text-white">
             تواصل معنا
           </Link>

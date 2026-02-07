@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
-import { Home, Info, Mail, Calendar, HandHeart, Landmark } from 'lucide-react'
+import { Home, Info, Mail, Calendar, HandHeart, Landmark, Send } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -16,12 +16,13 @@ const baseNavItems = [
   { to: '/contact', label: 'تواصل معنا', icon: Mail },
 ]
 
+const requestItem = { to: '/request', label: 'إضافة طلب', icon: Send }
 const leaderboardItem = { to: '/leaderboard', label: 'المساهمون', icon: HandHeart }
 const trackerItem = { to: '/tracker', label: 'متابعة التراويح', icon: Calendar }
 
 export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const { isAuthenticated } = useAuth()
-  const navItems = isAuthenticated ? [...baseNavItems, trackerItem, leaderboardItem] : [...baseNavItems, leaderboardItem]
+  const navItems = isAuthenticated ? [...baseNavItems, requestItem, trackerItem, leaderboardItem] : [...baseNavItems, leaderboardItem]
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <SheetContent

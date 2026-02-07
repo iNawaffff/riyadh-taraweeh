@@ -10,7 +10,8 @@ const pageTitles: Record<string, string> = {
   '/dashboard/mosques': 'إدارة المساجد',
   '/dashboard/mosques/new': 'إضافة مسجد',
   '/dashboard/imams': 'إدارة الأئمة',
-  '/dashboard/transfers': 'بلاغات النقل',
+  '/dashboard/transfers': 'بلاغات النقل (قديم)',
+  '/dashboard/requests': 'طلبات المجتمع',
   '/dashboard/users': 'إدارة المستخدمين',
 }
 
@@ -39,7 +40,7 @@ export default function AdminLayout() {
         <AdminSidebar
           collapsed={sidebarCollapsed}
           onToggle={toggleSidebar}
-          pendingTransfers={stats?.pending_transfers || 0}
+          pendingRequests={stats?.pending_requests || 0}
         />
       </div>
 
@@ -54,7 +55,7 @@ export default function AdminLayout() {
             <AdminSidebar
               collapsed={false}
               onToggle={toggleMobile}
-              pendingTransfers={stats?.pending_transfers || 0}
+              pendingRequests={stats?.pending_requests || 0}
             />
           </div>
         </>
