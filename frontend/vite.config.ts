@@ -169,11 +169,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          // React framework (changes rarely, long-term cacheable)
-          'react-vendor': ['react', 'react-dom'],
           // Router
           'router': ['react-router-dom'],
-          // UI libraries (all Radix primitives)
+          // UI libraries (Radix primitives — excludes react-slot to avoid circular deps with router)
           'ui-vendor': [
             '@radix-ui/react-alert-dialog', '@radix-ui/react-avatar',
             '@radix-ui/react-checkbox', '@radix-ui/react-dialog',
@@ -181,7 +179,7 @@ export default defineConfig({
             '@radix-ui/react-label', '@radix-ui/react-popover',
             '@radix-ui/react-radio-group', '@radix-ui/react-scroll-area',
             '@radix-ui/react-select', '@radix-ui/react-separator',
-            '@radix-ui/react-slider', '@radix-ui/react-slot',
+            '@radix-ui/react-slider',
             '@radix-ui/react-tabs', '@radix-ui/react-tooltip',
           ],
           // Data fetching

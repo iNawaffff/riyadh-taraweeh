@@ -219,10 +219,11 @@ def serve_react_assets(path):
 @spa_bp.route("/registerSW.js")
 @spa_bp.route("/manifest.webmanifest")
 @spa_bp.route("/sw.js")
-def serve_pwa_files():
+@spa_bp.route("/workbox-<path:filename>")
+def serve_pwa_files(filename=None):
     if USE_REACT_FRONTEND:
-        filename = request.path.lstrip("/")
-        return send_from_directory(REACT_BUILD_DIR, filename)
+        served_file = request.path.lstrip("/")
+        return send_from_directory(REACT_BUILD_DIR, served_file)
     return "Not Found", 404
 
 
