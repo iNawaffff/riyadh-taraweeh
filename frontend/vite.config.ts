@@ -43,8 +43,34 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,woff2}'],
+        // Only precache JS, CSS, and fonts from Vite build output.
+        // Do NOT precache index.html — Flask injects SEO meta tags per route.
+        globPatterns: ['**/*.{js,css,woff2}'],
+        // Disable navigateFallback — Flask handles all navigation with SEO meta injection
+        navigateFallback: null,
+        // Safety net: backend routes must never be intercepted by SW
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^\/admin/,
+          /^\/login/,
+          /^\/static\//,
+          /^\/report-error/,
+        ],
         runtimeCaching: [
+          {
+            // Navigation requests: NetworkFirst so Flask serves fresh HTML with
+            // SEO meta tags when online, cached version available offline
+            urlPattern: ({ request }: { request: Request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'pages-cache',
+              networkTimeoutSeconds: 3,
+              expiration: {
+                maxEntries: 30,
+                maxAgeSeconds: 60 * 60 * 24, // 24 hours
+              },
+            },
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
@@ -78,6 +104,7 @@ export default defineConfig({
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
+              networkTimeoutSeconds: 5,
               expiration: {
                 maxEntries: 100,
                 maxAgeSeconds: 60 * 60 * 24, // 24 hours
@@ -89,7 +116,7 @@ export default defineConfig({
           },
           {
             urlPattern: /\/static\/images\/.*/i,
-            handler: 'CacheFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'images-cache',
               expiration: {
