@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Menu, Heart, LogIn } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { MobileMenu } from './MobileMenu'
 import { useFavorites } from '@/hooks'
 import { useAuth } from '@/hooks/use-auth'
@@ -63,18 +64,18 @@ export function Header() {
             {/* Action buttons (left side in RTL) */}
             <div className="flex items-center justify-end gap-1.5">
               {/* Auth button / User menu */}
-              {!isLoading && (
-                isAuthenticated ? (
-                  <UserMenu />
-                ) : (
-                  <button
-                    onClick={() => setIsLoginOpen(true)}
-                    className="group relative flex h-9 items-center gap-1.5 overflow-hidden rounded-full border border-white/20 bg-gradient-to-l from-white/20 to-white/10 px-3.5 text-sm font-medium backdrop-blur-sm transition-all duration-300 hover:border-white/30 hover:from-white/25 hover:to-white/15 hover:shadow-[0_0_20px_rgba(255,255,255,0.15)] active:scale-95"
-                  >
-                    <LogIn className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-0.5" />
-                    <span>تسجيل</span>
-                  </button>
-                )
+              {isLoading ? (
+                <Skeleton className="h-9 w-9 rounded-full bg-white/10" />
+              ) : isAuthenticated ? (
+                <UserMenu />
+              ) : (
+                <button
+                  onClick={() => setIsLoginOpen(true)}
+                  className="group relative flex h-9 items-center gap-1.5 overflow-hidden rounded-full border border-white/20 bg-gradient-to-l from-white/20 to-white/10 px-3.5 text-sm font-medium backdrop-blur-sm transition-all duration-300 hover:border-white/30 hover:from-white/25 hover:to-white/15 hover:shadow-[0_0_20px_rgba(255,255,255,0.15)] active:scale-95"
+                >
+                  <LogIn className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-0.5" />
+                  <span>تسجيل</span>
+                </button>
               )}
 
               {/* Favorites button - always visible, acts as CTA when logged out */}

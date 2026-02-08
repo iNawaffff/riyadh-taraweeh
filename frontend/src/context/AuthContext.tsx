@@ -15,6 +15,28 @@ import {
 
 import type { UserRole } from '@/types'
 
+const PROFILE_CACHE_KEY = 'taraweeh_user_profile'
+
+function getCachedProfile(): PublicUserProfile | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY)
+    if (!raw) return null
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
+function setCachedProfile(profile: PublicUserProfile | null) {
+  try {
+    if (profile) {
+      localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile))
+    } else {
+      localStorage.removeItem(PROFILE_CACHE_KEY)
+    }
+  } catch { /* quota exceeded etc */ }
+}
+
 export interface PublicUserProfile {
   id: number
   username: string
@@ -45,9 +67,11 @@ export const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null)
-  const [user, setUser] = useState<PublicUserProfile | null>(null)
+  // Hydrate from localStorage cache for instant UI
+  const [user, setUser] = useState<PublicUserProfile | null>(() => getCachedProfile())
   const [token, setToken] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  // If we have a cached profile, skip the loading state entirely
+  const [isLoading, setIsLoading] = useState(() => !getCachedProfile())
   const [needsRegistration, setNeedsRegistration] = useState(false)
 
   const fetchProfile = useCallback(async (idToken: string) => {
@@ -58,15 +82,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const profile: PublicUserProfile = await res.json()
         setUser(profile)
+        setCachedProfile(profile)
         setNeedsRegistration(false)
         return profile
       }
       if (res.status === 404) {
         setNeedsRegistration(true)
         setUser(null)
+        setCachedProfile(null)
       }
     } catch {
-      // silently fail
+      // silently fail — keep cached profile if available
     }
     return null
   }, [])
@@ -81,8 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(idToken)
         await fetchProfile(idToken)
       } else {
+        // Firebase says no user — clear everything including cache
         setToken(null)
         setUser(null)
+        setCachedProfile(null)
         setNeedsRegistration(false)
       }
       setIsLoading(false)
@@ -126,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     setUser(null)
     setToken(null)
+    setCachedProfile(null)
     setNeedsRegistration(false)
     setIsLoading(false)
     try {

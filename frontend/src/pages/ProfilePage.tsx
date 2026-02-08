@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { fetchPublicProfile, fetchPublicTracker, markMilestone } from '@/lib/api'
-import { useUserTransfers, useCancelTransfer, useLeaderboard } from '@/hooks/use-transfers'
+import { useLeaderboard } from '@/hooks/use-transfers'
+import { useMyRequests, useCancelRequest } from '@/hooks/use-requests'
 import { useAuth } from '@/hooks/use-auth'
 import { toArabicNum, formatArabicDate, pluralizeArabic, arabicNouns } from '@/lib/arabic-utils'
 import { toast } from 'sonner'
@@ -46,8 +47,8 @@ export function ProfilePage() {
 
   const { user: currentUser, token } = useAuth()
   const isOwnProfile = currentUser?.username === username
-  const { data: transfers = [] } = useUserTransfers()
-  const cancelMutation = useCancelTransfer()
+  const { data: myRequests = [] } = useMyRequests()
+  const cancelMutation = useCancelRequest()
   const { data: leaderboard = [] } = useLeaderboard()
   const isPioneer = leaderboard.some(e => e.username === username && e.is_pioneer)
 
@@ -55,9 +56,8 @@ export function ProfilePage() {
   const celebratedRef = useRef(false)
   const hasMilestone = currentUser?.milestones_seen?.includes('first_contribution')
   useEffect(() => {
-    if (!isOwnProfile || celebratedRef.current || hasMilestone) return
-    const approvedCount = transfers.filter(t => t.status === 'approved').length
-    if (approvedCount >= 1 && token) {
+    if (!isOwnProfile || celebratedRef.current || hasMilestone || !profile) return
+    if ((profile.contribution_points ?? 0) >= 1 && token) {
       celebratedRef.current = true
       markMilestone(token, 'first_contribution').catch(() => {})
       setTimeout(() => {
@@ -70,7 +70,7 @@ export function ProfilePage() {
         })
       }, 500)
     }
-  }, [isOwnProfile, transfers, hasMilestone, token])
+  }, [isOwnProfile, profile, hasMilestone, token])
 
   const handleShareProfile = () => {
     const url = `${window.location.origin}/u/${username}`
@@ -266,49 +266,58 @@ export function ProfilePage() {
         )}
 
         {/* Contributions - own profile only */}
-        {isOwnProfile && transfers.length > 0 && (
+        {isOwnProfile && myRequests.length > 0 && (
           <div className="slide-in-right rounded-2xl bg-white p-5 shadow-card" style={{ animationDelay: '240ms' }}>
             <h2 className="mb-4 flex items-center gap-2 font-bold text-primary">
               <Award className="h-4 w-4" />
               مساهماتي
             </h2>
             <div className="space-y-3">
-              {transfers.map((tr, index) => (
+              {myRequests.map((cr, index) => (
                 <div
-                  key={tr.id}
+                  key={cr.id}
                   className="slide-in-right flex items-start justify-between gap-3 rounded-xl border border-border/50 bg-background p-4"
                   style={{ animationDelay: `${300 + index * 60}ms` }}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium">{tr.mosque_name}</p>
-                    <p className="mt-0.5 text-sm text-muted-foreground">
-                      {tr.current_imam_name && (
-                        <span className="text-destructive/70">{tr.current_imam_name}</span>
-                      )}
-                      {tr.current_imam_name && ' ← '}
-                      <span className="text-primary">{tr.new_imam_name}</span>
+                    <p className="font-medium">
+                      {cr.request_type === 'new_mosque' ? cr.mosque_name : cr.target_mosque_name}
                     </p>
-                    {tr.status === 'rejected' && tr.reject_reason && (
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      {cr.request_type === 'new_mosque'
+                        ? 'مسجد جديد'
+                        : cr.imam_name
+                          ? <span className="text-primary">{cr.imam_name}</span>
+                          : 'تغيير إمام'}
+                    </p>
+                    {cr.status === 'rejected' && cr.reject_reason && (
                       <p className="mt-2 rounded-lg bg-destructive/5 p-2 text-xs text-destructive">
-                        {tr.reject_reason}
+                        {cr.reject_reason}
+                      </p>
+                    )}
+                    {cr.status === 'needs_info' && cr.admin_notes && (
+                      <p className="mt-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-700">
+                        {cr.admin_notes}
                       </p>
                     )}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-2">
                     <Badge
                       className={
-                        tr.status === 'approved'
+                        cr.status === 'approved'
                           ? 'bg-primary/10 text-primary hover:bg-primary/10'
-                          : tr.status === 'rejected'
+                          : cr.status === 'rejected'
                             ? 'bg-destructive/10 text-destructive hover:bg-destructive/10'
-                            : 'bg-accent/20 text-accent-foreground hover:bg-accent/20'
+                            : cr.status === 'needs_info'
+                              ? 'bg-amber-100 text-amber-700 hover:bg-amber-100'
+                              : 'bg-accent/20 text-accent-foreground hover:bg-accent/20'
                       }
                     >
-                      {tr.status === 'pending' ? 'قيد المراجعة' : tr.status === 'approved' ? 'مقبول' : 'مرفوض'}
+                      {cr.status === 'pending' ? 'قيد المراجعة' : cr.status === 'approved' ? 'مقبول' : cr.status === 'needs_info' ? 'يحتاج معلومات' : 'مرفوض'}
                     </Badge>
-                    {tr.status === 'pending' && (
+                    {cr.status === 'pending' && (
                       <button
-                        onClick={() => cancelMutation.mutate(tr.id, { onSuccess: () => toast.success('تم الإلغاء') })}
+                        onClick={() => cancelMutation.mutate(cr.id, { onSuccess: () => toast.success('تم الإلغاء') })}
                         className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                       >
                         <X className="h-3 w-3" />
@@ -323,7 +332,7 @@ export function ProfilePage() {
         )}
 
         {/* Empty state for own profile with no activity */}
-        {isOwnProfile && transfers.length === 0 && nightsAttended === 0 && (
+        {isOwnProfile && myRequests.length === 0 && nightsAttended === 0 && (
           <div className="slide-in-right rounded-2xl bg-white p-8 text-center shadow-card" style={{ animationDelay: '180ms' }}>
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
               <Moon className="h-8 w-8 text-primary" />
