@@ -7,7 +7,7 @@ from flask import Blueprint, jsonify, make_response, render_template, request
 from geopy.distance import geodesic
 
 from extensions import limiter
-from models import Imam, ImamTransferRequest, Mosque, PublicUser, db
+from models import CommunityRequest, Imam, ImamTransferRequest, Mosque, PublicUser, db
 from services.cache import cache_get, cache_set
 from services.serializers import serialize_mosque
 from utils import normalize_arabic
@@ -160,10 +160,26 @@ def leaderboard():
     ).order_by(
         PublicUser.contribution_points.desc()
     ).limit(20).all()
-    pioneer = db.session.query(ImamTransferRequest.submitter_id).filter(
+    # Check both legacy transfers and community requests for first pioneer
+    legacy_pioneer = db.session.query(
+        ImamTransferRequest.submitter_id, ImamTransferRequest.reviewed_at
+    ).filter(
         ImamTransferRequest.status == "approved"
     ).order_by(ImamTransferRequest.reviewed_at.asc()).first()
-    pioneer_id = pioneer[0] if pioneer else None
+
+    community_pioneer = db.session.query(
+        CommunityRequest.submitter_id, CommunityRequest.reviewed_at
+    ).filter(
+        CommunityRequest.status == "approved"
+    ).order_by(CommunityRequest.reviewed_at.asc()).first()
+
+    pioneer_id = None
+    if legacy_pioneer and community_pioneer:
+        pioneer_id = legacy_pioneer[0] if legacy_pioneer[1] <= community_pioneer[1] else community_pioneer[0]
+    elif legacy_pioneer:
+        pioneer_id = legacy_pioneer[0]
+    elif community_pioneer:
+        pioneer_id = community_pioneer[0]
     return jsonify([{
         "username": u.username,
         "display_name": u.display_name,
