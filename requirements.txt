@@ -6,7 +6,6 @@ botocore==1.37.4
 certifi==2025.1.31
 charset-normalizer==3.4.1
 click==8.1.8
-dotenv==0.9.9
 firebase-admin==6.6.0
 Flask==3.1.0
 Flask-Admin==1.6.1

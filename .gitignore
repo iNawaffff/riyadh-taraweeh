@@ -41,3 +41,16 @@ instance/
 # OS specific
 .DS_Store
 Thumbs.db
+
+# Remotion video project
+remotion-video/
+remotion-video-prompt.md
+
+# AI agent files
+.agents/
+
+# Test artifacts
+frontend/test-results/
+
+# Virtual environment
+.venv/
