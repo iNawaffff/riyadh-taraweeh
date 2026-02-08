@@ -18,14 +18,22 @@ def _init_redis():
         return
 
     try:
-        import redis
-        _redis_client = redis.Redis.from_url(
+        import redis as redis_lib
+        import ssl
+
+        # Heroku Redis uses rediss:// with self-signed certs
+        ssl_kwargs = {}
+        if redis_url.startswith("rediss://"):
+            ssl_kwargs["ssl_cert_reqs"] = ssl.CERT_NONE
+
+        _redis_client = redis_lib.Redis.from_url(
             redis_url,
             decode_responses=True,
             max_connections=10,
             socket_timeout=2,
             socket_connect_timeout=2,
             health_check_interval=30,
+            **ssl_kwargs,
         )
         _redis_client.ping()
         _redis_available = True

@@ -15,8 +15,15 @@ csrf = CSRFProtect()
 compress = Compress()
 login_manager = LoginManager()
 mail = Mail()
+_redis_url = os.environ.get("REDIS_URL", "memory://")
+_limiter_storage_options = {}
+if _redis_url.startswith("rediss://"):
+    import ssl
+    _limiter_storage_options["ssl_cert_reqs"] = ssl.CERT_NONE
+
 limiter = Limiter(
     get_remote_address,
     default_limits=["200 per minute"],
-    storage_uri=os.environ.get("REDIS_URL", "memory://"),
+    storage_uri=_redis_url,
+    storage_options=_limiter_storage_options,
 )
