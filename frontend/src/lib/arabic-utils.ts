@@ -128,7 +128,7 @@ export function toArabicOrdinalFeminine(n: number): string {
  * Arabic grammar rules:
  * - 0: plural (صفر ليالٍ)
  * - 1: singular (ليلة واحدة)
- * - 2: dual (ليلتان)
+ * - 2: dual (ليلتين)
  * - 3-10: plural genitive (ليالٍ)
  * - 11+: singular accusative (ليلة)
  */
@@ -147,12 +147,13 @@ export function pluralizeArabic(count: number, forms: ArabicNounForms): string {
 }
 
 // Pre-defined noun forms for common words
+// Dual uses accusative/genitive (ين) form — standard for UI contexts
 export const arabicNouns = {
-  night: { singular: 'ليلة', dual: 'ليلتان', plural: 'ليالٍ' },
-  favorite: { singular: 'مفضلة', dual: 'مفضلتان', plural: 'مفضلات' },
-  contribution: { singular: 'مساهمة', dual: 'مساهمتان', plural: 'مساهمات' },
-  mosque: { singular: 'مسجد', dual: 'مسجدان', plural: 'مساجد' },
-  point: { singular: 'نقطة', dual: 'نقطتان', plural: 'نقاط' },
+  night: { singular: 'ليلة', dual: 'ليلتين', plural: 'ليالٍ' },
+  favorite: { singular: 'مفضلة', dual: 'مفضلتين', plural: 'مفضلات' },
+  contribution: { singular: 'مساهمة', dual: 'مساهمتين', plural: 'مساهمات' },
+  mosque: { singular: 'مسجد', dual: 'مسجدين', plural: 'مساجد' },
+  point: { singular: 'نقطة', dual: 'نقطتين', plural: 'نقاط' },
 }
 
 /**
@@ -162,7 +163,7 @@ export const arabicNouns = {
 export function formatArabicCount(count: number, forms: ArabicNounForms, options?: { showOne?: boolean }): string {
   const noun = pluralizeArabic(count, forms)
 
-  if (count === 0) return `لا ${forms.plural}`
+  if (count === 0) return `لا يوجد`
   if (count === 1) return options?.showOne ? `${forms.singular} واحدة` : forms.singular
   if (count === 2) return forms.dual
   return `${toArabicNum(count)} ${noun}`

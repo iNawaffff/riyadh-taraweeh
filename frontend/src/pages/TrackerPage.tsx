@@ -45,14 +45,14 @@ const RAKAAT_OPTIONS = [2, 4, 6, 8, 10, 11] as const
 function streakLabel(n: number): string {
   if (n === 0) return ''
   if (n === 1) return 'ليلة واحدة'
-  if (n === 2) return 'ليلتان'
+  if (n === 2) return 'ليلتين'
   if (n >= 3 && n <= 10) return `${toArabicNum(n)} ليالٍ`
   return `${toArabicNum(n)} ليلة` // 11+
 }
 
 function rakaatLabel(n: number): string {
   if (n === 1) return 'ركعة'
-  if (n === 2) return 'ركعتان'
+  if (n === 2) return 'ركعتين'
   if (n >= 3 && n <= 10) return 'ركعات'
   return 'ركعة' // 11+ singular tamyiz
 }
@@ -663,7 +663,9 @@ export function TrackerPage() {
               </div>
 
               <p className="mb-2 text-sm text-muted-foreground">
-                أكملت {formatArabicCount(stats.attended, arabicNouns.night, { showOne: true })} من {toArabicNum(30)} ليلة
+                {stats.attended === 0
+                  ? `لم تحضر أي ليلة بعد`
+                  : <>أكملت {formatArabicCount(stats.attended, arabicNouns.night, { showOne: true })} من {toArabicNum(30)} ليلة</>}
               </p>
 
               {/* Progress bar */}
