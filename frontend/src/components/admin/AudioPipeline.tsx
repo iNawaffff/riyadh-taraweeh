@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 interface AudioPipelineProps {
   value?: string
   onChange: (url: string) => void
+  initialVideoUrl?: string
 }
 
 function formatTime(ms: number): string {
@@ -21,9 +22,9 @@ function formatTime(ms: number): string {
   return `${min}:${sec.toString().padStart(2, '0')}`
 }
 
-export default function AudioPipeline({ value, onChange }: AudioPipelineProps) {
+export default function AudioPipeline({ value, onChange, initialVideoUrl }: AudioPipelineProps) {
   const { token } = useAuth()
-  const [videoUrl, setVideoUrl] = useState('')
+  const [videoUrl, setVideoUrl] = useState(initialVideoUrl || '')
   const [tempId, setTempId] = useState<string | null>(null)
   const [, setDurationMs] = useState(0)
   const [regionStart, setRegionStart] = useState(0)

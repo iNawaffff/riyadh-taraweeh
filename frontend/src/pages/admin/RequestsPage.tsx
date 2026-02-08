@@ -11,6 +11,9 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { DataTable, type ColumnDef } from '@/components/admin/DataTable'
+import AudioPipeline from '@/components/admin/AudioPipeline'
+import LocationCombobox from '@/components/admin/LocationCombobox'
+import { AREAS } from '@/lib/constants'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -80,6 +83,7 @@ function RequestDetail({ request: listRequest, onClose }: {
   const [mosqueArea, setMosqueArea] = useState(listRequest.mosque_area || '')
   const [mosqueLocation, setMosqueLocation] = useState(listRequest.mosque_location || '')
   const [imamName, setImamName] = useState(listRequest.imam_name || '')
+  const [audioSample, setAudioSample] = useState('')
 
   const isPending = request.status === 'pending' || request.status === 'needs_info'
 
@@ -96,6 +100,7 @@ function RequestDetail({ request: listRequest, onClose }: {
       } else {
         if (imamName) overrides.imam_name = imamName
       }
+      if (audioSample) overrides.audio_sample = audioSample
       if (adminNotes) overrides.admin_notes = adminNotes
       await approveMutation.mutateAsync({ id: request.id, overrides })
       toast.success('تمت الموافقة على الطلب')
@@ -166,11 +171,24 @@ function RequestDetail({ request: listRequest, onClose }: {
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-[#0d4b33]/60">المنطقة</label>
-                  <Input value={mosqueArea} onChange={(e) => setMosqueArea(e.target.value)} className="font-tajawal text-sm" />
+                  <Select value={mosqueArea} onValueChange={(val) => { setMosqueArea(val); setMosqueLocation('') }}>
+                    <SelectTrigger className="font-tajawal text-sm">
+                      <SelectValue placeholder="اختر المنطقة" />
+                    </SelectTrigger>
+                    <SelectContent className="font-tajawal">
+                      {AREAS.map((a) => (
+                        <SelectItem key={a} value={a}>{a}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-[#0d4b33]/60">الحي</label>
-                  <Input value={mosqueLocation} onChange={(e) => setMosqueLocation(e.target.value)} className="font-tajawal text-sm" />
+                  <LocationCombobox
+                    value={mosqueLocation}
+                    onChange={setMosqueLocation}
+                    area={mosqueArea}
+                  />
                 </div>
               </>
             ) : (
@@ -267,23 +285,13 @@ function RequestDetail({ request: listRequest, onClose }: {
           </div>
         )}
 
-        {/* YouTube link guidance */}
-        {isPending && request.imam_youtube_link && (
-          <div className="rounded-xl border border-[#0d4b33]/10 bg-[#faf9f6] p-3">
-            <p className="mb-1 text-xs font-bold text-[#0d4b33]/70">رابط يوتيوب مرفق:</p>
-            <a
-              href={request.imam_youtube_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mb-1.5 block text-xs text-primary underline break-all"
-              dir="ltr"
-            >
-              {request.imam_youtube_link}
-            </a>
-            <p className="text-[11px] text-[#0d4b33]/50">
-              يجب تحويل الرابط إلى ملف صوتي MP3 ورفعه من صفحة الأئمة بعد الموافقة
-            </p>
-          </div>
+        {/* Audio pipeline for YouTube links */}
+        {isPending && request.imam_source !== 'existing' && request.imam_youtube_link && (
+          <AudioPipeline
+            value={audioSample}
+            onChange={setAudioSample}
+            initialVideoUrl={request.imam_youtube_link}
+          />
         )}
 
         {/* Actions */}
@@ -523,7 +531,7 @@ export default function RequestsPage() {
 
       {/* Detail sheet */}
       <Sheet open={!!selectedRequest} onOpenChange={(open) => { if (!open) setSelectedRequest(null) }}>
-        <SheetContent side="left" className="w-full font-tajawal sm:max-w-lg" dir="rtl">
+        <SheetContent side="left" className="w-full overflow-y-auto font-tajawal sm:max-w-lg" dir="rtl">
           <SheetHeader>
             <SheetTitle className="font-tajawal text-[#0d4b33]">
               تفاصيل الطلب #{selectedRequest?.id}

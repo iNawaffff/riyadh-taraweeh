@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import AudioPipeline from '@/components/admin/AudioPipeline'
+import LocationCombobox from '@/components/admin/LocationCombobox'
 import type { AdminMosque } from '@/types'
 
 const areas = ['شمال', 'جنوب', 'شرق', 'غرب'] as const
@@ -92,6 +93,11 @@ export default function MosqueForm({ mosque, onSubmit, isSubmitting }: MosqueFor
     }
   }, [mosque, reset])
 
+  // Register location as controlled field for validation
+  useEffect(() => {
+    register('location', { required: 'الحي مطلوب', minLength: { value: 2, message: 'حرفين على الأقل' } })
+  }, [register])
+
   const handleExtractCoords = () => {
     const mapLink = getValues('map_link')
     if (!mapLink) return
@@ -139,7 +145,7 @@ export default function MosqueForm({ mosque, onSubmit, isSubmitting }: MosqueFor
 
           <div>
             <label className={labelClass}>المنطقة</label>
-            <Select onValueChange={(val) => setValue('area', val)} value={watch('area')}>
+            <Select onValueChange={(val) => { setValue('area', val); setValue('location', '') }} value={watch('area')}>
               <SelectTrigger className={`${inputClass} focus:ring-[#c4a052]/30`}>
                 <SelectValue placeholder="اختر المنطقة" />
               </SelectTrigger>
@@ -154,10 +160,10 @@ export default function MosqueForm({ mosque, onSubmit, isSubmitting }: MosqueFor
 
           <div>
             <label className={labelClass}>الحي</label>
-            <Input
-              {...register('location', { required: 'الحي مطلوب', minLength: { value: 2, message: 'حرفين على الأقل' } })}
-              placeholder="الملقا"
-              className={inputClass}
+            <LocationCombobox
+              value={watch('location')}
+              onChange={(val) => setValue('location', val, { shouldValidate: true })}
+              area={watch('area')}
             />
             <FieldError message={errors.location?.message} />
           </div>
