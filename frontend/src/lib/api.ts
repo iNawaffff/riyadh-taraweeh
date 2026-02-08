@@ -229,6 +229,13 @@ export async function fetchUserTransfers(token: string): Promise<TransferRequest
   return response.json()
 }
 
+export async function markMilestone(token: string, milestone: string): Promise<void> {
+  await authFetch(`${API_BASE}/user/milestones/${milestone}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
 export async function fetchLeaderboard(): Promise<LeaderboardEntry[]> {
   const response = await fetch(`${API_BASE}/leaderboard`)
   if (!response.ok) throw new Error('Failed to fetch leaderboard')

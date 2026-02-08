@@ -5,7 +5,7 @@ import { Share2, ArrowRight, X, Sparkles, Calendar, Heart, Moon, Award, ChevronL
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { fetchPublicProfile, fetchPublicTracker } from '@/lib/api'
+import { fetchPublicProfile, fetchPublicTracker, markMilestone } from '@/lib/api'
 import { useUserTransfers, useCancelTransfer, useLeaderboard } from '@/hooks/use-transfers'
 import { useAuth } from '@/hooks/use-auth'
 import { toArabicNum, formatArabicDate, pluralizeArabic, arabicNouns } from '@/lib/arabic-utils'
@@ -44,21 +44,22 @@ export function ProfilePage() {
     enabled: !!username,
   })
 
-  const { user: currentUser } = useAuth()
+  const { user: currentUser, token } = useAuth()
   const isOwnProfile = currentUser?.username === username
   const { data: transfers = [] } = useUserTransfers()
   const cancelMutation = useCancelTransfer()
   const { data: leaderboard = [] } = useLeaderboard()
   const isPioneer = leaderboard.some(e => e.username === username && e.is_pioneer)
 
-  // First contribution celebration
+  // First contribution celebration (server-tracked — works cross-device)
   const celebratedRef = useRef(false)
+  const hasMilestone = currentUser?.milestones_seen?.includes('first_contribution')
   useEffect(() => {
-    if (!isOwnProfile || celebratedRef.current) return
+    if (!isOwnProfile || celebratedRef.current || hasMilestone) return
     const approvedCount = transfers.filter(t => t.status === 'approved').length
-    if (approvedCount >= 1 && !localStorage.getItem('celebrated_first_contribution')) {
+    if (approvedCount >= 1 && token) {
       celebratedRef.current = true
-      localStorage.setItem('celebrated_first_contribution', '1')
+      markMilestone(token, 'first_contribution').catch(() => {})
       setTimeout(() => {
         spawnConfetti()
         showSuccessToast({
@@ -69,7 +70,7 @@ export function ProfilePage() {
         })
       }, 500)
     }
-  }, [isOwnProfile, transfers])
+  }, [isOwnProfile, transfers, hasMilestone, token])
 
   const handleShareProfile = () => {
     const url = `${window.location.origin}/u/${username}`

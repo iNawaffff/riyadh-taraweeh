@@ -68,7 +68,28 @@ def auth_me():
         "email": user.email,
         "role": user.role,
         "favorites": fav_ids,
+        "milestones_seen": (user.milestones_seen or "").split(",") if user.milestones_seen else [],
     })
+
+
+# --- milestones ---
+VALID_MILESTONES = {"first_contribution"}
+
+
+@auth_bp.route("/api/user/milestones/<milestone>", methods=["POST"])
+@firebase_auth_required
+def mark_milestone(milestone):
+    if milestone not in VALID_MILESTONES:
+        return jsonify({"error": "Invalid milestone"}), 400
+    user = g.current_public_user
+    if not user:
+        return jsonify({"error": "Not registered"}), 401
+    seen = set(filter(None, (user.milestones_seen or "").split(",")))
+    if milestone not in seen:
+        seen.add(milestone)
+        user.milestones_seen = ",".join(sorted(seen))
+        db.session.commit()
+    return jsonify({"ok": True})
 
 
 # --- user favorites routes ---

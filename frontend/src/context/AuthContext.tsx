@@ -23,6 +23,7 @@ export interface PublicUserProfile {
   email: string | null
   role: UserRole
   favorites: number[]
+  milestones_seen: string[]
 }
 
 interface AuthContextValue {

@@ -47,6 +47,7 @@ class PublicUser(db.Model):
 
     contribution_points = db.Column(db.Integer, default=0, nullable=False)
     trust_level = db.Column(db.String(20), nullable=False, server_default='default')  # default/trusted/not_trusted
+    milestones_seen = db.Column(db.Text, nullable=False, server_default='')  # comma-separated milestone keys
 
     favorites = db.relationship('UserFavorite', backref='user', lazy=True, cascade='all, delete-orphan')
 
