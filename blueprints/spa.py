@@ -81,6 +81,7 @@ def serve_react_app(meta_tags=None):
 
 # --- main routes ---
 @spa_bp.route("/")
+@spa_bp.route("/index.html")
 def index():
     return serve_react_app()
 
