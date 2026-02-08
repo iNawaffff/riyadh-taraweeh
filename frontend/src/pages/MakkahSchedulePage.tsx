@@ -686,7 +686,7 @@ export function MakkahSchedulePage() {
         <footer className="border-t border-border/40 bg-white/50 py-4">
           <div className="container text-center">
             <p className="text-xs text-muted-foreground">
-              الجدول قابل للتغيير حسب ما تقرره رئاسة شؤون الحرمين
+              الجدول قابل للتغيير حسب ما تقرره شؤون الأئمة والمؤذنين
             </p>
           </div>
         </footer>

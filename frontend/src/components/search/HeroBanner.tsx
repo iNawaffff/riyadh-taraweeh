@@ -1,5 +1,5 @@
 import { Moon, Star } from 'lucide-react'
-import { toArabicNum, getRamadanInfo } from '@/lib/arabic-utils'
+import { toArabicNum, getRamadanInfo, formatArabicCount, arabicNouns } from '@/lib/arabic-utils'
 
 export function HeroBanner() {
   const ramadan = getRamadanInfo()
@@ -42,13 +42,13 @@ export function HeroBanner() {
         {ramadan.type === 'before' && (
           <div className="hero-fade-in animation-delay-150 mt-5 inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-white/10 px-5 py-2.5 text-sm backdrop-blur-sm md:text-base">
             <Moon className="h-4 w-4 text-amber-300" />
-            <span>باقي <strong className="text-amber-200">{toArabicNum(ramadan.daysUntil!)}</strong> يوم على بداية رمضان ١٤٤٧ هـ</span>
+            <span>باقي <strong className="text-amber-200">{formatArabicCount(ramadan.daysUntil!, arabicNouns.day)}</strong> على بداية رمضان ١٤٤٧ هـ</span>
           </div>
         )}
         {ramadan.type === 'during' && (
           <div className="hero-fade-in animation-delay-150 mt-5 inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-white/10 px-5 py-2.5 text-sm backdrop-blur-sm md:text-base">
             <Moon className="h-4 w-4 text-amber-300" />
-            <span>الليلة <strong className="text-amber-200">{toArabicNum(ramadan.nightNum!)}</strong> من رمضان — باقي {toArabicNum(ramadan.daysLeft!)} يوم</span>
+            <span>الليلة <strong className="text-amber-200">{toArabicNum(ramadan.nightNum!)}</strong> من رمضان — باقي {formatArabicCount(ramadan.daysLeft!, arabicNouns.day)}</span>
           </div>
         )}
       </div>

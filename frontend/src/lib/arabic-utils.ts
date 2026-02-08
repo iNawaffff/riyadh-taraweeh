@@ -150,6 +150,7 @@ export function pluralizeArabic(count: number, forms: ArabicNounForms): string {
 // Dual uses accusative/genitive (ين) form — standard for UI contexts
 export const arabicNouns = {
   night: { singular: 'ليلة', dual: 'ليلتين', plural: 'ليالٍ' },
+  day: { singular: 'يوم', dual: 'يومين', plural: 'أيام' },
   favorite: { singular: 'مفضلة', dual: 'مفضلتين', plural: 'مفضلات' },
   contribution: { singular: 'مساهمة', dual: 'مساهمتين', plural: 'مساهمات' },
   mosque: { singular: 'مسجد', dual: 'مسجدين', plural: 'مساجد' },
