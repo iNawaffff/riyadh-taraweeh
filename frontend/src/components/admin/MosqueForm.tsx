@@ -62,6 +62,7 @@ export default function MosqueForm({ mosque, onSubmit, isSubmitting }: MosqueFor
     getValues,
     watch,
     reset,
+    setError,
     formState: { errors },
   } = useForm<MosqueFormValues>({
     defaultValues: {
@@ -93,11 +94,6 @@ export default function MosqueForm({ mosque, onSubmit, isSubmitting }: MosqueFor
     }
   }, [mosque, reset])
 
-  // Register location as controlled field for validation
-  useEffect(() => {
-    register('location', { required: 'الحي مطلوب', minLength: { value: 2, message: 'حرفين على الأقل' } })
-  }, [register])
-
   const handleExtractCoords = () => {
     const mapLink = getValues('map_link')
     if (!mapLink) return
@@ -120,7 +116,12 @@ export default function MosqueForm({ mosque, onSubmit, isSubmitting }: MosqueFor
 
   const handleFormSubmit = async (data: MosqueFormValues) => {
     const validationErrors = validate(data)
-    if (validationErrors) return
+    if (validationErrors) {
+      Object.entries(validationErrors).forEach(([key, msg]) => {
+        setError(key as keyof MosqueFormValues, { message: msg })
+      })
+      return
+    }
     await onSubmit(data)
   }
 
