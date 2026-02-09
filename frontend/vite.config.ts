@@ -143,8 +143,8 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^https:\/\/imams-riyadh-audio\.s3\.[\w-]+\.amazonaws\.com\/audio\/.*/i,
-            handler: 'CacheFirst',
+            urlPattern: /^https:\/\/imams-riyadh-audio\.s3\.[\w-]+\.amazonaws\.com\/.*/i,
+            handler: 'NetworkFirst',
             options: {
               cacheName: 's3-audio-cache',
               expiration: {
@@ -152,9 +152,8 @@ export default defineConfig({
                 maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
               },
               cacheableResponse: {
-                statuses: [0, 200],
+                statuses: [200],
               },
-              rangeRequests: true,
             },
           },
         ],
