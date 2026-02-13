@@ -10,6 +10,7 @@ import { resetRecaptcha } from '@/lib/firebase'
 import { Phone, ArrowRight, Moon, Loader2, AlertCircle, X, Sparkles } from 'lucide-react'
 import type { ConfirmationResult } from 'firebase/auth'
 import { cn } from '@/lib/utils'
+import { trackLogin } from '@/lib/analytics'
 
 interface LoginDialogProps {
   open: boolean
@@ -143,6 +144,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
     setError('')
     try {
       await signInWithGoogle()
+      trackLogin('google')
       onOpenChange(false)
     } catch (e) {
       const msg = getFirebaseError(e)
@@ -237,6 +239,7 @@ export function LoginDialog({ open, onOpenChange }: LoginDialogProps) {
     setError('')
     try {
       await confirmOtp(confirmResult, code)
+      trackLogin('phone')
       onOpenChange(false)
     } catch (e) {
       const msg = getFirebaseError(e)

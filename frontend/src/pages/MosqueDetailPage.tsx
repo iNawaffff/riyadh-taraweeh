@@ -33,6 +33,7 @@ import {
   ChevronUp,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { trackMapClick } from '@/lib/analytics'
 
 export function MosqueDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -370,7 +371,7 @@ export function MosqueDetailPage() {
                         asChild
                         className="gap-2 rounded-full border-primary bg-primary-light text-primary hover:bg-primary hover:text-white"
                       >
-                        <a href={map_link} target="_blank" rel="noopener noreferrer">
+                        <a href={map_link} target="_blank" rel="noopener noreferrer" onClick={() => trackMapClick(name)}>
                           <ExternalLink className="h-4 w-4" />
                           الاتجاهات في خرائط Google
                         </a>
@@ -466,7 +467,7 @@ export function MosqueDetailPage() {
           <div className="container flex gap-3">
             {map_link && (
               <Button variant="outline" asChild className="h-12 flex-1 gap-2 rounded-xl border-primary text-primary">
-                <a href={map_link} target="_blank" rel="noopener noreferrer">
+                <a href={map_link} target="_blank" rel="noopener noreferrer" onClick={() => trackMapClick(name)}>
                   <ExternalLink className="h-4 w-4" />
                   الاتجاهات
                 </a>

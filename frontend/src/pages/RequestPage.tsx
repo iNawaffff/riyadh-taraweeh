@@ -33,6 +33,7 @@ import { useMosques, useLocations } from '@/hooks/use-mosques'
 import { useImamSearch } from '@/hooks/use-transfers'
 import { useSubmitRequest, useCheckDuplicate } from '@/hooks/use-requests'
 import { AREAS } from '@/lib/constants'
+import { trackRequestSubmit } from '@/lib/analytics'
 
 // UI-only type — never sent to backend
 type UIRequestType = 'new_mosque' | 'imam_change'
@@ -296,6 +297,7 @@ export function RequestPage() {
 
     try {
       await submitRequest.mutateAsync(data)
+      trackRequestSubmit(data.request_type as string)
       setSubmitted(true)
       resetForm()
     } catch (err) {

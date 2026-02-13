@@ -267,10 +267,52 @@ def tracker_page():
 
 @spa_bp.route("/makkah")
 def makkah_schedule_page():
-    return serve_react_app(meta_tags={
-        "title": "جدول صلاة التراويح والتهجد بالمسجد الحرام - رمضان ١٤٤٧",
-        "description": "جدول الأئمة في صلاة التراويح والتهجد بالمسجد الحرام لشهر رمضان ١٤٤٧ هـ / ٢٠٢٦ م",
+    imams = ["السديس", "المعيقلي", "الدوسري", "بندر بليلة", "الجهني", "بدر التركي", "الوليد الشمسان"]
+    description = (
+        "جدول أئمة صلاة التراويح والتهجد بالمسجد الحرام لرمضان ١٤٤٧ هـ — "
+        "السديس، المعيقلي، الدوسري، بندر بليلة، الجهني وآخرون. "
+        "جدول ٣٠ ليلة مع تفصيل التسليمات"
+    )
+    jsonld = {
+        "@context": "https://schema.org",
+        "@type": "EventSeries",
+        "name": "صلاة التراويح والتهجد بالمسجد الحرام — رمضان ١٤٤٧",
+        "description": description,
+        "startDate": "2026-02-18",
+        "endDate": "2026-03-19",
+        "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+        "eventStatus": "https://schema.org/EventScheduled",
+        "location": {
+            "@type": "Mosque",
+            "name": "المسجد الحرام",
+            "address": {
+                "@type": "PostalAddress",
+                "addressLocality": "مكة المكرمة",
+                "addressCountry": "SA",
+            },
+            "geo": {
+                "@type": "GeoCoordinates",
+                "latitude": 21.4225,
+                "longitude": 39.8262,
+            },
+        },
+        "performer": [{"@type": "Person", "name": f"الشيخ {name}"} for name in imams],
+        "isAccessibleForFree": True,
         "url": "https://taraweeh.org/makkah",
+    }
+    ssr_body = (
+        '<h1>جدول أئمة الحرم المكي — رمضان ١٤٤٧</h1>'
+        '<p>جدول صلاة التراويح والتهجد بالمسجد الحرام لشهر رمضان ١٤٤٧ هـ / ٢٠٢٦ م</p>'
+        '<h2>الأئمة</h2>'
+        f'<ul>{"".join(f"<li>الشيخ {name}</li>" for name in imams)}</ul>'
+        '<p>يشمل الجدول التراويح (٣٠ ليلة) والتهجد (العشر الأواخر) مع تفصيل التسليمات لكل ليلة.</p>'
+    )
+    return serve_react_app(meta_tags={
+        "title": "جدول أئمة التراويح والتهجد بالمسجد الحرام — رمضان ١٤٤٧",
+        "description": description,
+        "url": "https://taraweeh.org/makkah",
+        "jsonld": jsonld,
+        "ssr_body": ssr_body,
     })
 
 

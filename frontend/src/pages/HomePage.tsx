@@ -5,6 +5,7 @@ import { MosqueListStructuredData } from '@/components/seo'
 import { useDebounce, useSearchMosques, useAreas, useLocations, useNearbyMosques, useGeolocation, useFavorites } from '@/hooks'
 import { formatArabicDate } from '@/lib/arabic-utils'
 import { cn } from '@/lib/utils'
+import { trackSearch, trackFilter, trackProximitySort } from '@/lib/analytics'
 import {
   Select,
   SelectContent,
@@ -96,6 +97,7 @@ export function HomePage() {
     clearPosition()
     setProximitySuccess(false)
     setShowFavoritesOnly(false)
+    if (value !== 'الكل') trackFilter('area', value)
   }, [clearPosition])
 
   const handleLocationChange = useCallback((value: string) => {
@@ -104,6 +106,7 @@ export function HomePage() {
     clearPosition()
     setProximitySuccess(false)
     setShowFavoritesOnly(false)
+    if (value !== 'الكل') trackFilter('location', value)
   }, [clearPosition])
 
   const handleReset = useCallback(() => {
@@ -136,6 +139,7 @@ export function HomePage() {
     setShowPermissionModal(false)
     requestPosition()
     setIsProximitySorted(true)
+    trackProximitySort()
   }, [requestPosition])
 
   const handlePermissionDeny = useCallback(() => {
@@ -158,6 +162,13 @@ export function HomePage() {
       return () => clearTimeout(timer)
     }
   }, [nearbyResults, isProximitySorted])
+
+  // Track search queries after debounce
+  useEffect(() => {
+    if (debouncedQuery && searchResults) {
+      trackSearch(debouncedQuery, searchResults.length)
+    }
+  }, [debouncedQuery, searchResults])
 
   // Calculate results count
   const resultsCount = mosques.length

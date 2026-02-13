@@ -1,4 +1,5 @@
 import { createContext, useState, useCallback, useRef, useEffect, type ReactNode } from 'react'
+import { trackAudioPlay } from '@/lib/analytics'
 
 interface TrackInfo {
   mosqueId: number
@@ -144,6 +145,7 @@ export function AudioProvider({ children }: AudioProviderProps) {
         setIsLoading(false)
         setIsPlaying(true)
         animationRef.current = requestAnimationFrame(updateProgress)
+        trackAudioPlay(track.imamName, track.mosqueName)
       })
       .catch((err) => {
         console.error('Error playing audio:', err)

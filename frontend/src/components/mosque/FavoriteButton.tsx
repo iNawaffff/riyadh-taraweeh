@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { useFavorites } from '@/hooks'
 import { LoginDialog } from '@/components/auth'
 import { cn } from '@/lib/utils'
+import { trackFavorite } from '@/lib/analytics'
 
 interface FavoriteButtonProps {
   mosqueId: number
@@ -61,6 +62,7 @@ export function FavoriteButton({
     animationTimer.current = setTimeout(() => setAnimating(false), 500)
 
     toggleFavorite(mosqueId)
+    trackFavorite(wasAdded ? 'add' : 'remove', mosqueId, mosqueName ?? '')
 
     if (wasAdded) {
       toast.success(mosqueName ? `تمت الإضافة للمفضلة: ${mosqueName}` : 'تمت الإضافة للمفضلة', {
