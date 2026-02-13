@@ -18,9 +18,11 @@ import {
 import { useImamSearch } from '@/hooks/use-transfers'
 import { useDebounce } from '@/hooks/use-debounce'
 
-interface ImamValue {
+export interface ImamValue {
   id: number | null
   name: string
+  mosqueName?: string | null
+  mosqueId?: number | null
 }
 
 interface ImamComboboxProps {
@@ -46,20 +48,20 @@ export default function ImamCombobox({
   const hasExactMatch = results.some((r) => r.name === prefixed || r.name === trimmed)
   const showAddOption = trimmed.length >= 2 && !hasExactMatch
 
-  const handleSelect = (imam: { id: number; name: string }) => {
-    onChange({ id: imam.id, name: imam.name })
+  const handleSelect = (imam: { id: number; name: string; mosque_name: string | null; mosque_id: number | null }) => {
+    onChange({ id: imam.id, name: imam.name, mosqueName: imam.mosque_name, mosqueId: imam.mosque_id })
     setOpen(false)
     setSearch('')
   }
 
   const handleAddNew = () => {
-    onChange({ id: null, name: prefixed })
+    onChange({ id: null, name: prefixed, mosqueName: null, mosqueId: null })
     setOpen(false)
     setSearch('')
   }
 
   const handleClear = () => {
-    onChange({ id: null, name: '' })
+    onChange({ id: null, name: '', mosqueName: null, mosqueId: null })
   }
 
   if (value.name) {

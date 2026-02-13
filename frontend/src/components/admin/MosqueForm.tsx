@@ -1,6 +1,6 @@
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import { MapPin, Loader2 } from 'lucide-react'
+import { MapPin, Loader2, AlertTriangle } from 'lucide-react'
 import { extractCoordsFromMapLink } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select'
 import AudioPipeline from '@/components/admin/AudioPipeline'
 import LocationCombobox from '@/components/admin/LocationCombobox'
-import ImamCombobox from '@/components/admin/ImamCombobox'
+import ImamCombobox, { type ImamValue } from '@/components/admin/ImamCombobox'
 import type { AdminMosque } from '@/types'
 
 const areas = ['شمال', 'جنوب', 'شرق', 'غرب'] as const
@@ -66,6 +66,12 @@ export default function MosqueForm({ mosque, onSubmit, isSubmitting }: MosqueFor
       audio_sample: mosque?.audio_sample ?? '',
     },
   })
+
+  const [imamCurrentMosque, setImamCurrentMosque] = useState<string | null>(null)
+
+  // Show warning if selected imam belongs to a different mosque
+  const showImamWarning = imamCurrentMosque && watch('existing_imam_id') !== null
+    && (!mosque || watch('existing_imam_id') !== mosque.imam_id)
 
   useEffect(() => {
     if (mosque) {
@@ -223,12 +229,21 @@ export default function MosqueForm({ mosque, onSubmit, isSubmitting }: MosqueFor
             <label className={labelClass}>اسم الإمام</label>
             <ImamCombobox
               value={{ id: watch('existing_imam_id'), name: watch('imam_name') }}
-              onChange={({ id, name }) => {
+              onChange={({ id, name, mosqueName }: ImamValue) => {
                 setValue('imam_name', name, { shouldValidate: true })
                 setValue('existing_imam_id', id)
+                setImamCurrentMosque(mosqueName ?? null)
               }}
             />
             <FieldError message={errors.imam_name?.message} />
+            {showImamWarning && (
+              <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2.5">
+                <p className="flex items-center gap-1.5 font-tajawal text-xs text-amber-800">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  <span><strong>{imamCurrentMosque}</strong> سيصبح بدون إمام</span>
+                </p>
+              </div>
+            )}
           </div>
 
           <div>
