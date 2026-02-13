@@ -1,5 +1,5 @@
-import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { lazy, Suspense, useEffect } from 'react'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HelmetProvider } from 'react-helmet-async'
 import * as Sentry from '@sentry/react'
@@ -13,6 +13,7 @@ import { FloatingAudioPlayer } from '@/components/audio'
 import { BaseStructuredData } from '@/components/seo'
 import { ErrorFallback } from '@/components/ErrorFallback'
 import { PageLoader } from '@/components/PageLoader'
+import { trackPageView } from '@/lib/analytics'
 
 // Lazy load pages for code splitting
 const HomePage = lazy(() => import('@/pages/HomePage').then(m => ({ default: m.HomePage })))
@@ -41,6 +42,14 @@ const UsersPage = lazy(() => import('@/pages/admin/UsersPage'))
 const AdminRequestsPage = lazy(() => import('@/pages/admin/RequestsPage'))
 const AdminGuard = lazy(() => import('@/components/admin/AdminGuard'))
 
+function RouteTracker() {
+  const location = useLocation()
+  useEffect(() => {
+    trackPageView(location.pathname + location.search)
+  }, [location])
+  return null
+}
+
 // Create a client for React Query
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,6 +74,7 @@ function App() {
             <AudioProvider>
               <TooltipProvider delayDuration={300}>
               <BrowserRouter>
+              <RouteTracker />
               {/* Base structured data for all pages */}
               <BaseStructuredData />
 

@@ -1,6 +1,5 @@
 """Public API routes: /api/mosques, /api/locations, /api/areas, /api/leaderboard, /sitemap.xml, /api/mosques/nearby"""
 
-import datetime
 import time
 
 from flask import Blueprint, jsonify, make_response, render_template, request
@@ -192,8 +191,7 @@ def leaderboard():
 @api_bp.route("/sitemap.xml")
 def sitemap():
     mosques = Mosque.query.all()
-    today = datetime.datetime.now().strftime("%Y-%m-%d")
-    sitemap_xml = render_template("sitemap.xml", mosques=mosques, current_date=today)
+    sitemap_xml = render_template("sitemap.xml", mosques=mosques)
     response = make_response(sitemap_xml)
     response.headers["Content-Type"] = "application/xml"
     return response

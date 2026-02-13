@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { HeroBanner, SearchBar, AreaFilter, ProximityButton, LocationPermissionModal, FavoritesFilterButton } from '@/components/search'
 import { MosqueGrid } from '@/components/mosque'
+import { MosqueListStructuredData } from '@/components/seo'
 import { useDebounce, useSearchMosques, useAreas, useLocations, useNearbyMosques, useGeolocation, useFavorites } from '@/hooks'
 import { formatArabicDate } from '@/lib/arabic-utils'
 import { cn } from '@/lib/utils'
@@ -164,6 +165,10 @@ export function HomePage() {
 
   return (
     <>
+      {!hasActiveFilters && !isProximitySorted && mosques.length > 0 && (
+        <MosqueListStructuredData mosques={mosques} />
+      )}
+
       <HeroBanner />
 
       <div className="container relative z-10 -mt-5 mb-8">

@@ -4,6 +4,7 @@ import { useMosque, useAudioPlayer, useAuth } from '@/hooks'
 import { ErrorReportModal } from '@/components/mosque/ErrorReportModal'
 import { FavoriteButton } from '@/components/mosque/FavoriteButton'
 import { LoginDialog } from '@/components/auth'
+import { MosqueStructuredData, BreadcrumbStructuredData } from '@/components/seo'
 
 const TransferDialog = lazy(() => import('@/components/mosque/TransferDialog').then(m => ({ default: m.TransferDialog })))
 import { Card, CardContent } from '@/components/ui/card'
@@ -95,6 +96,12 @@ export function MosqueDetailPage() {
 
   return (
     <>
+      <MosqueStructuredData mosque={mosque} />
+      <BreadcrumbStructuredData items={[
+        { name: 'الرئيسية', url: '/' },
+        { name: name, url: `/mosque/${mosqueId}` },
+      ]} />
+
       {/* Page Header - Compact sticky on mobile */}
       <header className="sticky top-[52px] z-30 md:static">
         <div className="relative overflow-hidden bg-gradient-to-br from-primary to-primary-dark py-4 text-white md:py-10">

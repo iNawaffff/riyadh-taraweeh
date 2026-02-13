@@ -1,6 +1,7 @@
 """React SPA serving, SEO meta injection, /dashboard/*, static assets, error reporting."""
 
 import datetime
+import json
 import os
 import re
 from html import escape as html_escape
@@ -63,6 +64,17 @@ def inject_meta_tags(html, meta):
             f'<meta property="og:url" content="{safe_url}"',
             html,
         )
+    # Inject JSON-LD structured data into <head>
+    if meta.get("jsonld"):
+        jsonld_tag = f'<script type="application/ld+json">{json.dumps(meta["jsonld"], ensure_ascii=False)}</script>'
+        html = html.replace("</head>", f"{jsonld_tag}\n</head>", 1)
+    # Inject SSR content into <div id="root"> for Googlebot
+    if meta.get("ssr_body"):
+        html = html.replace(
+            '<div id="root"></div>',
+            f'<div id="root">{meta["ssr_body"]}</div>',
+            1,
+        )
     return html
 
 
@@ -83,6 +95,19 @@ def serve_react_app(meta_tags=None):
 @spa_bp.route("/")
 @spa_bp.route("/index.html")
 def index():
+    if USE_REACT_FRONTEND:
+        try:
+            count = db.session.query(Mosque).count()
+            areas = ["شمال", "جنوب", "شرق", "غرب"]
+            ssr_body = (
+                f'<h1>أئمة التراويح في الرياض - رمضان ١٤٤٧</h1>'
+                f'<p>دليل شامل لأئمة التراويح في الرياض يضم أكثر من {count} مسجد. '
+                f'ابحث عن المسجد الأقرب إليك واستمع لتلاوات الأئمة.</p>'
+                f'<ul>{"".join(f"<li>مساجد {a} الرياض</li>" for a in areas)}</ul>'
+            )
+            return serve_react_app(meta_tags={"ssr_body": ssr_body})
+        except Exception:
+            pass
     return serve_react_app()
 
 
@@ -116,11 +141,58 @@ def mosque_detail(mosque_id):
             if mosque:
                 imam = Imam.query.filter_by(mosque_id=mosque.id).first()
                 imam_name = imam.name if imam else "غير محدد"
-                description = f"استمع لتلاوة {imam_name} في {mosque.name} - {mosque.location}"
+                description = f"استمع لتلاوة {imam_name} في {mosque.name} - حي {mosque.location}، {mosque.area} الرياض"
+
+                # JSON-LD structured data
+                jsonld = {
+                    "@context": "https://schema.org",
+                    "@type": "Mosque",
+                    "name": mosque.name,
+                    "address": {
+                        "@type": "PostalAddress",
+                        "addressLocality": f"حي {mosque.location}",
+                        "addressRegion": f"{mosque.area} الرياض",
+                        "addressCountry": "SA",
+                    },
+                    "description": description,
+                    "url": f"https://taraweeh.org/mosque/{mosque_id}",
+                    "isAccessibleForFree": True,
+                    "publicAccess": True,
+                }
+                if mosque.latitude and mosque.longitude:
+                    jsonld["geo"] = {
+                        "@type": "GeoCoordinates",
+                        "latitude": mosque.latitude,
+                        "longitude": mosque.longitude,
+                    }
+                if mosque.map_link:
+                    jsonld["hasMap"] = mosque.map_link
+                if imam:
+                    jsonld["employee"] = {
+                        "@type": "Person",
+                        "name": imam.name,
+                        "jobTitle": "إمام التراويح",
+                    }
+                    if imam.youtube_link:
+                        jsonld["sameAs"] = [imam.youtube_link]
+
+                # SSR content for Googlebot
+                safe_name = html_escape(mosque.name)
+                safe_imam = html_escape(imam_name)
+                safe_loc = html_escape(mosque.location)
+                safe_area = html_escape(mosque.area)
+                ssr_body = (
+                    f'<h1>{safe_name}</h1>'
+                    f'<p>إمام التراويح: {safe_imam}</p>'
+                    f'<p>الموقع: حي {safe_loc}، {safe_area} الرياض</p>'
+                )
+
                 return serve_react_app(meta_tags={
                     "title": f"{mosque.name} - أئمة التراويح",
                     "description": description,
                     "url": f"https://taraweeh.org/mosque/{mosque_id}",
+                    "jsonld": jsonld,
+                    "ssr_body": ssr_body,
                 })
         except Exception:
             pass
@@ -199,6 +271,33 @@ def makkah_schedule_page():
         "title": "جدول صلاة التراويح والتهجد بالمسجد الحرام - رمضان ١٤٤٧",
         "description": "جدول الأئمة في صلاة التراويح والتهجد بالمسجد الحرام لشهر رمضان ١٤٤٧ هـ / ٢٠٢٦ م",
         "url": "https://taraweeh.org/makkah",
+    })
+
+
+@spa_bp.route("/map")
+def map_page():
+    return serve_react_app(meta_tags={
+        "title": "خريطة المساجد - أئمة التراويح",
+        "description": "خريطة تفاعلية لمساجد التراويح في الرياض - اعثر على أقرب مسجد إليك",
+        "url": "https://taraweeh.org/map",
+    })
+
+
+@spa_bp.route("/request")
+def request_page():
+    return serve_react_app(meta_tags={
+        "title": "إرسال طلب - أئمة التراويح",
+        "description": "أرسل طلب إضافة مسجد جديد أو تحديث معلومات إمام التراويح في الرياض",
+        "url": "https://taraweeh.org/request",
+    })
+
+
+@spa_bp.route("/my-requests")
+def my_requests_page():
+    return serve_react_app(meta_tags={
+        "title": "طلباتي - أئمة التراويح",
+        "description": "تتبع حالة طلباتك المقدمة لموقع أئمة التراويح في الرياض",
+        "url": "https://taraweeh.org/my-requests",
     })
 
 

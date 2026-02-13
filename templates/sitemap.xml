@@ -1,64 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- Core Pages -->
-  <url>
-    <loc>https://taraweeh.org/</loc>
-    <lastmod>{{ current_date }}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://taraweeh.org/about</loc>
-    <lastmod>{{ current_date }}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://taraweeh.org/contact</loc>
-    <lastmod>{{ current_date }}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-
-  <!-- Feature Pages -->
-  <url>
-    <loc>https://taraweeh.org/map</loc>
-    <lastmod>{{ current_date }}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://taraweeh.org/favorites</loc>
-    <lastmod>{{ current_date }}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://taraweeh.org/tracker</loc>
-    <lastmod>{{ current_date }}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://taraweeh.org/leaderboard</loc>
-    <lastmod>{{ current_date }}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://taraweeh.org/makkah</loc>
-    <lastmod>{{ current_date }}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-
-  <!-- Individual Mosque Pages -->
+  <url><loc>https://taraweeh.org/</loc></url>
+  <url><loc>https://taraweeh.org/about</loc></url>
+  <url><loc>https://taraweeh.org/contact</loc></url>
+  <url><loc>https://taraweeh.org/map</loc></url>
+  <url><loc>https://taraweeh.org/favorites</loc></url>
+  <url><loc>https://taraweeh.org/tracker</loc></url>
+  <url><loc>https://taraweeh.org/leaderboard</loc></url>
+  <url><loc>https://taraweeh.org/makkah</loc></url>
+  <url><loc>https://taraweeh.org/request</loc></url>
   {% for mosque in mosques %}
-  <url>
-    <loc>https://taraweeh.org/mosque/{{ mosque.id }}</loc>
-    <lastmod>{{ current_date }}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
+  <url><loc>https://taraweeh.org/mosque/{{ mosque.id }}</loc></url>
   {% endfor %}
 </urlset>
