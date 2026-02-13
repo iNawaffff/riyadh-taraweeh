@@ -347,6 +347,8 @@ def admin_approve_request(request_id):
             area=mosque_area,
             location=mosque_location,
             map_link=mosque_map_link or None,
+            latitude=data.get("latitude"),
+            longitude=data.get("longitude"),
         )
         db.session.add(new_mosque)
         db.session.flush()

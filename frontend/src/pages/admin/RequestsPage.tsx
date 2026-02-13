@@ -8,8 +8,10 @@ import {
   Building2,
   RefreshCw,
   Eye,
+  MapPin,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { extractCoordsFromMapLink } from '@/lib/utils'
 import { DataTable, type ColumnDef } from '@/components/admin/DataTable'
 import AudioPipeline from '@/components/admin/AudioPipeline'
 import LocationCombobox from '@/components/admin/LocationCombobox'
@@ -82,8 +84,23 @@ function RequestDetail({ request: listRequest, onClose }: {
   const [mosqueName, setMosqueName] = useState(listRequest.mosque_name || '')
   const [mosqueArea, setMosqueArea] = useState(listRequest.mosque_area || '')
   const [mosqueLocation, setMosqueLocation] = useState(listRequest.mosque_location || '')
+  const [mosqueMapLink, setMosqueMapLink] = useState(listRequest.mosque_map_link || '')
+  const [latitude, setLatitude] = useState<number | null>(null)
+  const [longitude, setLongitude] = useState<number | null>(null)
   const [imamName, setImamName] = useState(listRequest.imam_name || '')
   const [audioSample, setAudioSample] = useState('')
+
+  const handleExtractCoords = () => {
+    if (!mosqueMapLink) return
+    const coords = extractCoordsFromMapLink(mosqueMapLink)
+    if (coords) {
+      setLatitude(coords.lat)
+      setLongitude(coords.lng)
+      toast.success('تم استخراج الإحداثيات')
+    } else {
+      toast.error('لم يتم العثور على إحداثيات في الرابط')
+    }
+  }
 
   const isPending = request.status === 'pending' || request.status === 'needs_info'
 
@@ -94,7 +111,9 @@ function RequestDetail({ request: listRequest, onClose }: {
         overrides.mosque_name = mosqueName
         overrides.mosque_area = mosqueArea
         overrides.mosque_location = mosqueLocation
-        overrides.mosque_map_link = request.mosque_map_link
+        overrides.mosque_map_link = mosqueMapLink || request.mosque_map_link
+        if (latitude !== null) overrides.latitude = latitude
+        if (longitude !== null) overrides.longitude = longitude
         if (imamName) overrides.imam_name = imamName
         if (request.imam_youtube_link) overrides.imam_youtube_link = request.imam_youtube_link
       } else {
@@ -198,10 +217,69 @@ function RequestDetail({ request: listRequest, onClose }: {
                 <p className="text-sm"><span className="text-[#0d4b33]/60">الحي:</span> {request.mosque_location}</p>
               </>
             )}
-            {request.mosque_map_link && (
-              <a href={request.mosque_map_link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline" dir="ltr">
-                رابط خرائط جوجل
-              </a>
+            {isPending ? (
+              <>
+                <div className="space-y-1">
+                  <label className="text-xs text-[#0d4b33]/60">رابط الخريطة</label>
+                  <Input
+                    value={mosqueMapLink}
+                    onChange={(e) => setMosqueMapLink(e.target.value)}
+                    placeholder="https://maps.google.com/..."
+                    className="font-tajawal text-sm"
+                    dir="ltr"
+                  />
+                </div>
+                <div className="space-y-2 rounded-lg border border-dashed border-[#c4a052]/30 bg-[#c4a052]/[0.03] p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-[#0d4b33]/60">الإحداثيات</span>
+                    <button
+                      type="button"
+                      onClick={handleExtractCoords}
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-[#c4a052] transition-colors hover:bg-[#c4a052]/10"
+                    >
+                      <MapPin className="h-3 w-3" />
+                      استخراج من الرابط
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-[#0d4b33]/40">خط العرض</label>
+                      <Input
+                        value={latitude ?? ''}
+                        onChange={(e) => setLatitude(e.target.value ? parseFloat(e.target.value) : null)}
+                        type="number"
+                        step="any"
+                        placeholder="24.7136"
+                        className="h-8 text-xs"
+                        dir="ltr"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-[#0d4b33]/40">خط الطول</label>
+                      <Input
+                        value={longitude ?? ''}
+                        onChange={(e) => setLongitude(e.target.value ? parseFloat(e.target.value) : null)}
+                        type="number"
+                        step="any"
+                        placeholder="46.6753"
+                        className="h-8 text-xs"
+                        dir="ltr"
+                      />
+                    </div>
+                  </div>
+                  {latitude !== null && longitude !== null && (
+                    <p className="text-[10px] text-emerald-600">
+                      {latitude.toFixed(6)}, {longitude.toFixed(6)}
+                    </p>
+                  )}
+                </div>
+              </>
+            ) : (
+              request.mosque_map_link && (
+                <a href={request.mosque_map_link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline" dir="ltr">
+                  رابط خرائط جوجل
+                </a>
+              )
             )}
           </div>
         )}

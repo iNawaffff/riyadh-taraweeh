@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { MapPin, Loader2 } from 'lucide-react'
+import { extractCoordsFromMapLink } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -12,6 +13,7 @@ import {
 } from '@/components/ui/select'
 import AudioPipeline from '@/components/admin/AudioPipeline'
 import LocationCombobox from '@/components/admin/LocationCombobox'
+import ImamCombobox from '@/components/admin/ImamCombobox'
 import type { AdminMosque } from '@/types'
 
 const areas = ['شمال', 'جنوب', 'شرق', 'غرب'] as const
@@ -24,6 +26,7 @@ export interface MosqueFormValues {
   latitude: number | null
   longitude: number | null
   imam_name: string
+  existing_imam_id: number | null
   youtube_link: string
   audio_sample: string
 }
@@ -32,21 +35,6 @@ interface MosqueFormProps {
   mosque?: AdminMosque | null
   onSubmit: (data: MosqueFormValues) => Promise<void>
   isSubmitting: boolean
-}
-
-function extractCoordsFromMapLink(url: string): { lat: number; lng: number } | null {
-  const patterns = [
-    /@(-?\d+\.\d+),(-?\d+\.\d+)/,
-    /[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/,
-    /place\/(-?\d+\.\d+),(-?\d+\.\d+)/,
-  ]
-  for (const pattern of patterns) {
-    const match = url.match(pattern)
-    if (match) {
-      return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) }
-    }
-  }
-  return null
 }
 
 function FieldError({ message }: { message?: string }) {
@@ -73,6 +61,7 @@ export default function MosqueForm({ mosque, onSubmit, isSubmitting }: MosqueFor
       latitude: mosque?.latitude ?? null,
       longitude: mosque?.longitude ?? null,
       imam_name: mosque?.imam_name ?? '',
+      existing_imam_id: mosque?.imam_id ?? null,
       youtube_link: mosque?.youtube_link ?? '',
       audio_sample: mosque?.audio_sample ?? '',
     },
@@ -88,6 +77,7 @@ export default function MosqueForm({ mosque, onSubmit, isSubmitting }: MosqueFor
         latitude: mosque.latitude,
         longitude: mosque.longitude,
         imam_name: mosque.imam_name ?? '',
+        existing_imam_id: mosque.imam_id ?? null,
         youtube_link: mosque.youtube_link ?? '',
         audio_sample: mosque.audio_sample ?? '',
       })
@@ -231,10 +221,12 @@ export default function MosqueForm({ mosque, onSubmit, isSubmitting }: MosqueFor
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <div>
             <label className={labelClass}>اسم الإمام</label>
-            <Input
-              {...register('imam_name')}
-              placeholder="الشيخ خالد الجليل"
-              className={inputClass}
+            <ImamCombobox
+              value={{ id: watch('existing_imam_id'), name: watch('imam_name') }}
+              onChange={({ id, name }) => {
+                setValue('imam_name', name, { shouldValidate: true })
+                setValue('existing_imam_id', id)
+              }}
             />
             <FieldError message={errors.imam_name?.message} />
           </div>

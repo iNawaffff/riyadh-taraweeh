@@ -115,8 +115,19 @@ def admin_create_mosque():
     )
     db.session.add(mosque)
     db.session.flush()
+    existing_imam_id = data.get("existing_imam_id")
     imam_name = data.get("imam_name", "").strip()
-    if imam_name:
+    if existing_imam_id:
+        imam = Imam.query.get(existing_imam_id)
+        if not imam:
+            db.session.rollback()
+            return jsonify({"error": "الإمام غير موجود"}), 404
+        imam.mosque_id = mosque.id
+        if data.get("audio_sample", "").strip():
+            imam.audio_sample = data["audio_sample"].strip()
+        if data.get("youtube_link", "").strip():
+            imam.youtube_link = data["youtube_link"].strip()
+    elif imam_name:
         imam = Imam(
             name=imam_name, mosque_id=mosque.id,
             audio_sample=data.get("audio_sample", "").strip() or None,
@@ -150,21 +161,34 @@ def admin_update_mosque(mosque_id):
     if "longitude" in data:
         mosque.longitude = data["longitude"]
 
-    imam = Imam.query.filter_by(mosque_id=mosque.id).first()
+    current_imam = Imam.query.filter_by(mosque_id=mosque.id).first()
+    existing_imam_id = data.get("existing_imam_id")
     imam_name = data.get("imam_name", "").strip() if "imam_name" in data else None
-    if imam_name is not None:
+
+    if existing_imam_id:
+        new_imam = Imam.query.get(existing_imam_id)
+        if not new_imam:
+            return jsonify({"error": "الإمام غير موجود"}), 404
+        if current_imam and current_imam.id != existing_imam_id:
+            current_imam.mosque_id = None
+        new_imam.mosque_id = mosque.id
+        if "audio_sample" in data:
+            new_imam.audio_sample = data["audio_sample"].strip() or None
+        if "youtube_link" in data:
+            new_imam.youtube_link = data["youtube_link"].strip() or None
+    elif imam_name is not None:
         if imam_name:
-            if imam:
-                imam.name = imam_name
+            if current_imam:
+                current_imam.name = imam_name
             else:
-                imam = Imam(name=imam_name, mosque_id=mosque.id)
-                db.session.add(imam)
-        elif imam:
-            imam.mosque_id = None
-    if imam and "audio_sample" in data:
-        imam.audio_sample = data["audio_sample"].strip() or None
-    if imam and "youtube_link" in data:
-        imam.youtube_link = data["youtube_link"].strip() or None
+                current_imam = Imam(name=imam_name, mosque_id=mosque.id)
+                db.session.add(current_imam)
+        elif current_imam:
+            current_imam.mosque_id = None
+        if current_imam and "audio_sample" in data:
+            current_imam.audio_sample = data["audio_sample"].strip() or None
+        if current_imam and "youtube_link" in data:
+            current_imam.youtube_link = data["youtube_link"].strip() or None
     db.session.commit()
     invalidate_caches()
     return jsonify({"success": True})
